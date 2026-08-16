@@ -1,0 +1,24 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Third-party game source, downloaded on demand.
+# Reproduce with: uv run scripts/fetch_games.py
+environment_files/
+
+# Engine run artifacts
+recordings/
+scorecards/
+
+# Our own outputs
+episodes/
+corpus/
+checkpoints/
+runs/
