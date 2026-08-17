@@ -32,6 +32,7 @@ from sentinel.wm.contract import (
     validate_rendered,
 )
 
+from .region import active_region
 from .report import CellStats, StepResult, VerificationReport
 
 
@@ -46,8 +47,18 @@ def observed_outcome(obs: Observation, previous: Observation | None) -> Outcome:
     return Outcome.ONGOING
 
 
-def compare(rendered: Any, actual: Grid) -> tuple[CellStats, bool]:
+def compare(
+    rendered: Any,
+    actual: Grid,
+    region: frozenset[tuple[int, int]] | None = None,
+) -> tuple[CellStats, bool]:
     """Score one predicted grid against the observed one.
+
+    Restricted to `region` when given — the cells that carry information
+    about this world. Scoring the full 64x64 frame pays for predicting dead
+    background, which is 96% of it: a model abstaining on the entire
+    playfield measured 0.93 fitness against a perfect 1.00 before this was
+    fixed.
 
     Abstained cells are excluded from accuracy and counted against
     coverage. `frame_match` is True only if every predicted cell is right,
@@ -56,29 +67,53 @@ def compare(rendered: Any, actual: Grid) -> tuple[CellStats, bool]:
     total = 0
     predicted = 0
     correct = 0
-    for row_pred, row_actual in zip(rendered, actual):
-        for cell_pred, cell_actual in zip(row_pred, row_actual):
+
+    if region is None:
+        for row_pred, row_actual in zip(rendered, actual):
+            for cell_pred, cell_actual in zip(row_pred, row_actual):
+                total += 1
+                if cell_pred == ABSTAIN:
+                    continue
+                predicted += 1
+                if cell_pred == cell_actual:
+                    correct += 1
+    else:
+        for x, y in region:
             total += 1
+            cell_pred = rendered[y][x]
             if cell_pred == ABSTAIN:
                 continue
             predicted += 1
-            if cell_pred == cell_actual:
+            if cell_pred == actual[y][x]:
                 correct += 1
+
     return CellStats(total=total, predicted=predicted, correct=correct), correct == predicted
 
 
 class Verifier:
     """Replays histories through world models."""
 
-    def __init__(self, strict_render: bool = True, stop_on_crash: bool = True) -> None:
+    def __init__(
+        self,
+        strict_render: bool = True,
+        stop_on_crash: bool = True,
+        score_active_region: bool = True,
+    ) -> None:
         self.strict_render = strict_render
         self.stop_on_crash = stop_on_crash
+        self.score_active_region = score_active_region
+        """Restrict scoring to cells that carry information.
+
+        Off only for diagnostics. With it off, abstaining on the whole
+        playfield scores 0.93 — see verify/region.py.
+        """
 
     def verify(self, model: WorldModel, history: History) -> VerificationReport:
         """Score `model` against `history`."""
         steps: list[StepResult] = []
         crashed = False
         crash_detail: str | None = None
+        region = active_region(history) if self.score_active_region else None
 
         try:
             state = model.init_state()
@@ -109,6 +144,7 @@ class Verifier:
         initial_result, state, err = self._score_frame(
             model, state, index=0, action=None,
             actual=history.initial, previous=None, scored=True, boundary=False,
+            region=region,
         )
         steps.append(initial_result)
         if err and self.stop_on_crash:
@@ -148,7 +184,7 @@ class Verifier:
             result, state, err = self._score_frame(
                 model, state, index=step.index + 1, action=step.action,
                 actual=actual, previous=previous_obs,
-                scored=not boundary, boundary=boundary,
+                scored=not boundary, boundary=boundary, region=region,
             )
             steps.append(result)
 
@@ -191,6 +227,7 @@ class Verifier:
         previous: Observation | None,
         scored: bool,
         boundary: bool,
+        region: frozenset[tuple[int, int]] | None = None,
     ) -> tuple[StepResult, Any, str | None]:
         """Render and classify one state; never raises."""
         actual_outcome = observed_outcome(actual, previous)
@@ -227,7 +264,7 @@ class Verifier:
                 detail,
             )
 
-        cells, frame_match = compare(rendered, actual.grid)
+        cells, frame_match = compare(rendered, actual.grid, region)
         return (
             StepResult(
                 index=index, action=action, cells=cells,

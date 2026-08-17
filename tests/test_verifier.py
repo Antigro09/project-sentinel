@@ -158,11 +158,16 @@ def test_verifier_catches_every_injected_bug(spec, toy) -> None:
 def test_hidden_state_denial_is_caught(toy) -> None:
     """The most important negative control in the project.
 
-    `GridOnlyToyModel` refuses to posit unobserved structure. It is right
-    about 99.9% of *cells* — the grid is mostly background — while being
-    wrong on nearly every *frame*. If accuracy alone were the score, it
-    would read as essentially correct, and the claim that understanding
-    requires hidden state would be untestable.
+    `GridOnlyToyModel` refuses to posit unobserved structure. Its cell
+    accuracy stays high — most of the active region is static walls and
+    hazards it copies correctly — while it is wrong on nearly every
+    *frame*, because the one cell it gets wrong is the agent. If accuracy
+    alone were the score, it would read as essentially correct, and the
+    claim that understanding requires hidden state would be untestable.
+
+    The accuracy figure here used to be 99.9%, inflated by 96% of the frame
+    being dead background. Scoring the active region only brought it down
+    to ~98% — still deceptively high, which is the whole point.
     """
     history, levels = toy
     exact = verify(ToyModel(levels), history)
@@ -170,9 +175,61 @@ def test_hidden_state_denial_is_caught(toy) -> None:
 
     assert exact.is_perfect
     assert not blind.is_perfect
-    assert blind.accuracy > 0.99, "the trap: cell accuracy stays near-perfect"
+    assert blind.accuracy > 0.95, "the trap: cell accuracy stays deceptively high"
     assert blind.transition_match < 0.5, "but frame-level match must collapse"
     assert blind.first_divergence is not None
+
+
+def test_predicting_only_background_earns_nothing(toy) -> None:
+    """THE REWARD-HOLE REGRESSION TEST.
+
+    A model that abstains on the entire playfield and predicts only dead
+    background knows nothing. Before scoring was restricted to the active
+    region it measured 0.93 fitness against a perfect 1.00, because
+    abstaining on everything that matters cost only ~4% coverage while
+    every background zero it predicted counted as correct.
+
+    The teacher never exploited that. Gradient descent in Phase 3 would
+    have, and would have learned to stay silent about everything important.
+    """
+    from sentinel.wm.contract import ABSTAIN, Outcome, WorldModel
+
+    history, levels = toy
+    field = 16  # toy playfield size
+
+    class BackgroundOnly(WorldModel):
+        name = "background-only"
+
+        def init_state(self):
+            return 0
+
+        def transition(self, state, action):
+            return state + 1
+
+        def render(self, state):
+            return tuple(
+                tuple(0 if (x >= field or y >= field) else ABSTAIN for x in range(64))
+                for y in range(64)
+            )
+
+        def outcome(self, state):
+            return Outcome.ONGOING
+
+        def reset_to(self, state):
+            return state
+
+    report = verify(BackgroundOnly(), history)
+    assert report.coverage == 0.0, "abstaining on the playfield must cost all coverage"
+    assert report.fitness == 0.0, "knowing nothing must score nothing"
+    assert not report.is_perfect
+
+
+def test_active_region_excludes_dead_background(toy) -> None:
+    from sentinel.verify.region import active_region
+
+    history, _ = toy
+    region = active_region(history)
+    assert 0 < len(region) < 64 * 64 * 0.5, "region should be a small fraction of frame"
 
 
 def test_unexercised_channels_are_reported_not_hidden() -> None:
