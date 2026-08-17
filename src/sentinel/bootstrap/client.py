@@ -107,6 +107,14 @@ class OllamaClient:
     spends 10.6k characters and 3.6k tokens. Low is the right default for
     bulk generation; the teacher escalates on repair rounds, where the
     extra thought is actually buying something."""
+    keep_alive: str = "2h"
+    """How long Ollama keeps the model resident between calls.
+
+    The default is 5 minutes. A world takes ~3 minutes, so a single slow
+    one — a long container verify, a retry — can let a 65GB model unload
+    and pay a cold reload on the next call. Holding it resident for the
+    length of a run costs nothing extra: the memory is already committed.
+    """
     timeout: float = 900.0
     usage: UsageTally = field(default_factory=UsageTally)
 
@@ -136,6 +144,7 @@ class OllamaClient:
             "model": self.model,
             "prompt": prompt,
             "stream": False,
+            "keep_alive": self.keep_alive,
             "options": {
                 "temperature": self.temperature if temperature is None else temperature,
                 "num_predict": self.num_predict,

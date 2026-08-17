@@ -84,8 +84,18 @@ class Sandbox:
     image: str = IMAGE
     memory: str = "512m"
     cpus: str = "1"
-    wall_timeout: float = 90.0
+    wall_timeout: float = 120.0
+    """Hard ceiling on one container, including startup.
+
+    Deliberately larger than it first appears necessary. Verification makes
+    three model calls per recorded step, so a 52-step history is ~156 calls;
+    at the 2s per-call guard a slow-but-finite model could legitimately need
+    minutes. A fixed 90s would have killed those containers and recorded
+    them as failures, which reads as "the model is broken" rather than "the
+    model is slow". `timeout_for` scales this with history length.
+    """
     model_timeout: float = 2.0
+    """Per-call guard inside the container, enforced by SIGALRM."""
 
     def __post_init__(self) -> None:
         if self.mode == "inprocess":
@@ -107,6 +117,15 @@ class Sandbox:
         if not self.isolated:
             return "in-process (NOT isolated — generated code runs with full privileges)"
         return f"{self.runtime} + {self.image} (network=none, mem={self.memory})"
+
+    def timeout_for(self, history: History) -> float:
+        """Wall budget scaled to how much work this verification actually is.
+
+        A long history means more model calls, so a flat timeout punishes
+        long episodes for being long. Capped so one pathological model
+        cannot eat an hour of an overnight run.
+        """
+        return min(600.0, max(self.wall_timeout, 20.0 + 1.5 * len(history.steps)))
 
     def image_present(self) -> bool:
         if not self.runtime:
@@ -191,20 +210,22 @@ class Sandbox:
             "/app/src/sentinel/bootstrap/_sandbox_worker.py",
         ]
 
+        budget = self.timeout_for(history)
         try:
             completed = subprocess.run(
                 command,
                 input=job,
                 capture_output=True,
                 text=True,
-                timeout=self.wall_timeout,
+                timeout=budget,
                 check=False,
             )
         except subprocess.TimeoutExpired:
-            # The container is killed with it; --rm cleans up. A model that
-            # cannot answer within the wall budget is not a usable model.
+            # --rm cleans the container up. A model that cannot answer within
+            # the wall budget is not a usable model, so this is a result
+            # rather than an error.
             return SandboxResult(
-                False, None, f"container exceeded {self.wall_timeout:g}s", "verify", True
+                False, None, f"container exceeded {budget:g}s", "verify", True
             )
         except Exception as exc:  # noqa: BLE001
             return SandboxResult(False, None, f"{type(exc).__name__}: {exc}", "runtime", True)
