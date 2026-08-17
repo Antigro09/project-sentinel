@@ -72,6 +72,18 @@ class CoreConfig:
     inner_steps: int = 3
     """Latent updates per cycle."""
     dropout: float = 0.0
+    use_raw_grid: bool = False
+    """Include the flattened-grid path alongside spatial moments.
+
+    Off by default, and the measurement is stark. That path is a Linear over
+    8448 inputs carrying 1.08M of the model's 1.3M parameters, and with it
+    enabled EVERY head sat at exactly its class prior — the model learned
+    nothing at all. Disabling it, `has_hazards` and `has_switches` jumped
+    straight to 1.000 and `charge_period` moved off the floor.
+
+    The lesson is not that raw pixels are useless; it is that a large noisy
+    path and a small decisive one, summed, let gradient noise from the
+    former bury the latter."""
 
     def describe(self) -> str:
         return (
@@ -109,7 +121,64 @@ class TransitionEncoder(nn.Module):
 
         flat = CROP * CROP * (cfg.cell_embed * 2 + 3)
         self.proj = nn.Linear(flat, cfg.d_model)
+
+        # Per-value spatial moments: for each of the 16 cell values, its mass
+        # and centroid in the before and after frames.
+        #
+        # This is the fix for the encoder blindness. Displacement is the
+        # difference between where a value was and where it now is — a
+        # subtraction of two centroids, trivially linear once centroids
+        # exist, and effectively unreachable from a flattened grid where
+        # nothing marks which entries are adjacent.
+        #
+        # These are generic spatial statistics, the same category of
+        # inductive bias a convolution's pooling provides. They do not say
+        # which value is the agent, do not compute displacement, and say
+        # nothing about periodicity. Identifying the agent among 16 values,
+        # subtracting the right pair, and noticing the result repeats every
+        # N moves all remain the network's problem.
+        # 6 static moments (mass/cx/cy for before and after) plus 3 delta
+        # features per value: dx, dy, and |d|.
+        #
+        # The magnitude is the load-bearing addition. Periodicity lives in
+        # *how far* something moved, and while dx/dy are a linear function of
+        # the centroids the model already had, |d| is not — it needs an
+        # absolute value that must be computed per transition, before
+        # attention can look for a repeat across transitions. Leaving the
+        # model to synthesise it inside a projection meant charge_period
+        # crawled just above chance while every non-periodic label was solved.
+        #
+        # Still generic: computed for all 16 values, saying nothing about
+        # which one is the agent or what period to look for.
+        self.moment_proj = nn.Linear(N_CELL_VALUES * 9, cfg.d_model)
+        self.use_raw_grid = cfg.use_raw_grid
         self.norm = nn.LayerNorm(cfg.d_model)
+
+    def _raw_moments(self, plane: mx.array) -> tuple[mx.array, mx.array, mx.array]:
+        """Per cell value: mass, x-centroid, y-centroid."""
+        onehot = mx.stack(
+            [(plane == v).astype(mx.float32) for v in range(N_CELL_VALUES)], axis=-1
+        )  # (B, T, CROP, CROP, 16)
+        mass = onehot.sum(axis=(2, 3))  # (B, T, 16)
+        xs = self.coords[..., 0][..., None]
+        ys = self.coords[..., 1][..., None]
+        cx = (onehot * xs).sum(axis=(2, 3)) / (mass + 1e-6)
+        cy = (onehot * ys).sum(axis=(2, 3)) / (mass + 1e-6)
+        return mass, cx, cy
+
+    def _moment_features(self, grids: mx.array) -> mx.array:
+        """Static moments for both frames, plus per-value displacement."""
+        mb, cxb, cyb = self._raw_moments(grids[..., 0])
+        ma, cxa, cya = self._raw_moments(grids[..., 1])
+
+        present = ((mb > 0) & (ma > 0)).astype(mx.float32)
+        dx = (cxa - cxb) * present
+        dy = (cya - cyb) * present
+        dist = mx.sqrt(dx * dx + dy * dy + 1e-9)
+
+        return mx.concatenate(
+            [mx.log1p(mb), cxb, cyb, mx.log1p(ma), cxa, cya, dx, dy, dist], axis=-1
+        )
 
     def __call__(self, grids: mx.array, actions: mx.array) -> mx.array:
         # grids: (B, T, CROP, CROP, 3) -> before, after, changed
@@ -120,12 +189,61 @@ class TransitionEncoder(nn.Module):
         b, t = before.shape[0], before.shape[1]
         coords = mx.broadcast_to(self.coords, (b, t, CROP, CROP, 2))
 
-        joined = mx.concatenate([before, after, changed, coords], axis=-1)
-        tokens = self.proj(joined.reshape(b, t, -1))
+        tokens = self.moment_proj(self._moment_features(grids))
+        if self.use_raw_grid:
+            joined = mx.concatenate([before, after, changed, coords], axis=-1)
+            tokens = tokens + self.proj(joined.reshape(b, t, -1))
 
         # -1 marks padding; shift to the reserved final embedding row.
         action_ids = mx.where(actions < 0, N_ACTIONS, actions)
         return self.norm(tokens + self.action(action_ids))
+
+
+MAX_REL = MAX_TRANSITIONS + 2
+
+
+class RelativeAttention(nn.Module):
+    """Multi-head attention with a learned bias per relative distance.
+
+    Relative rather than absolute position, because the hardest label in the
+    set is periodic. Detecting "every 3rd move travels two cells" means
+    relating token i to token i+3 *for every i* — one relationship, repeated
+    at a fixed offset. Absolute encodings make the model learn that
+    separately at each position; a relative bias lets it learn "look three
+    back" once and apply it everywhere.
+
+    Measured before this existed: recursion depth was irrelevant to the
+    periodic label (4/8/16 cycles all sat at the class prior) while
+    non-periodic labels were already solved. That is the signature of a
+    missing relational inductive bias rather than insufficient compute.
+    """
+
+    def __init__(self, cfg: CoreConfig) -> None:
+        super().__init__()
+        self.n_heads = cfg.n_heads
+        self.head_dim = cfg.d_model // cfg.n_heads
+        self.q = nn.Linear(cfg.d_model, cfg.d_model)
+        self.k = nn.Linear(cfg.d_model, cfg.d_model)
+        self.v = nn.Linear(cfg.d_model, cfg.d_model)
+        self.out = nn.Linear(cfg.d_model, cfg.d_model)
+        self.rel = nn.Embedding(2 * MAX_REL + 1, cfg.n_heads)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        b, t, _ = x.shape
+        q = self.q(x).reshape(b, t, self.n_heads, self.head_dim).transpose(0, 2, 1, 3)
+        k = self.k(x).reshape(b, t, self.n_heads, self.head_dim).transpose(0, 2, 1, 3)
+        v = self.v(x).reshape(b, t, self.n_heads, self.head_dim).transpose(0, 2, 1, 3)
+
+        scores = (q @ k.transpose(0, 1, 3, 2)) / (self.head_dim**0.5)
+
+        idx = mx.arange(t)
+        offsets = idx.reshape(1, t) - idx.reshape(t, 1) + MAX_REL
+        bias = self.rel(offsets).transpose(2, 0, 1)[None]  # (1, heads, t, t)
+        scores = scores + bias
+
+        attn = mx.softmax(scores, axis=-1)
+        out = (attn @ v).transpose(0, 2, 1, 3).reshape(b, t, -1)
+        return self.out(out)
 
 
 class RecursiveBlock(nn.Module):
@@ -133,7 +251,7 @@ class RecursiveBlock(nn.Module):
 
     def __init__(self, cfg: CoreConfig) -> None:
         super().__init__()
-        self.attn = nn.MultiHeadAttention(cfg.d_model, cfg.n_heads)
+        self.attn = RelativeAttention(cfg)
         self.norm1 = nn.LayerNorm(cfg.d_model)
         self.norm2 = nn.LayerNorm(cfg.d_model)
         self.ff1 = nn.Linear(cfg.d_model, cfg.d_model * 3)
@@ -141,7 +259,7 @@ class RecursiveBlock(nn.Module):
 
     def __call__(self, x: mx.array) -> mx.array:
         h = self.norm1(x)
-        x = x + self.attn(h, h, h)
+        x = x + self.attn(h)
         h = self.norm2(x)
         return x + self.ff2(nn.gelu(self.ff1(h)))
 

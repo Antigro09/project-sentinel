@@ -105,9 +105,15 @@ def main() -> int:
     seed_set = load_dataset(paths["holdout_seed"])
     mech_set = load_dataset(paths["holdout_mechanics"])
 
+    # Early-stop against held-out SEEDS, never against held-out mechanics.
+    # Two reasons. Tuning on the mechanics set is test-set leakage — it is
+    # the thing the gate judges. And charge_period is not even measurable
+    # there: the withheld combinations happen to contain no period-4 worlds,
+    # so a model predicting the training majority scores exactly 0.000 and
+    # the stopping signal is pure artifact.
     model, _ = train(
         train_set,
-        mech_set,
+        seed_set,
         core_config=CoreConfig(d_model=args.d_model, cycles=args.cycles),
         train_config=TrainConfig(
             epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr
