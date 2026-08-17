@@ -55,13 +55,43 @@ from sentinel.gen.grid import (
 )
 from sentinel.gen.grid import GridState, initial_state
 from sentinel.gen.grid import GridState
+from sentinel.gen.grid import GridState
 from sentinel.gen.spec import LevelSpec, Mechanics, WorldSpec
+from sentinel.wm.contract import Outcome
 from sentinel.plan import BFSPlanner, PlanExecutor
 
 from .encoding import encode_history
 from .model import TinyRecursiveCore
 
 CHARGE_FROM_CLASS = {0: None, 1: 3, 2: 4}
+
+
+class CollectOneModel(GridWorldModel):
+    """Sees the whole level; treats collecting any one target as success.
+
+    Both halves are load-bearing, and getting the first wrong is what made
+    ordered worlds unsolvable. Aiming at one target by building a level that
+    CONTAINS only that target makes the renderer omit every other target —
+    so the model predicts background where reality shows a target and the
+    plan diverges before the agent has moved. Traced directly: at a level
+    start the model mispredicted exactly the two cells holding the targets
+    it had been told to ignore.
+
+    The goal still shrinks to one target, because under ordered objectives
+    the required sequence is unobservable and can only be found by trying.
+    So the level stays whole and only the goal narrows.
+    """
+
+    def __init__(self, spec: WorldSpec, level_index: int = 0) -> None:
+        super().__init__(spec, level_index)
+        self.target_total = len(spec.levels[level_index].targets)
+
+    def outcome(self, state):
+        if state.dead:
+            return Outcome.GAME_OVER
+        if state.cleared or len(state.remaining) < self.target_total:
+            return Outcome.LEVEL_COMPLETE
+        return Outcome.ONGOING
 
 
 def read_layout(grid, field_size: int) -> LevelSpec:
@@ -236,22 +266,52 @@ def run_episode(
             if not current.targets:
                 break
             aim = chosen if set(chosen) <= set(current.targets) else (current.targets[0],)
+            # The level the model sees must match the level reality shows.
+            # Only the ORDER changes: the candidate goes first, so under
+            # ordered rules the model requires it before any other.
+            rest = tuple(t for t in current.targets if t not in set(chosen))
             attempt = LevelSpec(
                 start=current.start,
                 walls=current.walls,
                 hazards=current.hazards,
-                targets=aim,
+                targets=tuple(chosen) + rest,
                 switches=current.switches,
                 gates=current.gates,
             )
-            model = GridWorldModel(_spec_with(spec, mechanics, attempt, 0), level_index=0)
+            model = CollectOneModel(_spec_with(spec, mechanics, attempt, 0), level_index=0)
 
-            plan = planner.plan(model, start=model.init_state())
+            # Seed the hidden counter with the moves already made ON THIS
+            # LEVEL. No frame shows the counter, but the agent knows its own
+            # history, and remembering your own moves is not cheating.
+            #
+            # Per level, not cumulative: the real counter resets at every
+            # level boundary, and seeding it from the running total was
+            # measurably worse than not seeding at all. This matters more now
+            # that the goal is one target at a time, since each extra replan
+            # is another chance to restart the phase at the wrong point.
+            start_state = model.init_state()
+            if mechanics.charge_period:
+                start_state = GridState(
+                    level=start_state.level,
+                    x=start_state.x,
+                    y=start_state.y,
+                    collected=start_state.collected,
+                    remaining=start_state.remaining,
+                    charge=actions_this_level,
+                    gates_open=start_state.gates_open,
+                    dead=start_state.dead,
+                    cleared=start_state.cleared,
+                )
+            plan = planner.plan(model, start=start_state)
             if plan is None:
                 continue
 
             result = executor.execute(plan, world.step, lambda: world.done)
             actions_used += result.executed
+            actions_this_level += result.executed
+            if world.history.last.levels_completed != level_marker:
+                level_marker = world.history.last.levels_completed
+                actions_this_level = 0
             actions_this_level += result.executed
             if world.history.last.levels_completed != level_marker:
                 level_marker = world.history.last.levels_completed

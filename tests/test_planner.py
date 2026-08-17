@@ -182,3 +182,65 @@ def test_partial_model_beats_knowing_nothing() -> None:
 
     assert partial.fitness > static.fitness > nothing.fitness
     assert partial.transition_match > static.transition_match
+
+
+# --------------------------------------------------------------------------
+# The closed loop
+# --------------------------------------------------------------------------
+
+
+def test_agent_model_renders_every_target() -> None:
+    """THE ORDERED-TARGETS REGRESSION TEST.
+
+    When aiming at one target at a time, the model must still render the
+    whole level. Building a level containing only the target being pursued
+    makes the renderer omit the others, so the model predicts background
+    where reality shows a target and the plan diverges before the agent has
+    moved. That single bug held ordered worlds to 1/25 while every other
+    rule combination solved 25/25.
+    """
+    from sentinel.core.agent import CollectOneModel, read_layout
+    from sentinel.gen import GridWorld, generate
+    from sentinel.gen.spec import LevelSpec, WorldSpec
+    from sentinel.verify.verifier import compare
+
+    spec = next(
+        s
+        for s in (generate(i) for i in range(40))
+        if s and s.mechanics.ordered_targets and len(s.levels[0].targets) > 1
+    )
+    world = GridWorld(spec)
+    world.reset()
+    observed = read_layout(world.history.last.grid, spec.field_size)
+
+    # Aim at the second target; the first must still be drawn.
+    chosen = (observed.targets[1],)
+    rest = tuple(t for t in observed.targets if t not in set(chosen))
+    level = LevelSpec(
+        start=observed.start,
+        walls=observed.walls,
+        hazards=observed.hazards,
+        targets=chosen + rest,
+        switches=observed.switches,
+        gates=observed.gates,
+    )
+    believed = WorldSpec(
+        world_id=spec.world_id,
+        seed=spec.seed,
+        field_size=spec.field_size,
+        mechanics=spec.mechanics,
+        levels=(level,),
+    )
+    model = CollectOneModel(believed, level_index=0)
+    _, matched = compare(model.render(model.init_state()), world.history.last.grid)
+    assert matched, "model must reproduce the opening frame exactly, all targets included"
+
+
+def test_agent_solves_worlds_given_true_rules() -> None:
+    """With correct rules the loop must actually solve things."""
+    from sentinel.core.agent import run_episode
+    from sentinel.gen import generate
+
+    specs = [s for s in (generate(i) for i in range(30)) if s is not None][:12]
+    solved = sum(run_episode(s, s.mechanics, seed=0).solved for s in specs)
+    assert solved >= 4, f"only {solved}/{len(specs)} solved with true mechanics"
