@@ -53,14 +53,14 @@ src/sentinel/
   wm/         executable world models — Python as falsifiable hypotheses  [built]
   verify/     replay verifier — the reward signal everything rests on     [built]
   plan/       BFS search inside the model + divergence-checking executor  [built]
-  gen/        environment generator — toy world today, thousands later    [seeded]
+  gen/        procedural environment generator, 26 mechanic combinations  [built]
+  bootstrap/  LLM teacher: propose → verify → repair, and its removal     [built]
   core/       tiny recursive reasoner, trained from scratch
   adapt/      test-time training
   memory/     skill library + continual learning
   evolve/     scaffold self-modification
-  bootstrap/  LLM teacher, progressively removed
-scripts/      fetch_games.py, bench_engine.py
-tests/        determinism, verifier gate, planner
+scripts/      fetch_games.py, bench_engine.py, build_corpus.py
+tests/        determinism, verifier gate, planner, generator, bootstrap
 ```
 
 Nothing above `env/` imports the ARC engine. That boundary is deliberate:
