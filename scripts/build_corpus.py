@@ -29,6 +29,14 @@ import sys
 import time
 from pathlib import Path
 
+# Unbuffered from the first line. Python block-buffers stdout when it is
+# redirected to a log file, so the startup banner and the world-generation
+# progress -- which can run for tens of minutes on a large split -- would
+# sit invisible in a buffer. An empty log is indistinguishable from a hung
+# process, which is the single worst thing an unattended run can look like.
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 from sentinel.bootstrap import (
     TEACHER_MODEL,
     CorpusRecord,
@@ -162,7 +170,12 @@ def main() -> int:
             print(f"Could not read {cache_path} ({exc}); regenerating")
 
     if work is None:
-        print("Generating worlds (each is BFS-verified solvable before use)...")
+        total = args.n_train + args.n_holdout_seed + args.n_holdout_mechanics
+        print(
+            f"Generating {total} worlds (each BFS-verified solvable before use).\n"
+            f"  This takes roughly {total * 1.0 / 60:.0f} min and is cached, so it "
+            "is paid once across all future runs."
+        )
         started = time.perf_counter()
         split = make_split(
             n_train=args.n_train,
