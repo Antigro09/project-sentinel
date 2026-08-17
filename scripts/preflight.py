@@ -135,6 +135,10 @@ def check_sandbox(mode: str) -> bool:
         "def render(state):\n    return [list(r) for r in INITIAL_GRID]\n"
         "def outcome(state):\n    return 'ongoing'\n"
     )
+    # Warm up first. The very first container of a session pays Docker's VM
+    # cold start -- measured at 6.3s against a 0.31s steady state -- and
+    # reporting that number would badly misrepresent the per-world cost.
+    result = box.verify(source, history, name="preflight-warmup")
     started = time.perf_counter()
     result = box.verify(source, history, name="preflight")
     elapsed = time.perf_counter() - started
@@ -152,8 +156,8 @@ def check_sandbox(mode: str) -> bool:
     record(
         PASS,
         "sandbox verify",
-        f"{elapsed:.1f}s per call, coverage={result.report.coverage:.0%}, "
-        f"isolated={result.isolated}",
+        f"{elapsed:.2f}s per call steady-state ({elapsed * 3:.1f}s per world), "
+        f"coverage={result.report.coverage:.0%}, isolated={result.isolated}",
     )
 
     # A model that never returns must be killed, not allowed to hang the run.

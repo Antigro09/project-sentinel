@@ -91,6 +91,16 @@ def main() -> int:
         help="cache generated world specs here so resumes skip regeneration",
     )
     parser.add_argument(
+        "--max-hours",
+        type=float,
+        default=None,
+        help=(
+            "stop cleanly after this many hours. The corpus is designed to "
+            "accumulate across sessions, so this bounds one night's work "
+            "rather than the whole target -- re-run to continue"
+        ),
+    )
+    parser.add_argument(
         "--abort-after",
         type=int,
         default=8,
@@ -105,6 +115,7 @@ def main() -> int:
         help="tiny run to validate the pipeline (8 train, 2+2 holdout)",
     )
     args = parser.parse_args()
+    session_started = time.perf_counter()
 
     if args.smoke:
         args.n_train, args.n_holdout_seed, args.n_holdout_mechanics = 8, 2, 2
@@ -225,10 +236,37 @@ def main() -> int:
     usable = 0
     consecutive_failures = 0
     aborted = False
+    stopped_on_time = False
     run_started = time.perf_counter()
+
+    # Based on session start, not loop start. World generation runs first and
+    # can take tens of minutes on a large split; anchoring the deadline after
+    # it would quietly overrun the budget the caller actually asked for.
+    deadline = (
+        session_started + args.max_hours * 3600 if args.max_hours else None
+    )
+    if deadline:
+        print(
+            f"Will stop cleanly after {args.max_hours:g}h; "
+            f"re-run the same command to continue.\n",
+            flush=True,
+        )
 
     with CorpusWriter(args.out) as writer:
         for i, (split_name, spec) in enumerate(todo, start=1):
+            # Checked before starting a world, not during. A world takes ~3
+            # minutes, so stopping between them costs almost nothing and
+            # avoids discarding partial work or writing a torn record.
+            if deadline and time.perf_counter() >= deadline:
+                print(
+                    f"\nTime limit reached after {i - 1} worlds this session.\n"
+                    f"Progress saved to {args.out}; re-run to continue where "
+                    "this left off.",
+                    flush=True,
+                )
+                stopped_on_time = True
+                break
+
             result = teacher.induce_world(spec, seed=args.seed)
             record = CorpusRecord.from_result(spec, split_name, result)
             writer.append(record)
@@ -273,12 +311,29 @@ def main() -> int:
 
     print()
     print("=" * 70)
-    print(corpus_stats(read_corpus(args.out)))
+    all_records = read_corpus(args.out)
+    print(corpus_stats(all_records))
     print(client.usage.summary())
     print(f"written to {args.out}")
 
+    remaining = len(work) - len(all_records)
+    if remaining > 0:
+        elapsed_hours = (time.perf_counter() - run_started) / 3600
+        done_this_session = len(all_records) - len(already)
+        if done_this_session > 0 and elapsed_hours > 0:
+            rate = done_this_session / elapsed_hours
+            print(
+                f"\n{remaining} worlds remain "
+                f"(~{remaining / rate:.1f}h at {rate:.0f} worlds/hour). "
+                "Re-run the same command to continue."
+            )
+        else:
+            print(f"\n{remaining} worlds remain. Re-run to continue.")
+
     if aborted:
         return 3
+    if stopped_on_time:
+        return 0
     if usable == 0 and todo:
         print(
             "\nKILL CRITERION HIT: the teacher produced no usable model for any "
