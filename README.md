@@ -50,28 +50,54 @@ the effective column, not the raw one.
 ```
 src/sentinel/
   env/        environment boundary — typed history, deterministic replay  [built]
-  wm/         executable world models — Python as falsifiable hypotheses
-  verify/     replay verifier — the reward signal everything rests on
+  wm/         executable world models — Python as falsifiable hypotheses  [built]
+  verify/     replay verifier — the reward signal everything rests on     [built]
+  plan/       BFS search inside the model + divergence-checking executor  [built]
+  gen/        environment generator — toy world today, thousands later    [seeded]
   core/       tiny recursive reasoner, trained from scratch
   adapt/      test-time training
   memory/     skill library + continual learning
   evolve/     scaffold self-modification
-  gen/        procedural environment generator
   bootstrap/  LLM teacher, progressively removed
 scripts/      fetch_games.py, bench_engine.py
-tests/        Phase 0 determinism gate
+tests/        determinism, verifier gate, planner
 ```
 
 Nothing above `env/` imports the ARC engine. That boundary is deliberate:
 Phase 6 swaps a structurally different environment in behind it, and the
 transfer result is only meaningful if nothing upstream had to change.
+`gen/toy.py` is the first evidence it holds — it produces the same
+`History` type through none of the engine's code.
 
 ## Status
 
 **Phase 0 complete.** Engine verified offline, typed interaction history,
-deterministic replay proven by test (20 passing).
+deterministic replay proven by test.
 
-Next: Phase 1 — the verifier and the world-model contract. The gate is
-that the verifier must catch every deliberately injected bug in a
-hand-written model. If it can't cheaply tell good models from bad ones,
-the program has no reward signal and nothing after this point works.
+**Phase 1 complete.** 54 tests passing.
+
+- World-model contract: `init_state / transition / render / outcome`,
+  hidden state mandatory, per-cell abstention.
+- Verifier: accuracy, coverage and outcome reported independently.
+- **Gate met** — eight injected bugs, all detected.
+- End to end: model → BFS plan → act → 3/3 toy levels solved in 70
+  actions, zero learning, zero LLM calls.
+
+Three things measurement forced, recorded because they shaped the design:
+
+1. **You cannot falsify a claim your evidence never exercises.** The gate
+   first failed on two mutations because random play never completes a
+   level, making "levels never end" factually true on that history.
+   `verify/evidence.py` now reports untestable channels instead of passing
+   them silently.
+2. **Cell accuracy is a trap.** A model refusing to posit hidden state
+   scores 99.9% of cells and 10.3% of frames — the grid is mostly
+   background. Ranking on accuracy preferred a model that predicts nothing
+   ever moves over one that tracks the player correctly, so `fitness` is
+   built on `transition_match` instead.
+3. **Plans must be checked every step.** A model denying hidden state
+   produces a confident plan that reality refutes within 3 actions.
+
+Next: Phase 2 — the LLM proposer loop. The agent must now *induce* what
+was hand-written here. Reading game source was legitimate for a Phase 1
+baseline and is forbidden from here on.

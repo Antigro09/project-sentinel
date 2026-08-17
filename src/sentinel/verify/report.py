@@ -163,19 +163,26 @@ class VerificationReport:
     def fitness(self) -> float:
         """Single number for *ranking* candidates. Lossy by construction.
 
-        Exists because the proposer's escalation ladder and the planner's
-        model selection need a total order, and because a subtlety bites
-        otherwise: `transition_match` is vacuously 1.0 when a model
-        predicts nothing, since zero predicted cells are all trivially
-        correct. Multiplying accuracy by coverage removes that free ride —
-        an abstaining model scores 0 here, as it should.
+        Built from `transition_match`, not cell accuracy, and that choice
+        was forced by measurement. An earlier version used
+        `accuracy * coverage` and ranked a model that predicts "nothing
+        ever changes" *above* a hand-written model that correctly tracks
+        player movement — 0.978 against 0.826 on real ls20 play. Cell
+        accuracy in a sparse grid is dominated by unchanging background, so
+        understanding nothing about dynamics scores ~98% for free.
+
+        `transition_match` asks the question a planner actually cares
+        about: is the whole predicted frame right, so can I trust
+        simulating forward. Multiplying by coverage removes the other free
+        ride, since transition_match is vacuously 1.0 for a model that
+        predicts nothing at all.
 
         Never report this in place of the three components. It answers
         "which of these is better", not "how good is this".
         """
         if self.crashed:
             return 0.0
-        return self.accuracy * self.coverage * (0.5 + 0.5 * self.outcome_accuracy)
+        return self.transition_match * self.coverage * (0.5 + 0.5 * self.outcome_accuracy)
 
     @property
     def is_perfect(self) -> bool:
