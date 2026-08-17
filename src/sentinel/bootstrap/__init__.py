@@ -34,6 +34,7 @@ from .loader import (
     time_guard,
 )
 from .prompts import build_initial_prompt, build_repair_prompt, describe_history
+from .sandbox import Sandbox, SandboxResult, detect_runtime
 from .teacher import Attempt, InductionResult, Teacher, make_training_history
 
 __all__ = [
@@ -49,7 +50,10 @@ __all__ = [
     "LoadedModel",
     "ModelTimeout",
     "OllamaClient",
+    "Sandbox",
+    "SandboxResult",
     "Teacher",
+    "detect_runtime",
     "UsageTally",
     "build_initial_prompt",
     "build_repair_prompt",

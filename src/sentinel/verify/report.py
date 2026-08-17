@@ -51,6 +51,13 @@ class CellStats:
             correct=self.correct + other.correct,
         )
 
+    def to_json(self) -> list[int]:
+        return [self.total, self.predicted, self.correct]
+
+    @classmethod
+    def from_json(cls, d: list[int]) -> CellStats:
+        return cls(total=int(d[0]), predicted=int(d[1]), correct=int(d[2]))
+
 
 @dataclass(frozen=True, slots=True)
 class StepResult:
@@ -70,6 +77,37 @@ class StepResult:
     @property
     def outcome_correct(self) -> bool:
         return self.outcome_predicted == self.outcome_actual
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "index": self.index,
+            "action": self.action.to_json() if self.action else None,
+            "cells": self.cells.to_json(),
+            "frame_match": self.frame_match,
+            "outcome_predicted": (
+                self.outcome_predicted.value if self.outcome_predicted else None
+            ),
+            "outcome_actual": self.outcome_actual.value,
+            "scored": self.scored,
+            "boundary": self.boundary,
+            "error": self.error,
+        }
+
+    @classmethod
+    def from_json(cls, d: dict[str, Any]) -> StepResult:
+        return cls(
+            index=int(d["index"]),
+            action=Action.from_json(d["action"]) if d.get("action") else None,
+            cells=CellStats.from_json(d["cells"]),
+            frame_match=bool(d["frame_match"]),
+            outcome_predicted=(
+                Outcome(d["outcome_predicted"]) if d.get("outcome_predicted") else None
+            ),
+            outcome_actual=Outcome(d["outcome_actual"]),
+            scored=bool(d["scored"]),
+            boundary=bool(d.get("boundary", False)),
+            error=d.get("error"),
+        )
 
     def mismatch_summary(self) -> str:
         if self.error:
@@ -233,3 +271,25 @@ class VerificationReport:
             "crash_detail": self.crash_detail,
             "extra": dict(self.extra),
         }
+
+    def to_json_full(self) -> dict[str, Any]:
+        """Lossless form, including per-step detail.
+
+        `to_json` is a summary for the corpus; this is what crosses a
+        process or container boundary, because every headline metric is
+        *computed* from `steps` — a report rebuilt without them would
+        silently report zeros rather than fail.
+        """
+        return {**self.to_json(), "steps": [s.to_json() for s in self.steps]}
+
+    @classmethod
+    def from_json_full(cls, d: dict[str, Any]) -> VerificationReport:
+        return cls(
+            model_name=str(d.get("model_name", "generated")),
+            game_id=str(d.get("game_id", "")),
+            seed=int(d.get("seed", 0)),
+            steps=tuple(StepResult.from_json(s) for s in d.get("steps", [])),
+            crashed=bool(d.get("crashed", False)),
+            crash_detail=d.get("crash_detail"),
+            extra=dict(d.get("extra", {})),
+        )

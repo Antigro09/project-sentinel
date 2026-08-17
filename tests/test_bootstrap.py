@@ -251,6 +251,78 @@ def test_training_history_completes_levels() -> None:
         )
 
 
+# -- sandbox --------------------------------------------------------------
+
+
+def test_sandbox_auto_falls_back_without_runtime() -> None:
+    """The same call site must work before and after Docker is installed."""
+    from sentinel.bootstrap import Sandbox
+
+    box = Sandbox(mode="inprocess")
+    assert not box.isolated
+    assert "NOT isolated" in box.describe()
+
+
+def test_sandbox_strict_mode_refuses_to_downgrade() -> None:
+    """When isolation is required, silently running unprotected is the worst
+    possible outcome — louder to fail."""
+    from sentinel.bootstrap import Sandbox, detect_runtime
+
+    if detect_runtime() is not None:
+        pytest.skip("a container runtime is available; nothing to refuse")
+    with pytest.raises(RuntimeError, match="no working container runtime"):
+        Sandbox(mode="docker")
+
+
+def test_sandbox_returns_live_metrics() -> None:
+    """A report crossing a boundary must not rebuild as zeros.
+
+    Every headline metric is computed from `steps`, so transporting a report
+    without them would report a perfect-looking 0.0 for everything.
+    """
+    from sentinel.bootstrap import Sandbox
+
+    spec = generate(0)
+    history = make_training_history(spec)
+    result = Sandbox(mode="inprocess").verify(GOOD_SOURCE, history, name="probe")
+
+    assert result.ok
+    assert result.report is not None
+    assert result.report.coverage > 0.0
+    assert len(result.report.steps) > 0
+
+
+def test_report_survives_full_json_roundtrip() -> None:
+    """to_json_full/from_json_full is what crosses the container boundary."""
+    from sentinel.verify import Verifier
+    from sentinel.verify.report import VerificationReport
+    from sentinel.wm.reference import StaticModel
+
+    spec = generate(1)
+    history = make_training_history(spec)
+    original = Verifier().verify(StaticModel(history.initial), history)
+    rebuilt = VerificationReport.from_json_full(original.to_json_full())
+
+    assert rebuilt.transition_match == original.transition_match
+    assert rebuilt.coverage == original.coverage
+    assert rebuilt.accuracy == original.accuracy
+    assert rebuilt.outcome_accuracy == original.outcome_accuracy
+    assert rebuilt.first_divergence == original.first_divergence
+    assert rebuilt.fitness == original.fitness
+
+
+def test_sandbox_reports_load_failure_not_crash() -> None:
+    from sentinel.bootstrap import Sandbox
+
+    spec = generate(0)
+    history = make_training_history(spec)
+    result = Sandbox(mode="inprocess").verify("def init_state(): return 0", history)
+
+    assert not result.ok
+    assert result.kind == "load"
+    assert "missing required function" in (result.error or "")
+
+
 # -- corpus ---------------------------------------------------------------
 
 

@@ -32,6 +32,7 @@ from sentinel.bootstrap import (
     CorpusRecord,
     CorpusWriter,
     OllamaClient,
+    Sandbox,
     Teacher,
     completed_ids,
     corpus_stats,
@@ -55,6 +56,16 @@ def main() -> int:
         type=float,
         default=2.0,
         help="wall-clock budget per generated function call",
+    )
+    parser.add_argument(
+        "--sandbox",
+        choices=("auto", "docker", "inprocess"),
+        default="auto",
+        help=(
+            "how to execute generated code. 'auto' uses a container runtime "
+            "when one is present and runs in-process otherwise; 'docker' "
+            "refuses to run without isolation"
+        ),
     )
     parser.add_argument(
         "--smoke",
@@ -110,8 +121,30 @@ def main() -> int:
     todo = [(sp, sc) for sp, sc in work if sc.world_id not in already]
     print(f"{len(todo)} worlds to process\n")
 
+    try:
+        sandbox = Sandbox(mode=args.sandbox, model_timeout=args.model_timeout)
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    print(f"Execution: {sandbox.describe()}")
+    if sandbox.isolated and not sandbox.image_present():
+        print(f"  pulling {sandbox.image} (one time; runs are offline after this)...")
+        ok, detail = sandbox.pull_image()
+        if not ok:
+            print(f"  image pull failed: {detail}", file=sys.stderr)
+            return 1
+        print("  image ready")
+    elif not sandbox.isolated:
+        print("  generated code will run with full privileges on this machine.")
+        print("  install a container runtime and re-run to isolate it.")
+    print()
+
     teacher = Teacher(
-        client=client, max_rounds=args.rounds, model_timeout=args.model_timeout
+        client=client,
+        max_rounds=args.rounds,
+        model_timeout=args.model_timeout,
+        sandbox=sandbox,
     )
 
     solved = 0

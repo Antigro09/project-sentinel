@@ -33,8 +33,9 @@ from sentinel.verify import Verifier, evidence_coverage
 from sentinel.verify.report import VerificationReport
 
 from .client import LLMError, OllamaClient
-from .loader import LoadError, extract_code, load_model
+from .loader import extract_code
 from .prompts import SYSTEM, build_initial_prompt, build_repair_prompt
+from .sandbox import Sandbox
 
 
 @dataclass(slots=True)
@@ -175,9 +176,13 @@ class Teacher:
         max_rounds: int = 3,
         model_timeout: float = 2.0,
         max_steps_in_prompt: int = 40,
+        sandbox: Sandbox | None = None,
     ) -> None:
         self.client = client or OllamaClient()
         self.verifier = Verifier(stop_on_crash=True)
+        # Defaults to auto: containers when a runtime is present, in-process
+        # otherwise. The same call site works before and after Docker exists.
+        self.sandbox = sandbox if sandbox is not None else Sandbox(mode="auto")
         self.max_rounds = max_rounds
         self.model_timeout = model_timeout
         self.max_steps_in_prompt = max_steps_in_prompt
@@ -232,15 +237,11 @@ class Teacher:
                 seconds=time.perf_counter() - started,
             )
 
-            try:
-                model = load_model(
-                    source,
-                    timeout=self.model_timeout,
-                    name=f"{world_id}-r{round_index}",
-                    context={"INITIAL_GRID": history.initial.grid},
-                )
-            except LoadError as exc:
-                detail = str(exc)
+            outcome = self.sandbox.verify(
+                source, history, name=f"{world_id}-r{round_index}"
+            )
+            if not outcome.ok:
+                detail = outcome.error or "verification failed"
                 if completion.truncated:
                     detail += " (generation hit the token limit — the code was cut off)"
                 attempt.load_error = detail
@@ -257,7 +258,8 @@ class Teacher:
                 )
                 continue
 
-            report = self.verifier.verify(model, history)
+            assert outcome.report is not None
+            report = outcome.report
             attempt.fitness = report.fitness
             attempt.report_json = report.to_json()
             result.attempts.append(attempt)
