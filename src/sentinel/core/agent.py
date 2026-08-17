@@ -54,6 +54,7 @@ from sentinel.gen.grid import (
     GridWorldModel,
 )
 from sentinel.gen.grid import GridState, initial_state
+from sentinel.gen.grid import GridState
 from sentinel.gen.spec import LevelSpec, Mechanics, WorldSpec
 from sentinel.plan import BFSPlanner, PlanExecutor
 
@@ -180,6 +181,8 @@ def run_episode(
     planner = BFSPlanner(max_nodes=120_000)
     executor = PlanExecutor()
     actions_used = 0
+    actions_this_level = 0
+    level_marker = world.history.last.levels_completed
     stalled = 0
 
     # Target ORDER is not readable from a frame. A frame shows which cells
@@ -220,13 +223,26 @@ def run_episode(
         for chosen in candidates:
             if world.done or actions_used >= max_actions:
                 break
+
+            # Re-read before every attempt. A failed candidate still MOVED
+            # the agent -- it walked somewhere and found the target did not
+            # yield -- so planning the next candidate from the position read
+            # at the top of the loop starts the plan from where the agent no
+            # longer is. Every such plan then diverges on its first action.
+            # This was the entire cause of the ordered-targets failure: with
+            # true mechanics, ordered worlds solved 1/25 while every other
+            # rule combination solved 25/25.
+            current = read_layout(world.history.last.grid, spec.field_size)
+            if not current.targets:
+                break
+            aim = chosen if set(chosen) <= set(current.targets) else (current.targets[0],)
             attempt = LevelSpec(
-                start=observed.start,
-                walls=observed.walls,
-                hazards=observed.hazards,
-                targets=chosen,
-                switches=observed.switches,
-                gates=observed.gates,
+                start=current.start,
+                walls=current.walls,
+                hazards=current.hazards,
+                targets=aim,
+                switches=current.switches,
+                gates=current.gates,
             )
             model = GridWorldModel(_spec_with(spec, mechanics, attempt, 0), level_index=0)
 
@@ -236,6 +252,10 @@ def run_episode(
 
             result = executor.execute(plan, world.step, lambda: world.done)
             actions_used += result.executed
+            actions_this_level += result.executed
+            if world.history.last.levels_completed != level_marker:
+                level_marker = world.history.last.levels_completed
+                actions_this_level = 0
             if result.diverged:
                 notes.append(f"diverged at action {result.diverged_at}")
 
