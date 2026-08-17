@@ -44,6 +44,17 @@ class CorpusRecord:
 
     @property
     def usable(self) -> bool:
+        """Fit to train on.
+
+        Weak-evidence worlds are excluded even when they scored well. If the
+        history could not test a channel, the score in that channel is not a
+        measurement — a model was rated against evidence incapable of
+        contradicting it. Training on those numbers would teach the core to
+        trust unfalsifiable agreement, which is the specific failure the
+        verifier exists to prevent.
+        """
+        if self.error and self.error.startswith("weak evidence"):
+            return False
         return self.source is not None and self.fitness > 0.0
 
     def to_json(self) -> dict[str, Any]:

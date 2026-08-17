@@ -92,6 +92,28 @@ class InductionResult:
 
 
 def make_training_history(
+    spec: WorldSpec, explore_steps: int = 12, seed: int = 0, attempts: int = 4
+) -> History | None:
+    """Produce evidence, retrying until it can actually falsify a model.
+
+    Retries matter because weak evidence is not a neutral outcome. In the
+    first smoke run one world produced a history whose transition channel
+    was untestable — no two identical grids with differing successors, no
+    action-dependent effect anywhere — and it still received a fitness
+    score. That score was meaningless: nothing in the evidence could have
+    contradicted an action-blind model. Rather than record an unreliable
+    number, vary the exploration and try again.
+    """
+    for attempt in range(attempts):
+        history = _build_history(spec, explore_steps, seed + attempt * 7919)
+        if history is None:
+            return None
+        if not evidence_coverage(history).unexercised():
+            return history
+    return history
+
+
+def _build_history(
     spec: WorldSpec, explore_steps: int = 12, seed: int = 0
 ) -> History | None:
     """Produce evidence rich enough to actually falsify a wrong model.
