@@ -135,6 +135,21 @@ def _probe_targets(world: GridWorld, spec: WorldSpec, rng: random.Random, rounds
         ]
         if not targets:
             return
+        # Random target, and three rounds, both settled by measurement.
+        #
+        # Every attempt to make the ordered_targets signal denser cost more
+        # on charge_period than it gained. Across three seeds each:
+        #
+        #     3 rounds, random     charge 0.795   ordered 0.561   <- kept
+        #     6 rounds, 64-window  charge 0.651   ordered 0.592
+        #     6 rounds, nearest    charge 0.426   ordered 0.558
+        #     8 rounds, per-level  charge 0.405   ordered 0.545
+        #
+        # ordered_targets sits near 0.56 no matter how hard it is probed, so
+        # it is not short of evidence -- the encoding does not surface "the
+        # agent stood on a target and nothing happened" in a form the network
+        # can use. More probing only crowds out the movement variety the
+        # hidden counter depends on.
         goal = targets[rng.randrange(len(targets))]
         level = spec.levels[world.state.level]
         probe = WS(

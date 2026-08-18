@@ -71,33 +71,65 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**Phase 0 complete.** Engine verified offline, typed interaction history,
-deterministic replay proven by test.
+**Phases 0-3 complete.** 101 tests passing.
 
-**Phase 1 complete.** 54 tests passing.
+A 1.4M-parameter recursive network, trained from scratch with no LLM
+anywhere in the loop, watches an unknown world, infers rules that appear in
+no single frame, builds an executable model of it, plans inside that model,
+and acts.
 
-- World-model contract: `init_state / transition / render / outcome`,
-  hidden state mandatory, per-cell abstention.
-- Verifier: accuracy, coverage and outcome reported independently.
-- **Gate met** — eight injected bugs, all detected.
-- End to end: model → BFS plan → act → 3/3 toy levels solved in 70
-  actions, zero learning, zero LLM calls.
+Measured over 3 training seeds x 100 worlds whose rule combinations were
+never seen in training:
 
-Three things measurement forced, recorded because they shaped the design:
+| condition | solve rate | levels |
+|---|---|---|
+| true mechanics (ceiling) | 67.0% | 74.4% |
+| **core-inferred** | **16.3% +/- 2.5%** | **27.2% +/- 2.7%** |
+| default guess (floor) | 5.0% | 12.3% |
 
-1. **You cannot falsify a claim your evidence never exercises.** The gate
-   first failed on two mutations because random play never completes a
-   level, making "levels never end" factually true on that history.
-   `verify/evidence.py` now reports untestable channels instead of passing
-   them silently.
-2. **Cell accuracy is a trap.** A model refusing to posit hidden state
-   scores 99.9% of cells and 10.3% of frames — the grid is mostly
-   background. Ranking on accuracy preferred a model that predicts nothing
-   ever moves over one that tracks the player correctly, so `fitness` is
-   built on `transition_match` instead.
-3. **Plans must be checked every step.** A model denying hidden state
-   produces a confident plan that reality refutes within 3 actions.
+Per-label inference on held-out seeds:
 
-Next: Phase 2 — the LLM proposer loop. The agent must now *induce* what
-was hand-written here. Reading game source was legitimate for a Phase 1
-baseline and is forbidden from here on.
+| label | core | prior |
+|---|---|---|
+| has_hazards | 0.999 | 0.553 |
+| has_switches | 0.999 | 0.547 |
+| wrap_edges | 0.985 | 0.954 |
+| **charge_period** (hidden) | **0.795 +/- 0.159** | 0.365 |
+| ordered_targets | 0.561 | 0.546 |
+
+`charge_period` is the one that matters: a counter that makes every Nth move
+travel two cells, invisible in any single frame, recoverable only from a
+pattern across a sequence. Inferring it means positing structure that cannot
+be seen.
+
+### What this is, and is not
+
+This infers six mechanic parameters within a known hypothesis space. That is
+the smallest testable form of "architecture over scale" -- necessary, not
+sufficient, and a long way from the open-ended program synthesis the plan
+describes.
+
+### Open problems
+
+- **ordered_targets, ~0.56.** Objective order is unobservable, and a
+  solution trajectory never exercises it: measured at literally zero
+  failed-collection events until probing was added. Four probing configs
+  were tested and every one that made the signal denser cost more on
+  charge_period than it gained.
+- **The 67% ceiling.** With perfect rules the agent still fails a third of
+  these worlds, all of them ordered-target worlds. The loop, not the core,
+  is the binding constraint there.
+- **charge_period variance, +/- 0.159.** One seed in four still lands near
+  chance.
+
+### Lessons that cost the most to learn
+
+1. **A reward signal will be optimised into its blind spot.** Scoring the
+   whole 64x64 frame paid 0.93 fitness for predicting only dead background.
+2. **You cannot learn a rule your evidence never exercises.** Twice: the
+   verifier gate, and ordered_targets.
+3. **Early stopping on a mean hides the slowest label.** charge_period read
+   0.409 +/- 0.022 -- apparently pinned to chance -- purely because
+   saturated heads held the mean flat.
+4. **Single runs lie.** The same condition measured 15% and 5% on different
+   seeds. Everything above is multi-seed.
