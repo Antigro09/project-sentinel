@@ -132,12 +132,24 @@ def encode_history(history: History) -> tuple[np.ndarray, np.ndarray]:
     grids = np.zeros((MAX_TRANSITIONS, CROP, CROP, CHANNELS), dtype=np.int8)
     actions = np.full((MAX_TRANSITIONS,), -1, dtype=np.int32)
 
+    resets = set(history.reset_points)
     previous = history.initial
+    prev_level = history.steps[0].level_index if history.steps else 0
     count = 0
     for step in history.steps:
         if count >= MAX_TRANSITIONS:
             break
         settled = step.settled
+
+        # A reset or a level change is not the effect of an action. Encoding
+        # one teaches the network that an action rebuilt the whole board --
+        # and worse, that targets can reappear, which is the exact signature
+        # `ordered_targets` depends on. `History.transition_pairs` already
+        # excludes these; this walk has to do the same.
+        if step.index in resets or step.level_index != prev_level:
+            previous = settled
+            prev_level = step.level_index
+            continue
 
         before = np.array(
             [row[x0 : x0 + CROP] for row in previous.grid[y0 : y0 + CROP]], dtype=np.int8
@@ -161,6 +173,7 @@ def encode_history(history: History) -> tuple[np.ndarray, np.ndarray]:
         actions[count] = step.action.action_id
 
         previous = settled
+        prev_level = step.level_index
         count += 1
 
     return grids, actions
