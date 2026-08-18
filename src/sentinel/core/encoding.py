@@ -38,7 +38,15 @@ CROP = 16
 """Active regions are 7-13 cells square, so 16 holds them with room to spare."""
 
 MAX_TRANSITIONS = 32
-"""Enough to see a period-3 or period-4 pattern many times over."""
+"""How much of an episode the core sees.
+
+Kept at 32 after testing 64. The window does force a trade between rules --
+the hidden counter needs varied movement to reveal its period, while
+`ordered_targets` needs deliberate walks onto targets -- but widening it did
+not resolve that trade, it moved it. Measured over three seeds, 64
+transitions with heavier probing gave charge_period 0.651 +/- 0.183 against
+0.795 +/- 0.159 at 32, buying only +0.03 on ordered_targets. Charge is worth
+more: it is the label that actually converts into solve rate."""
 
 N_CELL_VALUES = 16
 N_ACTIONS = 5
