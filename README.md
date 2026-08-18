@@ -27,8 +27,9 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q          # Phase 0 gate: deterministic replay
+uv run pytest tests/ -q          # all gates: replay, verifier, planner, agent
 uv run scripts/bench_engine.py   # engine throughput on this machine
+uv run scripts/run_agent.py      # train the core, then solve unseen worlds
 ```
 
 ## Measured on an M5 Max (40-core GPU, 128GB)
@@ -55,11 +56,12 @@ src/sentinel/
   plan/       BFS search inside the model + divergence-checking executor  [built]
   gen/        procedural environment generator, 26 mechanic combinations  [built]
   bootstrap/  LLM teacher: propose → verify → repair, and its removal     [built]
-  core/       tiny recursive reasoner, trained from scratch
+  core/       tiny recursive reasoner + closed perceive-plan-act loop   [built]
   adapt/      test-time training
   memory/     skill library + continual learning
   evolve/     scaffold self-modification
-scripts/      fetch_games.py, bench_engine.py, build_corpus.py
+scripts/      fetch_games.py, bench_engine.py, build_corpus.py,
+              preflight.py, rescore_corpus.py, train_core.py, run_agent.py
 tests/        determinism, verifier gate, planner, generator, bootstrap
 ```
 
