@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import random
 import time
+from dataclasses import replace
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -114,6 +115,56 @@ def make_training_history(
     return history
 
 
+def _probe_targets(world: GridWorld, spec: WorldSpec, rng: random.Random, rounds: int = 3) -> None:
+    """Walk onto targets in arbitrary order, so failed collections are seen."""
+    from sentinel.gen.grid import TARGET, GridWorldModel, initial_state
+    from sentinel.gen.spec import LevelSpec, WorldSpec as WS
+    from sentinel.plan import BFSPlanner, PlanExecutor
+
+    planner = BFSPlanner(max_nodes=20_000)
+    for _ in range(rounds):
+        if world.done:
+            return
+        grid = world.history.last.grid
+        size = spec.field_size
+        targets = [
+            (x, y)
+            for y in range(size)
+            for x in range(size)
+            if grid[y][x] == TARGET
+        ]
+        if not targets:
+            return
+        goal = targets[rng.randrange(len(targets))]
+        level = spec.levels[world.state.level]
+        probe = WS(
+            world_id=spec.world_id,
+            seed=spec.seed,
+            field_size=size,
+            # Route as if unordered, so the walk reaches whichever target was
+            # picked rather than refusing to plan for an out-of-turn one.
+            mechanics=replace(spec.mechanics, ordered_targets=False),
+            levels=(
+                LevelSpec(
+                    start=(world.state.x, world.state.y),
+                    walls=level.walls,
+                    hazards=level.hazards,
+                    targets=(goal,),
+                    switches=level.switches,
+                    gates=level.gates,
+                ),
+            ),
+        )
+        model = GridWorldModel(probe, level_index=0)
+        plan = planner.plan(model, start=model.init_state())
+        if plan is None:
+            return
+        for action in plan.actions:
+            if world.done:
+                return
+            world.step(action)
+
+
 def _build_history(
     spec: WorldSpec, explore_steps: int = 12, seed: int = 0
 ) -> History | None:
@@ -147,6 +198,27 @@ def _build_history(
         # having shown no level completion.
         world = GridWorld(spec)
         world.reset()
+
+    # Probe targets out of order before solving.
+    #
+    # Without this, `ordered_targets` is not merely hard to infer, it is
+    # unlearnable. A solution trajectory collects targets in the correct
+    # sequence by construction, so an ordered world and an unordered one
+    # produce byte-identical evidence -- measured directly, zero
+    # failed-collection events in either. The rule that distinguishes them
+    # is never exercised.
+    #
+    # Walking to targets in arbitrary order fixes that: in an ordered world
+    # the wrong target does nothing when stepped on, and that non-event is
+    # the only observable difference between the two rules.
+    #
+    # Kept deliberately brief. Only 32 transitions are encoded, and probing
+    # harder -- 8 rounds, repeated per level -- filled that window with long
+    # BFS routes and crowded out the varied movement that reveals the hidden
+    # counter, collapsing charge_period from 0.883 to 0.405. Evidence has to
+    # exercise every rule, and a window this small means covering one rule
+    # better can cost another.
+    _probe_targets(world, spec, rng)
 
     # Re-solve from wherever the agent now stands, level by level. A
     # solution computed from the opening position is invalid once

@@ -37,15 +37,17 @@ from .model import CoreConfig, TinyRecursiveCore, loss_fn
 
 @dataclass
 class TrainConfig:
-    epochs: int = 30
+    epochs: int = 250
     batch_size: int = 32
     learning_rate: float = 1e-3
     weight_decay: float = 1e-4
     seed: int = 0
     eval_every: int = 1
-    patience: int = 8
-    """Stop when held-out accuracy has not improved for this many epochs.
-    Guards against reading a late overfitting spike as success."""
+    patience: int = 60
+    """Epochs without improvement in the WORST scorable head before stopping.
+
+    Generous because the labels learn at very different rates, and the
+    interesting one is the slowest."""
 
 
 @dataclass
@@ -100,7 +102,7 @@ def train(
         print(f"eval : {eval_set.summary()}")
 
     history: list[EpochResult] = []
-    best_mean = -1.0
+    best_watched = -1.0
     best_epoch = 0
 
     for epoch in range(1, cfg.epochs + 1):
@@ -136,8 +138,20 @@ def train(
             result.mean_accuracy = float(
                 np.mean(scorable if scorable else list(result.accuracies.values()))
             )
-            if result.mean_accuracy > best_mean + 1e-4:
-                best_mean, best_epoch = result.mean_accuracy, epoch
+
+            # Track the WORST head, not the mean.
+            #
+            # Labels are learned at wildly different rates: the easy ones
+            # saturate within tens of epochs while the hidden counter takes
+            # hundreds. Watching the mean lets the saturated heads hold it
+            # flat, patience fires, and the slowest label never gets learned
+            # at all. Measured across three seeds: stopping on the mean gave
+            # charge_period 0.409 +/- 0.022 -- pinned to the class prior --
+            # while training on regardless reached 0.726. Progress on any
+            # head is progress.
+            watched = min(scorable) if scorable else result.mean_accuracy
+            if watched > best_watched + 1e-4:
+                best_watched, best_epoch = watched, epoch
 
         history.append(result)
         if verbose:
