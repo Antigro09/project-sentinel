@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 import mlx.core as mx
 import mlx.nn as nn
 import mlx.optimizers as optim
+from mlx.utils import tree_map
 import numpy as np
 
 from .data import Dataset, iterate_batches, majority_baseline
@@ -109,6 +110,19 @@ def train(
     mx.random.seed(cfg.seed)
     rng = np.random.default_rng(cfg.seed)
 
+    # Per-head majority-class baselines, on the rows where each label is
+    # defined. A head sitting at its prior has learned nothing, and using it
+    # as a stopping signal means waiting on noise.
+    priors: dict[str, float] = {}
+    scorable_names: set[str] = set()
+    for i, (name, _) in enumerate(HEADS):
+        mask = defined_mask(eval_set.labels, i)
+        values = eval_set.labels[mask][:, i]
+        if len(np.unique(values)) > 1:
+            scorable_names.add(name)
+        _, counts = np.unique(values, return_counts=True)
+        priors[name] = float(counts.max() / max(1, counts.sum()))
+
     optimizer = optim.AdamW(learning_rate=cfg.learning_rate, weight_decay=cfg.weight_decay)
     loss_and_grad = nn.value_and_grad(model, loss_fn)
 
@@ -118,7 +132,9 @@ def train(
         print(f"eval : {eval_set.summary()}")
 
     history: list[EpochResult] = []
-    best_per_head: dict[str, float] = {}
+    best_watched = -1.0
+    best_selection = -1.0
+    best_weights = None
     best_epoch = 0
 
     for epoch in range(1, cfg.epochs + 1):
@@ -155,32 +171,74 @@ def train(
                 np.mean(scorable if scorable else list(result.accuracies.values()))
             )
 
-            # Progress on ANY head is progress.
+            # Watch the worst head, scored WITHOUT the defined-mask.
             #
-            # Labels learn at wildly different rates -- the easy ones
-            # saturate in tens of epochs while the hidden counter takes
-            # hundreds -- and both obvious summaries fail, in opposite
-            # directions. Watching the MEAN lets saturated heads hold it
-            # flat: measured across three seeds, that gave charge_period
-            # 0.409 +/- 0.022, pinned to its prior, against 0.726 for
-            # training on. Watching the MINIMUM hands the same veto to any
-            # head that is permanently stuck: `ordered_targets` is
-            # under-determined by the evidence and cannot improve, so once
-            # it plateaus the run ends regardless of what else is still
-            # learning. That cost charge_period 0.559 -> 0.317 the moment
-            # `gates_start_open` was scored correctly and stopped being the
-            # minimum.
+            # Four criteria were measured and three failed, each in a
+            # different direction:
             #
-            # So track every head separately and reset patience when any of
-            # them betters its own best. A stuck head then costs nothing,
-            # and a slow head still gets its hundreds of epochs.
-            improved = False
-            for name, value in result.accuracies.items():
-                if value > best_per_head.get(name, -1.0) + 1e-4:
-                    best_per_head[name] = value
-                    improved = True
-            if improved:
-                best_epoch = epoch
+            #   mean            saturated heads hold it flat; charge_period
+            #                   0.409 +/- 0.022, pinned to its prior,
+            #                   against 0.726 for training on
+            #   minimum, masked a permanently stuck head vetoes everything.
+            #                   `ordered_targets` is under-determined by the
+            #                   evidence -- 6% of worlds under random play --
+            #                   so it never improves and the run ends:
+            #                   charge_period 0.559 -> 0.317
+            #   any head        noise in a stuck head keeps training alive
+            #                   indefinitely: step_distance 0.975 +/- 0.001
+            #                   -> 0.658 +/- 0.306, seeds ending 1483s and
+            #                   751s in different places
+            #   min over heads  empty early in training, when nothing has
+            #   above prior     beaten its prior yet, so it degenerates to
+            #                   the mean: charge_period 0.263, below prior
+            #
+            # What works is the minimum over UNMASKED accuracies, and the
+            # reason is mechanical rather than mysterious. Masking sends
+            # `gates_start_open` to ~0.997, which makes the minimum
+            # `ordered_targets` -- a head that cannot move. Unmasked, the
+            # minimum is `wait_advances_charge` at ~0.55, a head that is
+            # partly learnable and creeps upward for hundreds of epochs,
+            # which is exactly the slow clock the hidden counter needs.
+            #
+            # So the stopping signal and the report are different
+            # instruments and are computed differently on purpose: this one
+            # is chosen because it keeps training alive while a slow head is
+            # still moving, and `evaluate` masks because a score should not
+            # reward guessing at an unanswerable label.
+            # Keep the BEST model, not the last one.
+            #
+            # Three stopping criteria were tuned before noticing that the
+            # tuning was mostly beside the point: the run returns whichever
+            # weights the final epoch happened to leave behind, so every
+            # criterion was really choosing a model by choosing when to
+            # stop. Snapshotting the best-scoring epoch decouples the two --
+            # stopping late now costs time and nothing else, and the
+            # criterion only has to decide when to give up.
+            #
+            # Selection is on the DEFINED-ONLY mean over scorable heads,
+            # which is the honest overall number; a model that guesses well
+            # at unanswerable labels should not win on that basis.
+            selection = float(
+                np.mean([result.accuracies[n] for n in scorable_names])
+                if scorable_names
+                else result.mean_accuracy
+            )
+            if selection > best_selection + 1e-5:
+                best_selection = selection
+                best_weights = tree_map(
+                    lambda a: mx.array(a) if isinstance(a, mx.array) else a,
+                    model.parameters(),
+                )
+
+            watch = evaluate(model, eval_set, only_defined=False)
+            watched_heads = [
+                watch[name]
+                for i, (name, _) in enumerate(HEADS)
+                if len(np.unique(eval_set.labels[:, i])) > 1
+            ]
+            watched = min(watched_heads) if watched_heads else result.mean_accuracy
+            if watched > best_watched + 1e-4:
+                best_watched, best_epoch = watched, epoch
 
         history.append(result)
         if verbose:
@@ -191,6 +249,9 @@ def train(
                 print(f"early stop: no improvement in {cfg.patience} epochs")
             break
 
+    if best_weights is not None:
+        model.update(best_weights)
+        mx.eval(model.parameters())
     return model, history
 
 
