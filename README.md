@@ -108,52 +108,76 @@ compositional space. Widening the mechanic space was not optional.
 | worst label confounding | 1.00 | 0.54 |
 | exhaustive search cost | 1.7s/world | ~101s/world |
 
-### What the core actually does
+### What the core does
 
-It **prunes**, which is the job the plan assigns it. Rank of the true rule
-set among 5,760, over 73 held-out worlds -- accuracy is held constant by
-construction, since the verifier still decides what is true, so a confident
-wrong prior costs replays and nothing else:
+It infers the rules of an unfamiliar world, including a rule that appears in
+no single frame, and turns that into solved worlds. Two training seeds on
+held-out mechanic combinations:
 
-| ordering | median rank | mean | top-100 | search time |
-|---|---|---|---|---|
-| random | 3,734 | 3,244 | 3% | 56.8s |
-| simplicity | 3,206 | 2,765 | 0% | 48.4s |
-| library (memory/) | 710 | 1,353 | 10% | 23.7s |
-| **core** | **173** | **366** | **34%** | **6.4s** |
+| label | core | prior |
+|---|---|---|
+| step_distance | **0.975 +/- 0.001** | 0.491 |
+| gates_start_open | 0.758 +/- 0.012 | 0.543 |
+| switches | 0.745 +/- 0.018 | 0.462 |
+| edge_mode | 0.693 +/- 0.020 | 0.377 |
+| **charge_period** (hidden) | **0.559 +/- 0.024** | 0.298 |
+| hazards | 0.566 +/- 0.037 | 0.342 |
+| ordered_targets | 0.578 +/- 0.026 | 0.539 |
+| wait_advances_charge | 0.557 +/- 0.034 | 0.669 |
 
-### What the core does not do
+`charge_period` is the one that matters: a counter that makes every Nth move
+travel an extra cell, invisible in any frame, recoverable only from a
+pattern across a sequence. At 0.559 against a 0.298 prior it is being
+inferred rather than guessed -- and unlike the 0.795 this file used to
+report, it is measured on a holdout where the label is confounded with
+nothing.
 
-It does not infer hidden state. On a benchmark where `charge_period` is not
-confounded with anything:
+End to end, 60 held-out worlds:
 
-| label | core | prior | |
+| condition | solve rate | rules exact | verifier replays |
 |---|---|---|---|
-| switches | 0.812 | 0.462 | learned |
-| gates_start_open | 0.679 | 0.543 | learned |
-| step_distance | 0.542 +/- 0.267 | 0.491 | marginal, unstable |
-| hazards | 0.416 +/- 0.239 | 0.342 | marginal, unstable |
-| edge_mode | 0.403 | 0.377 | marginal |
-| ordered_targets | 0.522 | 0.539 | at prior |
-| **charge_period** | **0.203** | **0.298** | **below prior** |
-| wait_advances_charge | 0.431 | 0.669 | below prior |
+| true mechanics (ceiling) | 60.0% | 100% | - |
+| **core-ordered search** | **58.2%** | 12.7% | **103** |
+| simplicity ordering | 49.1% | 32.7% | 2,122 |
+| default guess (floor) | 3.6% | 0% | - |
 
-Both results hold at once. Ranking uses the *joint* distribution over eight
-heads, and the three labels the core does learn cut the space by about 18x
-on their own -- 5760/18 is roughly the observed median of 173. So the core
-prunes usefully **without** positing anything it cannot see. That is a
-weaker claim than the plan makes, and it is the one the evidence supports.
+**97% of the ceiling at a twentieth of the search.** Note the middle column,
+which is the more interesting result: the core recovers the exact rule set
+*less* often than simplicity ordering and solves *more* worlds. Exact match
+is the wrong question. A hypothesis that differs from the truth only on
+behaviour the episode never exercised -- hazard rules in a level with no
+hazards -- plans identically to the truth. The verifier constrains what is
+possible, the core chooses among what remains, and the result is a model
+that is usable rather than correct.
 
-The failure is not a lack of evidence. The verifier identifies
-`charge_period` in **100%** of these worlds with a mean fitness gap of 0.838
--- larger than on the old benchmark. The signal is at full strength and the
-network fails to read it.
+### How the core was fixed
+
+For most of this project the core learned only the labels visible in a
+still frame -- which coloured cells exist -- and nothing about motion. The
+diagnosis chain is worth keeping:
+
+1. A one-line rule over the encoded arrays ("the modal nonzero agent
+   displacement is the step distance") scored **0.965**; the trained network
+   scored **0.542**. The information was never missing.
+2. `_coord_grid` spans [-1, 1] over a 16-cell crop, so one cell of
+   displacement is 0.133 while `log1p(background mass)` in the same vector
+   reaches 5.5. Movement arrived ~40x smaller than the static content it
+   competed with. Expressing it in cells lifted step_distance to 0.684.
+3. That was not enough, because the rule needs a **mode** and attention
+   **averages** -- the mean is dragged around by blocked moves travelling
+   zero and charge ticks travelling one extra. One-hot binning by magnitude
+   makes the mean of the bins a histogram, and the mode a linear readout.
+
+step_distance then went to 0.975 with a standard deviation of **0.001**,
+having been +/- 0.239 before. Removing the variance is the part that says
+this is a fix rather than a lucky seed.
 
 ### Layers
 
 | layer | state |
 |---|---|
-| `core/` | prunes 18.5x better than simplicity; does not infer hidden state |
+| `core/` | infers dynamics including hidden state; 58.2% solve against a 60.0% ceiling |
+| `explore/` | designs experiments with already-inferred rules |
 | `adapt/` | works -- recovers the exact rule set 36% of the time with no labels |
 | `memory/` | works on the wide space (4.5x better ranking); was *worse* than no memory on the narrow one |
 | `evolve/` | mechanically correct -- archives every version, gates promotion on held-out worlds, rolls back |
@@ -163,11 +187,16 @@ the planner handles the new rules and inference is the binding constraint.
 
 ### Open problems
 
-- **charge_period, 0.203 against a 0.298 prior.** The plan's sharpest claim
-  rests on this and it is currently unsupported.
-- **ordered_targets, still at prior.** Unchanged through every attempt.
-- **Search is still cheap enough to win.** 5,760 hypotheses cost ~101s;
-  brute force only becomes unusable past ~17,000.
+- **ordered_targets is under-determined, not unlearned.** The evidence
+  distinguishes it in 6% of worlds under random play, against 100% for the
+  hidden counter. Sitting near prior is the correct response to evidence
+  that does not determine the label. `explore/` lifts it to 19% by inferring
+  the movement rule and then planning to land exactly on a target -- greedy
+  probing cannot, because collection happens only at the final cell of a
+  move and landings fall 2.81 -> 1.19 -> 0.43 as step_distance goes 1 -> 3.
+- **wait_advances_charge sits below its prior** (0.557 against 0.669).
+- **Search is still cheap enough to be a real baseline.** 5,760 hypotheses
+  cost ~101s exhaustively; brute force only becomes unusable past ~17,000.
 
 ### Lessons that cost the most to learn
 
