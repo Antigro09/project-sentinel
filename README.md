@@ -75,6 +75,7 @@ src/sentinel/
   memory/     skill library + continual learning
   evolve/     scaffold self-modification
   explore/    experiments designed from already-inferred rules            [built]
+  domains/    a non-spatial environment, for the Phase 6 gate              [built]
 scripts/      fetch_games.py, bench_engine.py, build_corpus.py, preflight.py,
               rescore_corpus.py, train_core.py, run_agent.py, and the
               measure_*.py family that reproduces every number below
@@ -200,6 +201,37 @@ this is a fix rather than a lucky seed.
 
 With true mechanics the agent solves **60.0%** of compositional worlds, so
 the planner handles the new rules and inference is the binding constraint.
+
+### Phase 6: does any of it generalise?
+
+The plan is blunt about this gate -- if it only works on grid worlds, the
+result is an excellent ARC solver rather than a general system. The test
+only means something if the second domain differs structurally rather than
+cosmetically, which is why `gen/toy.py` does not count: it is still an agent
+walking around a board.
+
+`domains/dials.py` shares the observation *type* and nothing else. No agent
+occupies a cell, no cell is blocked, no two actions interact through
+geometry, and a dial's value is a magnitude rather than a position. It keeps
+the property that makes the grid worlds hard -- a hidden coupling means two
+identical frames can respond differently to the same action.
+
+Over 24 episodes, with no change to anything above `env/`:
+
+| | |
+|---|---|
+| verifier ranks the true rule set first | 24/24 |
+| median rank of truth | 1 of 24 |
+| histories able to test transitions | 24/24 |
+
+So the world-model contract, the verifier and hypothesis search are domain
+agnostic in fact and not just in intent. Two honest limits: the dial
+hypothesis space holds 24 rule sets, so search is trivial there and this
+tests correctness rather than scale; and the **core does not transfer at
+all**, which is expected rather than disappointing -- its features are
+per-value spatial moments, centroids and displacements, which describe a
+board with things on it. A domain with no things and no board offers them
+nothing to measure.
 
 ### Open problems
 
