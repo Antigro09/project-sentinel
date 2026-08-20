@@ -22,51 +22,28 @@ from itertools import permutations
 
 import numpy as np
 
+from sentinel.core.encoding import HEADS, MechanicLabels
 from sentinel.env.boundary import longest_run
 from sentinel.env.history import History
 from sentinel.gen.grid import GridWorldModel
 from sentinel.gen.spec import LevelSpec, Mechanics, WorldSpec
 from sentinel.verify.verifier import verify
 
-CHARGE_FROM_CLASS: dict[int, int | None] = {0: None, 1: 3, 2: 4}
-CHARGE_TO_CLASS: dict[int | None, int] = {None: 0, 3: 1, 4: 2}
+HEAD_ORDER: tuple[str, ...] = tuple(name for name, _ in HEADS)
+NCLASS: tuple[int, ...] = tuple(n for _, n in HEADS)
 
 MAX_ORDER_SEARCH = 4
 """Permutations are factorial; 4 targets is 24 replays, 6 would be 720."""
 
-HEAD_ORDER = (
-    "step_distance",
-    "charge_period",
-    "wrap_edges",
-    "has_hazards",
-    "has_switches",
-    "ordered_targets",
-)
-
 
 def mechanics_from_classes(classes: list[int] | tuple[int, ...] | np.ndarray) -> Mechanics:
     """Turn one class per head into the rule set it denotes."""
-    c = [int(v) for v in classes]
-    return Mechanics(
-        step_distance=c[0] + 1,
-        charge_period=CHARGE_FROM_CLASS.get(c[1]),
-        wrap_edges=bool(c[2]),
-        has_hazards=bool(c[3]),
-        has_switches=bool(c[4]),
-        ordered_targets=bool(c[5]),
-    )
+    return MechanicLabels(*[int(v) for v in classes]).to_mechanics()
 
 
 def classes_from_mechanics(mech: Mechanics) -> tuple[int, ...]:
     """Inverse of `mechanics_from_classes`."""
-    return (
-        max(0, min(1, mech.step_distance - 1)),
-        CHARGE_TO_CLASS.get(mech.charge_period, 0),
-        int(mech.wrap_edges),
-        int(mech.has_hazards),
-        int(mech.has_switches),
-        int(mech.ordered_targets),
-    )
+    return tuple(int(v) for v in MechanicLabels.from_mechanics(mech).as_array())
 
 
 @dataclass(frozen=True, slots=True)

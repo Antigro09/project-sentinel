@@ -60,10 +60,9 @@ from sentinel.gen.spec import LevelSpec, Mechanics, WorldSpec
 from sentinel.wm.contract import Outcome
 from sentinel.plan import BFSPlanner, PlanExecutor
 
-from .encoding import encode_history
+from .encoding import MechanicLabels, encode_history
 from .model import TinyRecursiveCore
 
-CHARGE_FROM_CLASS = {0: None, 1: 3, 2: 4}
 
 
 class CollectOneModel(GridWorldModel):
@@ -129,14 +128,7 @@ def infer_mechanics(core: TinyRecursiveCore, history) -> Mechanics:
     logits = core(mx.array(grids[None].astype(np.int32)), mx.array(actions[None].astype(np.int32)))
     mx.eval(logits)
     pred = [int(np.array(mx.argmax(head, axis=-1))[0]) for head in logits]
-    return Mechanics(
-        step_distance=pred[0] + 1,
-        charge_period=CHARGE_FROM_CLASS.get(pred[1]),
-        wrap_edges=bool(pred[2]),
-        has_hazards=bool(pred[3]),
-        has_switches=bool(pred[4]),
-        ordered_targets=bool(pred[5]),
-    )
+    return MechanicLabels(*pred).to_mechanics()
 
 
 @dataclass

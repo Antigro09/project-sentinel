@@ -10,7 +10,7 @@ adaptation has to beat search, or it is not evidence for the claim.
 """
 
 from .hypothesis import (
-    CHARGE_FROM_CLASS,
+    NCLASS,
     HEAD_ORDER,
     ScoredHypothesis,
     classes_from_mechanics,
@@ -18,7 +18,14 @@ from .hypothesis import (
     mechanics_from_classes,
     score_hypothesis,
 )
-from .search import ALL_HYPOTHESES, SIMPLICITY_ORDER, SearchResult, exhaustive_search
+from .search import (
+    ALL_HYPOTHESES,
+    SIMPLICITY_ORDER,
+    SearchResult,
+    core_order,
+    exhaustive_search,
+    replays_to_truth,
+)
 from .ttt import (
     AdaptConfig,
     AdaptResult,
@@ -33,8 +40,10 @@ __all__ = [
     "ALL_HYPOTHESES",
     "SIMPLICITY_ORDER",
     "SearchResult",
+    "core_order",
     "exhaustive_search",
-    "CHARGE_FROM_CLASS",
+    "replays_to_truth",
+    "NCLASS",
     "HEAD_ORDER",
     "AdaptConfig",
     "AdaptResult",

@@ -44,6 +44,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
+from sentinel.core.encoding import HEADS
 from sentinel.gen.spec import Mechanics
 
 from .signature import Signature
@@ -76,8 +77,10 @@ class Entry:
         )
 
 
-NCLASS = (2, 3, 2, 2, 2, 2)
-"""Classes per head, mirroring core.encoding.HEADS."""
+NCLASS: tuple[int, ...] = tuple(n for _, n in HEADS)
+"""Classes per head. Derived from core.encoding.HEADS rather than restated:
+this was hardcoded to the old six-head shape and silently indexed out of
+range the moment the label set grew."""
 
 
 @dataclass

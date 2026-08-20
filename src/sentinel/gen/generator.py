@@ -344,6 +344,12 @@ def make_split(
     rng = random.Random(seed)
     withheld = balanced_withhold(space, withhold, rng)
     train_pool = [m for m in space if m not in withheld]
+    # Shuffle before generation. `generate_many` walks the pool by
+    # `seed % len(pool)`, so an unshuffled pool is consumed in enumeration
+    # order -- and the space is built with step_distance as the outer loop,
+    # which put every step=3 rule set beyond the 2000-world training budget
+    # and left that class absent from training entirely.
+    rng.shuffle(train_pool)
 
     train = generate_many(n_train, start_seed=0, mechanics_pool=train_pool, cfg=cfg)
 

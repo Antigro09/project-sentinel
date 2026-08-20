@@ -1,9 +1,12 @@
 """Searching the hypothesis space at test time, and counting what it costs.
 
-The rule space here is 2*3*2*2*2*2 = 96, small enough to enumerate. That is
-a property of the current generator, not of the approach, and it is worth
-stating plainly: where the space is this small, brute force is a strong
-baseline and any learned component has to beat it to be earning its place.
+The rule space is enumerable, and its SIZE is the whole experiment. At 96
+rule sets, exhaustive search identified a world in 1.7 seconds and beat the
+trained core on every rule the evidence determined -- brute force wins when
+there is nothing to prune. The compositional space holds 5,760, costing
+about 101 seconds a world against the plan's five-minute budget, which is
+the first version of this problem where a learned prior could pay for
+itself. Search stops being viable past roughly 17,000.
 
 `replays` is the currency this module reports. Verifier replays are the
 cost that a prior can reduce -- accuracy is already near-perfect for every
@@ -14,6 +17,8 @@ accumulation while "how much did it cost" can.
 from __future__ import annotations
 
 import itertools
+
+import numpy as np
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -22,7 +27,8 @@ from sentinel.gen.spec import LevelSpec, Mechanics
 
 from .hypothesis import ScoredHypothesis, mechanics_from_classes, score_hypothesis
 
-NCLASS = (2, 3, 2, 2, 2, 2)
+from .hypothesis import NCLASS
+
 ALL_HYPOTHESES: tuple[tuple[int, ...], ...] = tuple(
     itertools.product(*[range(n) for n in NCLASS])
 )
@@ -110,3 +116,48 @@ def exhaustive_search(
 
     assert best is not None, "hypothesis space cannot be empty"
     return SearchResult(best=best, replays=replays, exhausted=exhausted)
+
+def core_order(
+    core, history, temperature: float = 1.0, candidates=None
+) -> list[tuple[int, ...]]:
+    """Rank every hypothesis by how plausible the core finds it.
+
+    This is the core doing the job the plan actually assigns it: not
+    answering, but deciding what is worth testing first. The verifier still
+    decides what is true, so a bad ranking costs replays and nothing else --
+    it cannot make the system believe something the evidence refutes.
+
+    That separation is what makes the comparison meaningful. Ranking quality
+    shows up purely as REPLAYS-TO-TRUTH, with accuracy held constant by
+    construction, so there is no way for a confident wrong prior to buy a
+    better-looking score.
+    """
+    from .ttt import head_distributions
+
+    probs = head_distributions(core, history, temperature)
+    logs = [np.log(np.maximum(p, 1e-12)) for p in probs]
+    pool = list(candidates) if candidates is not None else list(ALL_HYPOTHESES)
+
+    def score(classes: tuple[int, ...]) -> tuple[float, int]:
+        total = 0.0
+        for head, cls in enumerate(classes):
+            if head < len(logs) and cls < len(logs[head]):
+                total += float(logs[head][cls])
+        # Simplicity breaks ties, matching the verifier's own tie-break.
+        return (-total, sum(classes))
+
+    return sorted(pool, key=score)
+
+
+def replays_to_truth(
+    order, truth: tuple[int, ...]
+) -> int:
+    """Position of the true rule set in a ranking, 1-based.
+
+    The honest measure of a prior: how deep into the list search has to go
+    before it reaches the answer.
+    """
+    for i, classes in enumerate(order):
+        if tuple(classes) == tuple(truth):
+            return i + 1
+    return len(order) + 1

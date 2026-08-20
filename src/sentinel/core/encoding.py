@@ -63,33 +63,76 @@ CHANNELS = 3
 """before, after, changed."""
 
 
+CHARGE_CLASSES: tuple[int | None, ...] = (None, 2, 3, 4, 5)
+EDGE_CLASSES: tuple[str, ...] = ("block", "wrap", "bounce", "respawn")
+HAZARD_CLASSES: tuple[str, ...] = ("none", "kill", "pushback", "respawn")
+SWITCH_CLASSES: tuple[str, ...] = ("none", "toggle", "latch")
+
+
 @dataclass(frozen=True, slots=True)
 class MechanicLabels:
     """Ground truth for one world. Free, because the generator made it.
 
     This is what makes Phase 3 runnable without any LLM at all: every
     generated world knows its own rules, so labels are unlimited and exact.
+
+    **Eight labels, not six.** The original six spanned 26 rule sets, and a
+    space that small cannot produce a holdout whose labels vary
+    independently -- measured at 1.00 confounding for every holdout size
+    tried, meaning some label was always either constant or a restatement
+    of another. The first version of this benchmark scored `charge_period`
+    at 0.795 while `charge_period` was exactly `has_hazards` in the held-out
+    set, so a model detecting coloured cells looked like a model inferring a
+    hidden counter. These eight span 5,760 rule sets, which is enough for
+    the holdout to be chosen rather than hoped for.
     """
 
     step_distance: int
-    """1 or 2 -> class 0 or 1."""
+    """1, 2 or 3 -> class 0, 1, 2."""
     charge_period: int
-    """0 = none, 3, or 4 -> class 0, 1, 2. THE hidden-state label."""
-    wrap_edges: int
-    has_hazards: int
-    has_switches: int
+    """Index into CHARGE_CLASSES. THE hidden-state label."""
+    edge_mode: int
+    """Index into EDGE_CLASSES."""
+    hazards: int
+    """Index into HAZARD_CLASSES; class 0 means no hazards at all."""
+    switches: int
+    """Index into SWITCH_CLASSES; class 0 means no switches at all."""
     ordered_targets: int
+    gates_start_open: int
+    wait_advances_charge: int
+    """Whether waiting ticks the hidden counter. Worlds where it does not
+    are strictly easier, since the period can be pinned by waiting."""
 
     @classmethod
     def from_mechanics(cls, mech: Mechanics) -> MechanicLabels:
-        charge = {None: 0, 3: 1, 4: 2}.get(mech.charge_period, 0)
+        charge = mech.charge_period if mech.charge_period in CHARGE_CLASSES else None
+        edge = mech.effective_edge_mode()
+        hazard = mech.hazard_effect if mech.has_hazards else "none"
+        switch = mech.switch_mode if mech.has_switches else "none"
         return cls(
-            step_distance=max(0, min(1, mech.step_distance - 1)),
-            charge_period=charge,
-            wrap_edges=int(mech.wrap_edges),
-            has_hazards=int(mech.has_hazards),
-            has_switches=int(mech.has_switches),
+            step_distance=max(0, min(2, mech.step_distance - 1)),
+            charge_period=CHARGE_CLASSES.index(charge),
+            edge_mode=EDGE_CLASSES.index(edge) if edge in EDGE_CLASSES else 0,
+            hazards=HAZARD_CLASSES.index(hazard) if hazard in HAZARD_CLASSES else 0,
+            switches=SWITCH_CLASSES.index(switch) if switch in SWITCH_CLASSES else 0,
             ordered_targets=int(mech.ordered_targets),
+            gates_start_open=int(mech.gates_start_open),
+            wait_advances_charge=int(mech.wait_advances_charge),
+        )
+
+    def to_mechanics(self) -> Mechanics:
+        return Mechanics(
+            step_distance=self.step_distance + 1,
+            charge_period=CHARGE_CLASSES[self.charge_period],
+            wrap_edges=False,
+            edge_mode=EDGE_CLASSES[self.edge_mode],
+            has_hazards=self.hazards != 0,
+            hazard_effect=HAZARD_CLASSES[self.hazards] if self.hazards else "kill",
+            has_switches=self.switches != 0,
+            switch_mode=SWITCH_CLASSES[self.switches] if self.switches else "toggle",
+            ordered_targets=bool(self.ordered_targets),
+            gates_start_open=bool(self.gates_start_open),
+            wait_advances_charge=bool(self.wait_advances_charge),
         )
 
     def as_array(self) -> np.ndarray:
@@ -97,22 +140,26 @@ class MechanicLabels:
             [
                 self.step_distance,
                 self.charge_period,
-                self.wrap_edges,
-                self.has_hazards,
-                self.has_switches,
+                self.edge_mode,
+                self.hazards,
+                self.switches,
                 self.ordered_targets,
+                self.gates_start_open,
+                self.wait_advances_charge,
             ],
             dtype=np.int32,
         )
 
 
 HEADS: tuple[tuple[str, int], ...] = (
-    ("step_distance", 2),
-    ("charge_period", 3),
-    ("wrap_edges", 2),
-    ("has_hazards", 2),
-    ("has_switches", 2),
+    ("step_distance", 3),
+    ("charge_period", len(CHARGE_CLASSES)),
+    ("edge_mode", len(EDGE_CLASSES)),
+    ("hazards", len(HAZARD_CLASSES)),
+    ("switches", len(SWITCH_CLASSES)),
     ("ordered_targets", 2),
+    ("gates_start_open", 2),
+    ("wait_advances_charge", 2),
 )
 """(name, n_classes) per prediction head, in label-array order."""
 

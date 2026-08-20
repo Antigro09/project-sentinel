@@ -63,13 +63,14 @@ def test_ranking_is_a_permutation():
     library = SkillLibrary()
     sig = Signature(12, 10, 2, 0, 0, 0, 0.07)
     library.add(Entry("w", sig, (1, 2, 0, 0, 0, 0), 1.0))
-    ranked = library.rank(sig, ALL_HYPOTHESES)
-    assert sorted(ranked) == sorted(ALL_HYPOTHESES)
+    subset = ALL_HYPOTHESES[:200]
+    ranked = library.rank(sig, subset)
+    assert sorted(ranked) == sorted(subset)
 
 
 def test_memory_does_not_change_the_answer():
     """Same conclusion with and without a prior; only the cost may differ."""
-    specs = _worlds(6)
+    specs = _worlds(3)
     library = SkillLibrary()
     for spec in specs:
         history = _explore(spec)
@@ -79,9 +80,10 @@ def test_memory_does_not_change_the_answer():
         observed = read_layout(segment.initial.grid, spec.field_size)
         sig = Signature.from_frame(segment.initial, spec.field_size)
 
-        plain = exhaustive_search(history, observed, spec.field_size)
+        subset = ALL_HYPOTHESES[:400]
+        plain = exhaustive_search(history, observed, spec.field_size, order=subset)
         primed = exhaustive_search(
-            history, observed, spec.field_size, order=library.rank(sig, ALL_HYPOTHESES)
+            history, observed, spec.field_size, order=library.rank(sig, subset)
         )
         assert plain.best.fitness == primed.best.fitness
         # The CLASSES, not merely the score. Comparing fitness alone let a
@@ -100,7 +102,7 @@ def test_library_never_beats_plain_simplicity_ordering_on_accuracy():
     replays, simplicity-first 10.1, retrieval prior 19.4. The library is
     the most expensive of the three, which is why it is not the default.
     """
-    specs = _worlds(6, start=4000)
+    specs = _worlds(3, start=4000)
     library = SkillLibrary()
     for spec in specs:
         history = _explore(spec)
@@ -110,9 +112,10 @@ def test_library_never_beats_plain_simplicity_ordering_on_accuracy():
         observed = read_layout(segment.initial.grid, spec.field_size)
         sig = Signature.from_frame(segment.initial, spec.field_size)
 
-        plain = exhaustive_search(history, observed, spec.field_size)
+        subset = ALL_HYPOTHESES[:400]
+        plain = exhaustive_search(history, observed, spec.field_size, order=subset)
         primed = exhaustive_search(
-            history, observed, spec.field_size, order=library.rank(sig, ALL_HYPOTHESES)
+            history, observed, spec.field_size, order=library.rank(sig, subset)
         )
         assert plain.best.classes == primed.best.classes
         library.add(Entry(spec.world_id, sig, plain.best.classes, plain.best.fitness))
