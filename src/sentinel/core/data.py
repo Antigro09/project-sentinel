@@ -119,6 +119,67 @@ def exploration_history(spec: WorldSpec, seed: int, steps: int = 60, avoid_hazar
     return world.history
 
 
+def probing_history(spec: WorldSpec, seed: int, steps: int = 60):
+    """Exploration that deliberately tests whether targets can be collected.
+
+    `ordered_targets` is only visible when a collection FAILS: the agent
+    stands on a target it may not take yet, hiding it, and the target
+    reappears when the agent steps away. Nothing in random play makes that
+    happen -- measured, the evidence distinguished ordered objectives in 7%
+    of worlds with random actions and 23% from solution paths, against 100%
+    for the hidden counter. That is an evidence problem, not a learning one,
+    and no amount of training fixes it.
+
+    So this walks ONTO targets and then OFF them, which is the plan's
+    `explore/` idea in its smallest form: choose the actions that raise
+    evidence coverage most. Targets are rendered in their own colour, so
+    steering toward one reads the frame; whether it yields is the hidden
+    part and stays hidden.
+    """
+    from sentinel.env.types import Action
+    from sentinel.gen.grid import MOVES, TARGET, GridWorld
+
+    world = GridWorld(spec)
+    world.reset()
+    rng = np.random.default_rng(seed)
+    size = spec.field_size
+    stepping_off = False
+
+    def locate(grid, value):
+        return [(x, y) for y in range(size) for x in range(size) if grid[y][x] == value]
+
+    for _ in range(steps):
+        if world.done:
+            break
+        grid = world.history.last.grid
+        agent = locate(grid, 4)
+        targets = locate(grid, TARGET)
+        action = None
+
+        if agent and targets:
+            ax, ay = agent[0]
+            if stepping_off:
+                # Move anywhere; the point is to reveal whether the target
+                # we were standing on is still there.
+                action = int(rng.integers(1, 5))
+                stepping_off = False
+            else:
+                tx, ty = min(targets, key=lambda t: abs(t[0] - ax) + abs(t[1] - ay))
+                best, best_d = None, abs(tx - ax) + abs(ty - ay)
+                for aid, (dx, dy) in MOVES.items():
+                    d = abs(tx - (ax + dx)) + abs(ty - (ay + dy))
+                    if d < best_d:
+                        best, best_d = aid, d
+                action = best
+                if best_d == 0:
+                    stepping_off = True
+
+        if action is None or rng.random() < 0.25:
+            action = int(rng.integers(1, 6))
+        world.step(Action(action))
+    return world.history
+
+
 def build_dataset(
     specs: list[WorldSpec],
     episodes_per_world: int = 3,
@@ -137,8 +198,9 @@ def build_dataset(
     habit this architecture is meant to avoid.
 
     `episode_kind` selects what the core is shown: "solution" replays a
-    solved path, "exploration" takes arbitrary actions, and "mixed"
-    alternates. Exploration is what the agent actually has at test time.
+    solved path, "exploration" takes arbitrary actions, "probing" walks onto
+    and off targets to expose ordered objectives, and "mixed" rotates
+    through all three. Exploration is what the agent actually has at test time.
 
     `required_channels` is deliberately not all three. The outcome channel
     needs a level completion, a win or a death, and random exploration
@@ -157,8 +219,10 @@ def build_dataset(
     chosen = specs if limit is None else specs[:limit]
     for i, spec in enumerate(chosen):
         for episode in range(episodes_per_world):
-            if episode_kind == "exploration" or (
-                episode_kind == "mixed" and episode % 2 == 1
+            if episode_kind == "probing" or (episode_kind == "mixed" and episode % 3 == 2):
+                history = probing_history(spec, seed=episode * 101 + 7)
+            elif episode_kind == "exploration" or (
+                episode_kind == "mixed" and episode % 3 == 1
             ):
                 history = exploration_history(spec, seed=episode * 101 + 7)
             else:

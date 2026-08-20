@@ -44,6 +44,10 @@ from .encoding import (
     N_CELL_VALUES,
 )
 
+DISP_BINS = 6
+"""Displacement magnitudes 0..5+. Step distance reaches 3 and a charge tick
+adds one, so 4 is the largest ordinary move; 6 bins leaves headroom."""
+
 
 def _coord_grid(size: int) -> mx.array:
     """Normalised (x, y) per cell, shaped (1, 1, size, size, 2)."""
@@ -159,7 +163,7 @@ class TransitionEncoder(nn.Module):
         #
         # Still generic: computed for all 16 values, saying nothing about
         # which one is the agent or what period to look for.
-        self.moment_proj = nn.Linear(N_CELL_VALUES * 9, cfg.d_model)
+        self.moment_proj = nn.Linear(N_CELL_VALUES * (9 + DISP_BINS), cfg.d_model)
         self.use_raw_grid = cfg.use_raw_grid
         self.norm = nn.LayerNorm(cfg.d_model)
 
@@ -183,10 +187,52 @@ class TransitionEncoder(nn.Module):
         present = ((mb > 0) & (ma > 0)).astype(mx.float32)
         dx = (cxa - cxb) * present
         dy = (cya - cyb) * present
+
+        # Displacement in CELLS, not in normalised coordinates.
+        #
+        # `_coord_grid` spans [-1, 1] across the crop, so a one-cell move is
+        # 0.133 while log1p(background mass) reaches 5.5 in the same vector.
+        # The movement signal arrived roughly forty times smaller than the
+        # static content it had to compete with, and LayerNorm finished the
+        # job. That is why the core learned every label visible in a still
+        # frame -- which cells exist -- and none of the labels about motion.
+        #
+        # Measured: a one-line rule over these same encoded arrays ("the
+        # modal nonzero agent displacement is the step distance") scores
+        # 0.965, against 0.542 for the trained network. The information was
+        # never missing; it was out of scale.
+        scale = (CROP - 1) / 2.0
+        dx = dx * scale
+        dy = dy * scale
         dist = mx.sqrt(dx * dx + dy * dy + 1e-9)
 
+        # Displacement, one-hot by magnitude, so that averaging is a HISTOGRAM.
+        #
+        # The rule that recovers step distance from these episodes is "the
+        # modal nonzero displacement" -- and a mode is not something
+        # attention can pool its way to, because attention averages. Given a
+        # raw magnitude per transition, the mean is dragged around by blocked
+        # moves that travel zero and by charge ticks that travel one extra,
+        # so the average is not the answer at any weighting.
+        #
+        # Binned, the arithmetic changes completely: the mean of a one-hot
+        # over transitions IS the distribution of displacements, and the mode
+        # becomes a linear readout of it. Same information, in the shape the
+        # aggregation can actually use.
+        #
+        # Still generic. It says nothing about which of the 16 values is the
+        # agent, nothing about periodicity, and computes no rule -- it is a
+        # histogram of spatial statistics, the same category as the moments
+        # above.
+        rounded = mx.clip(mx.round(dist), 0, DISP_BINS - 1)
+        bins = mx.stack(
+            [(rounded == b).astype(mx.float32) for b in range(DISP_BINS)], axis=-1
+        )  # (B, T, 16, DISP_BINS)
+        b_, t_ = bins.shape[0], bins.shape[1]
+        bins = bins.reshape(b_, t_, N_CELL_VALUES * DISP_BINS)
+
         return mx.concatenate(
-            [mx.log1p(mb), cxb, cyb, mx.log1p(ma), cxa, cya, dx, dy, dist], axis=-1
+            [mx.log1p(mb), cxb, cyb, mx.log1p(ma), cxa, cya, dx, dy, dist, bins], axis=-1
         )
 
     def __call__(self, grids: mx.array, actions: mx.array) -> mx.array:
