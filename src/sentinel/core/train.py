@@ -31,7 +31,7 @@ import mlx.optimizers as optim
 import numpy as np
 
 from .data import Dataset, iterate_batches, majority_baseline
-from .encoding import HEADS
+from .encoding import HEADS, defined_mask
 from .model import CoreConfig, TinyRecursiveCore, loss_fn
 
 
@@ -66,19 +66,35 @@ class EpochResult:
         )
 
 
-def evaluate(model: TinyRecursiveCore, dataset: Dataset, batch_size: int = 64) -> dict[str, float]:
-    """Per-head accuracy over a dataset."""
+def evaluate(
+    model: TinyRecursiveCore,
+    dataset: Dataset,
+    batch_size: int = 64,
+    only_defined: bool = True,
+) -> dict[str, float]:
+    """Per-head accuracy, scored only where the label means anything.
+
+    `only_defined` skips rows whose label is unanswerable for structural
+    reasons -- whether waiting ticks a counter that does not exist, whether
+    gates start open in a world with no gates. Scoring those rewards a lucky
+    guess and punishes an honest one, and it inflated `gates_start_open`
+    across 46% of the held-out episodes. See `encoding.defined_mask`.
+    """
     correct = np.zeros(len(HEADS))
-    total = 0
+    counted = np.zeros(len(HEADS))
     rng = np.random.default_rng(0)
     for grids, actions, labels in iterate_batches(dataset, batch_size, rng, shuffle=False):
         logits = model(mx.array(grids), mx.array(actions))
         mx.eval(logits)
         for i, head_logits in enumerate(logits):
             pred = np.array(mx.argmax(head_logits, axis=-1))
-            correct[i] += float(np.sum(pred == labels[:, i]))
-        total += len(labels)
-    return {name: float(correct[i] / total) for i, (name, _) in enumerate(HEADS)}
+            mask = defined_mask(labels, i) if only_defined else np.ones(len(labels), dtype=bool)
+            correct[i] += float(np.sum((pred == labels[:, i]) & mask))
+            counted[i] += float(mask.sum())
+    return {
+        name: float(correct[i] / max(1.0, counted[i]))
+        for i, (name, _) in enumerate(HEADS)
+    }
 
 
 def train(
@@ -102,7 +118,7 @@ def train(
         print(f"eval : {eval_set.summary()}")
 
     history: list[EpochResult] = []
-    best_watched = -1.0
+    best_per_head: dict[str, float] = {}
     best_epoch = 0
 
     for epoch in range(1, cfg.epochs + 1):
@@ -139,19 +155,32 @@ def train(
                 np.mean(scorable if scorable else list(result.accuracies.values()))
             )
 
-            # Track the WORST head, not the mean.
+            # Progress on ANY head is progress.
             #
-            # Labels are learned at wildly different rates: the easy ones
-            # saturate within tens of epochs while the hidden counter takes
-            # hundreds. Watching the mean lets the saturated heads hold it
-            # flat, patience fires, and the slowest label never gets learned
-            # at all. Measured across three seeds: stopping on the mean gave
-            # charge_period 0.409 +/- 0.022 -- pinned to the class prior --
-            # while training on regardless reached 0.726. Progress on any
-            # head is progress.
-            watched = min(scorable) if scorable else result.mean_accuracy
-            if watched > best_watched + 1e-4:
-                best_watched, best_epoch = watched, epoch
+            # Labels learn at wildly different rates -- the easy ones
+            # saturate in tens of epochs while the hidden counter takes
+            # hundreds -- and both obvious summaries fail, in opposite
+            # directions. Watching the MEAN lets saturated heads hold it
+            # flat: measured across three seeds, that gave charge_period
+            # 0.409 +/- 0.022, pinned to its prior, against 0.726 for
+            # training on. Watching the MINIMUM hands the same veto to any
+            # head that is permanently stuck: `ordered_targets` is
+            # under-determined by the evidence and cannot improve, so once
+            # it plateaus the run ends regardless of what else is still
+            # learning. That cost charge_period 0.559 -> 0.317 the moment
+            # `gates_start_open` was scored correctly and stopped being the
+            # minimum.
+            #
+            # So track every head separately and reset patience when any of
+            # them betters its own best. A stuck head then costs nothing,
+            # and a slow head still gets its hundreds of epochs.
+            improved = False
+            for name, value in result.accuracies.items():
+                if value > best_per_head.get(name, -1.0) + 1e-4:
+                    best_per_head[name] = value
+                    improved = True
+            if improved:
+                best_epoch = epoch
 
         history.append(result)
         if verbose:
@@ -277,3 +306,30 @@ def run_gate(
         passed=not (mean_acc - mean_base < min_mean_lift or charge_acc - charge_base < min_charge_lift),
         reasons=reasons,
     )
+
+
+def save_core(model: TinyRecursiveCore, path: str | Path) -> Path:
+    """Persist a trained core.
+
+    Training costs ~20 minutes on this machine, and every measurement that
+    silently retrains is 20 minutes not spent measuring something else.
+    """
+    from pathlib import Path as _Path
+
+    p = _Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    model.save_weights(str(p))
+    return p
+
+
+def load_core(path: str | Path, cfg: CoreConfig | None = None) -> TinyRecursiveCore:
+    """Rebuild a core from saved weights.
+
+    `cfg` must match the configuration it was trained with; the weights
+    carry shapes but not hyperparameters, so a mismatch fails loudly at
+    load rather than quietly at inference.
+    """
+    model = TinyRecursiveCore(cfg or CoreConfig())
+    model.load_weights(str(path))
+    mx.eval(model.parameters())
+    return model

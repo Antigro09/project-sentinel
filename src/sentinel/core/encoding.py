@@ -254,3 +254,29 @@ def encode_world(spec: WorldSpec, history: History) -> tuple[np.ndarray, np.ndar
 
 def label_names() -> list[str]:
     return [name for name, _ in HEADS]
+
+
+def defined_mask(labels: np.ndarray, head: int) -> np.ndarray:
+    """Which rows have a well-defined value for this head.
+
+    Two labels are conditional, and scoring them where they are undefined
+    reports a coin flip as if it were knowledge -- the same error that made
+    the first benchmark meaningless.
+
+    `wait_advances_charge` governs whether a non-move action ticks the
+    hidden counter, so in a world with NO counter it changes nothing
+    observable. Measured: the evidence determines it in 100% of charge=2,
+    charge=3 and charge=5 worlds, 85% of charge=4, and **0%** of worlds
+    without a counter.
+
+    `gates_start_open` says whether gates begin passable, and gates exist
+    only where switches do. With no switches there are no gates and the flag
+    is unobservable -- which covers 46% of the held-out episodes, so nearly
+    half of that label's reported accuracy was guessing.
+    """
+    names = [n for n, _ in HEADS]
+    if names[head] == "wait_advances_charge":
+        return labels[:, names.index("charge_period")] != 0
+    if names[head] == "gates_start_open":
+        return labels[:, names.index("switches")] != 0
+    return np.ones(len(labels), dtype=bool)

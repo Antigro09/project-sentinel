@@ -24,7 +24,16 @@ from .encoding import (
     label_names,
 )
 from .model import CoreConfig, TinyRecursiveCore, loss_fn
-from .train import EpochResult, GateResult, TrainConfig, evaluate, run_gate, train
+from .train import (
+    EpochResult,
+    GateResult,
+    TrainConfig,
+    evaluate,
+    load_core,
+    run_gate,
+    save_core,
+    train,
+)
 
 __all__ = [
     "CROP",
@@ -43,11 +52,13 @@ __all__ = [
     "evaluate",
     "iterate_batches",
     "label_names",
+    "load_core",
     "load_dataset",
     "load_split",
     "loss_fn",
     "majority_baseline",
     "run_gate",
+    "save_core",
     "save_dataset",
     "train",
 ]

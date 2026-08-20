@@ -27,10 +27,24 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q          # all gates: replay, verifier, planner, agent
-uv run scripts/bench_engine.py   # engine throughput on this machine
-uv run scripts/run_agent.py      # train the core, then solve unseen worlds
+uv run pytest tests/ -q                    # all gates: replay, verifier, planner, agent
+uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
+
+Reproducing the numbers below, in order. The first trains and saves cores
+that the rest load, so run it first:
+
+```bash
+uv run scripts/measure_core.py --seeds 2            # per-label accuracy
+uv run scripts/measure_search.py --worlds 60        # ranking quality
+uv run scripts/measure_end_to_end.py --worlds 60    # solve rate
+uv run scripts/measure_identifiability.py --kind random
+```
+
+`measure_identifiability.py` is the one to run first when a label looks
+stuck: it says whether the evidence determines that label at all, which is
+a different problem from the network failing to read it, and only one of
+the two is fixable by training.
 
 ## Measured on an M5 Max (40-core GPU, 128GB)
 
@@ -60,8 +74,10 @@ src/sentinel/
   adapt/      test-time training
   memory/     skill library + continual learning
   evolve/     scaffold self-modification
-scripts/      fetch_games.py, bench_engine.py, build_corpus.py,
-              preflight.py, rescore_corpus.py, train_core.py, run_agent.py
+  explore/    experiments designed from already-inferred rules            [built]
+scripts/      fetch_games.py, bench_engine.py, build_corpus.py, preflight.py,
+              rescore_corpus.py, train_core.py, run_agent.py, and the
+              measure_*.py family that reproduces every number below
 tests/        determinism, verifier gate, planner, generator, bootstrap
 ```
 
