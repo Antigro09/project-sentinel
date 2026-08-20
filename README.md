@@ -129,25 +129,31 @@ compositional space. Widening the mechanic space was not optional.
 
 It infers the rules of an unfamiliar world, including a rule that appears in
 no single frame, and turns that into solved worlds. Two training seeds on
-held-out mechanic combinations:
+held-out mechanic combinations, scored only where each label is defined:
 
-| label | core | prior |
-|---|---|---|
-| step_distance | **0.975 +/- 0.001** | 0.491 |
-| gates_start_open | 0.758 +/- 0.012 | 0.543 |
-| switches | 0.745 +/- 0.018 | 0.462 |
-| edge_mode | 0.693 +/- 0.020 | 0.377 |
-| **charge_period** (hidden) | **0.559 +/- 0.024** | 0.298 |
-| hazards | 0.566 +/- 0.037 | 0.342 |
-| ordered_targets | 0.578 +/- 0.026 | 0.539 |
-| wait_advances_charge | 0.557 +/- 0.034 | 0.669 |
+| label | core | prior | seeds |
+|---|---|---|---|
+| gates_start_open | **0.997 +/- 0.003** | 0.535 | 0.99, 1.00 |
+| step_distance | **0.949 +/- 0.016** | 0.491 | 0.96, 0.93 |
+| switches | 0.765 +/- 0.009 | 0.462 | 0.77, 0.76 |
+| **charge_period** (hidden) | **0.590 +/- 0.121** | 0.298 | 0.71, 0.47 |
+| edge_mode | 0.579 +/- 0.023 | 0.377 | 0.60, 0.56 |
+| hazards | 0.563 +/- 0.005 | 0.342 | 0.56, 0.57 |
+| wait_advances_charge | 0.563 +/- 0.110 | 0.612 | 0.67, 0.45 |
+| ordered_targets | 0.560 +/- 0.036 | 0.539 | 0.60, 0.52 |
 
 `charge_period` is the one that matters: a counter that makes every Nth move
 travel an extra cell, invisible in any frame, recoverable only from a
-pattern across a sequence. At 0.559 against a 0.298 prior it is being
-inferred rather than guessed -- and unlike the 0.795 this file used to
-report, it is measured on a holdout where the label is confounded with
-nothing.
+pattern across a sequence. At twice its prior it is being inferred rather
+than guessed. Note the spread, though -- 0.71 and 0.47 -- which is the
+honest caveat on that claim and the next thing to fix.
+
+Two labels are worth reading carefully rather than at face value.
+`ordered_targets` barely clears its prior, and that is close to correct
+behaviour: the evidence *determines* it in only 6% of worlds under random
+play, so there is usually nothing to infer. `wait_advances_charge` sits
+below its prior and is undefined in a quarter of worlds -- whether waiting
+ticks a counter is unobservable where no counter exists.
 
 End to end, 60 held-out worlds:
 
@@ -185,9 +191,17 @@ diagnosis chain is worth keeping:
    zero and charge ticks travelling one extra. One-hot binning by magnitude
    makes the mean of the bins a histogram, and the mode a linear readout.
 
-step_distance then went to 0.975 with a standard deviation of **0.001**,
-having been +/- 0.239 before. Removing the variance is the part that says
-this is a fix rather than a lucky seed.
+step_distance then went to 0.95 with a standard deviation of 0.016, having
+been +/- 0.239 before. Removing the variance is the part that says this is a
+fix rather than a lucky seed.
+
+4. **Training returned the last epoch's weights, not the best.** Three
+   stopping criteria were tuned before noticing that each was really
+   selecting a model by selecting when to quit -- the mean lets saturated
+   heads hold it flat, the minimum hands a veto to a permanently stuck head,
+   and resetting on any improvement lets noise train forever
+   (step_distance +/- 0.001 -> +/- 0.306). Snapshotting the best-scoring
+   epoch decouples the two: stopping late now costs time and nothing else.
 
 ### Layers
 
