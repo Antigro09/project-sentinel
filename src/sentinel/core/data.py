@@ -68,12 +68,65 @@ def load_split(path: str | Path) -> dict[str, list[WorldSpec]]:
     return out
 
 
+def exploration_history(spec: WorldSpec, seed: int, steps: int = 60, avoid_hazards: bool = True):
+    """An episode of arbitrary actions -- what the agent actually collects.
+
+    At test time `run_episode` explores by taking actions and then infers
+    from what happened. Training on solution trajectories instead was a
+    train/test mismatch I introduced early and did not notice: the core
+    never saw the kind of episode it would be asked to read.
+
+    **Hazard cells are avoided, and that is not cheating.** Hazards are
+    rendered as a distinct colour, so refusing to step onto one reads the
+    frame rather than the rules -- whether hazards are lethal, harmless or
+    teleporting is exactly what stays hidden. Without this, random play in
+    the compositional space usually dies within twenty moves: measured, 67%
+    of exploration episodes were dropped for thin evidence and the
+    survivors held 20 transitions against a solution path's 31. The hidden
+    counter needs a long unbroken run of movement before its period shows.
+    """
+    from sentinel.env.types import Action
+    from sentinel.gen.grid import HAZARD, MOVES, GridWorld
+
+    world = GridWorld(spec)
+    world.reset()
+    rng = np.random.default_rng(seed)
+    size = spec.field_size
+
+    for _ in range(steps):
+        if world.done:
+            break
+        choices = [1, 2, 3, 4, 5]
+        if avoid_hazards:
+            grid = world.history.last.grid
+            here = None
+            for y in range(size):
+                for x in range(size):
+                    if grid[y][x] == 4:  # AGENT
+                        here = (x, y)
+                        break
+                if here:
+                    break
+            if here is not None:
+                safe = []
+                for aid, (dx, dy) in MOVES.items():
+                    nx, ny = here[0] + dx, here[1] + dy
+                    if 0 <= nx < size and 0 <= ny < size and grid[ny][nx] == HAZARD:
+                        continue
+                    safe.append(aid)
+                choices = safe + [5] if safe else [5]
+        world.step(Action(int(rng.choice(choices))))
+    return world.history
+
+
 def build_dataset(
     specs: list[WorldSpec],
     episodes_per_world: int = 3,
     limit: int | None = None,
     require_strong_evidence: bool = True,
     verbose: bool = False,
+    episode_kind: str = "solution",
+    required_channels: tuple[str, ...] = ("render", "transition"),
 ) -> Dataset:
     """Encode episodes for each world.
 
@@ -82,6 +135,18 @@ def build_dataset(
     observations supports them — training on those teaches the core to
     guess from priors rather than read the evidence, which is the exact
     habit this architecture is meant to avoid.
+
+    `episode_kind` selects what the core is shown: "solution" replays a
+    solved path, "exploration" takes arbitrary actions, and "mixed"
+    alternates. Exploration is what the agent actually has at test time.
+
+    `required_channels` is deliberately not all three. The outcome channel
+    needs a level completion, a win or a death, and random exploration
+    usually produces none of them -- which dropped 67% of exploration
+    episodes. But every label here describes MOVEMENT, and an episode can
+    pin down step distance, edge behaviour and the hidden counter without
+    ever finishing a level. Demanding outcome evidence to learn dynamics
+    discards good evidence for a channel the labels do not use.
     """
     grids_out: list[np.ndarray] = []
     actions_out: list[np.ndarray] = []
@@ -92,13 +157,20 @@ def build_dataset(
     chosen = specs if limit is None else specs[:limit]
     for i, spec in enumerate(chosen):
         for episode in range(episodes_per_world):
-            history = make_training_history(spec, seed=episode * 101 + 7)
+            if episode_kind == "exploration" or (
+                episode_kind == "mixed" and episode % 2 == 1
+            ):
+                history = exploration_history(spec, seed=episode * 101 + 7)
+            else:
+                history = make_training_history(spec, seed=episode * 101 + 7)
             if history is None:
                 dropped += 1
                 continue
-            if require_strong_evidence and evidence_coverage(history).unexercised():
-                dropped += 1
-                continue
+            if require_strong_evidence:
+                missing = set(evidence_coverage(history).unexercised())
+                if missing & set(required_channels):
+                    dropped += 1
+                    continue
             g, a, y = encode_world(spec, history)
             grids_out.append(g)
             actions_out.append(a)

@@ -73,65 +73,112 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**Phases 0-3 complete.** 101 tests passing.
+**Phases 0-5 built. 141 tests passing.** The headline numbers in earlier
+versions of this file were wrong, and the correction is the most useful
+thing here.
 
-A 1.4M-parameter recursive network, trained from scratch with no LLM
-anywhere in the loop, watches an unknown world, infers rules that appear in
-no single frame, builds an executable model of it, plans inside that model,
-and acts.
+### The benchmark could not measure what it claimed
 
-Measured over 3 training seeds x 100 worlds whose rule combinations were
-never seen in training:
+The original held-out set contained four rule combinations. In it,
+predicting `charge_period` from `has_hazards` scored **exactly 1.000** --
+the four withheld combinations paired `charge=3` with hazards every time,
+and hazards are coloured cells anyone can see. So the reported "infers a
+counter that appears in no frame" was hazard detection under another name.
 
-| condition | solve rate | levels |
+Auditing the rest of that split, four of six labels measured nothing:
+
+| label | what it actually measured |
+|---|---|
+| charge_period | perfectly predictable from has_hazards |
+| wrap_edges | constant across the whole holdout |
+| has_switches | constant across the whole holdout |
+| step_distance | class absent from *training*; 0.751 was both prior and ceiling |
+
+The cause was `make_split` drawing withheld combinations at random. With
+four of them, confounding is near certain. The holdout is now *chosen* for
+label independence (`balanced_withhold`), which surfaced a structural
+result: the original 26-combination space cannot produce a valid holdout at
+any size -- 1.00 confounding for every k tried, against 0.54 for the
+compositional space. Widening the mechanic space was not optional.
+
+| | old | new |
 |---|---|---|
-| true mechanics (ceiling) | 67.0% | 74.4% |
-| **core-inferred** | **16.3% +/- 2.5%** | **27.2% +/- 2.7%** |
-| default guess (floor) | 5.0% | 12.3% |
+| rule combinations | 26 | 5,760 |
+| distinct rule sets in holdout | 4 | 24 |
+| worst label confounding | 1.00 | 0.54 |
+| exhaustive search cost | 1.7s/world | ~101s/world |
 
-Per-label inference on held-out seeds:
+### What the core actually does
 
-| label | core | prior |
-|---|---|---|
-| has_hazards | 0.999 | 0.553 |
-| has_switches | 0.999 | 0.547 |
-| wrap_edges | 0.985 | 0.954 |
-| **charge_period** (hidden) | **0.795 +/- 0.159** | 0.365 |
-| ordered_targets | 0.561 | 0.546 |
+It **prunes**, which is the job the plan assigns it. Rank of the true rule
+set among 5,760, over 73 held-out worlds -- accuracy is held constant by
+construction, since the verifier still decides what is true, so a confident
+wrong prior costs replays and nothing else:
 
-`charge_period` is the one that matters: a counter that makes every Nth move
-travel two cells, invisible in any single frame, recoverable only from a
-pattern across a sequence. Inferring it means positing structure that cannot
-be seen.
+| ordering | median rank | mean | top-100 | search time |
+|---|---|---|---|---|
+| random | 3,734 | 3,244 | 3% | 56.8s |
+| simplicity | 3,206 | 2,765 | 0% | 48.4s |
+| library (memory/) | 710 | 1,353 | 10% | 23.7s |
+| **core** | **173** | **366** | **34%** | **6.4s** |
 
-### What this is, and is not
+### What the core does not do
 
-This infers six mechanic parameters within a known hypothesis space. That is
-the smallest testable form of "architecture over scale" -- necessary, not
-sufficient, and a long way from the open-ended program synthesis the plan
-describes.
+It does not infer hidden state. On a benchmark where `charge_period` is not
+confounded with anything:
+
+| label | core | prior | |
+|---|---|---|---|
+| switches | 0.812 | 0.462 | learned |
+| gates_start_open | 0.679 | 0.543 | learned |
+| step_distance | 0.542 +/- 0.267 | 0.491 | marginal, unstable |
+| hazards | 0.416 +/- 0.239 | 0.342 | marginal, unstable |
+| edge_mode | 0.403 | 0.377 | marginal |
+| ordered_targets | 0.522 | 0.539 | at prior |
+| **charge_period** | **0.203** | **0.298** | **below prior** |
+| wait_advances_charge | 0.431 | 0.669 | below prior |
+
+Both results hold at once. Ranking uses the *joint* distribution over eight
+heads, and the three labels the core does learn cut the space by about 18x
+on their own -- 5760/18 is roughly the observed median of 173. So the core
+prunes usefully **without** positing anything it cannot see. That is a
+weaker claim than the plan makes, and it is the one the evidence supports.
+
+The failure is not a lack of evidence. The verifier identifies
+`charge_period` in **100%** of these worlds with a mean fitness gap of 0.838
+-- larger than on the old benchmark. The signal is at full strength and the
+network fails to read it.
+
+### Layers
+
+| layer | state |
+|---|---|
+| `core/` | prunes 18.5x better than simplicity; does not infer hidden state |
+| `adapt/` | works -- recovers the exact rule set 36% of the time with no labels |
+| `memory/` | works on the wide space (4.5x better ranking); was *worse* than no memory on the narrow one |
+| `evolve/` | mechanically correct -- archives every version, gates promotion on held-out worlds, rolls back |
+
+With true mechanics the agent solves **60.0%** of compositional worlds, so
+the planner handles the new rules and inference is the binding constraint.
 
 ### Open problems
 
-- **ordered_targets, ~0.56.** Objective order is unobservable, and a
-  solution trajectory never exercises it: measured at literally zero
-  failed-collection events until probing was added. Four probing configs
-  were tested and every one that made the signal denser cost more on
-  charge_period than it gained.
-- **The 67% ceiling.** With perfect rules the agent still fails a third of
-  these worlds, all of them ordered-target worlds. The loop, not the core,
-  is the binding constraint there.
-- **charge_period variance, +/- 0.159.** One seed in four still lands near
-  chance.
+- **charge_period, 0.203 against a 0.298 prior.** The plan's sharpest claim
+  rests on this and it is currently unsupported.
+- **ordered_targets, still at prior.** Unchanged through every attempt.
+- **Search is still cheap enough to win.** 5,760 hypotheses cost ~101s;
+  brute force only becomes unusable past ~17,000.
 
 ### Lessons that cost the most to learn
 
-1. **A reward signal will be optimised into its blind spot.** Scoring the
+1. **A benchmark that cannot fail teaches nothing.** Four of six labels were
+   unmeasurable for weeks and every number computed from them was noise.
+2. **A reward signal will be optimised into its blind spot.** Scoring the
    whole 64x64 frame paid 0.93 fitness for predicting only dead background.
-2. **You cannot learn a rule your evidence never exercises.** Twice: the
-   verifier gate, and ordered_targets.
-3. **Early stopping on a mean hides the slowest label.** charge_period read
-   0.409 +/- 0.022 -- apparently pinned to chance -- purely because
-   saturated heads held the mean flat.
-4. **Single runs lie.** The same condition measured 15% and 5% on different
-   seeds. Everything above is multi-seed.
+3. **You cannot learn a rule your evidence never exercises** -- the verifier
+   gate, then ordered_targets.
+4. **Check the baseline you claim to beat.** The plan asked for a comparison
+   against random program search. It was never built, and it turned out
+   brute force beat the trained core on the original benchmark outright.
+5. **Single runs lie**, and so do confounded ones. Everything above is
+   multi-seed on a holdout chosen for label independence.

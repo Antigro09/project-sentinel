@@ -72,6 +72,7 @@ def exhaustive_search(
     field_size: int,
     order: Sequence[tuple[int, ...]] | None = None,
     stop_at: float = 1.0,
+    tie_break: str = "simplicity",
 ) -> SearchResult:
     """Find the rule set that best explains the evidence.
 
@@ -88,6 +89,14 @@ def exhaustive_search(
     only taken once no untried candidate could win that tie-break. Search
     still stops early when the prior is good; it just cannot be talked into
     a more complicated answer than the evidence requires.
+
+    `tie_break="order"` deliberately gives that decision back to the
+    ordering: the first hypothesis that explains everything wins. That is
+    the wrong policy for a blind ordering and the right one for an informed
+    prior, because ties are exactly where evidence has run out and a prior
+    is the only thing left to consult. Paired with `core_order` this is the
+    architecture the plan describes -- the verifier decides what is
+    possible, the network decides which of the possibilities to believe.
     """
     candidates = list(order) if order is not None else list(SIMPLICITY_ORDER)
     best: ScoredHypothesis | None = None
@@ -106,6 +115,9 @@ def exhaustive_search(
             best = scored
 
         if best.fitness >= stop_at:
+            if tie_break == "order":
+                exhausted = False
+                break
             # An exact explanation is in hand. It is safe to stop only if
             # nothing left to try is simpler -- a simpler hypothesis that
             # also explains everything would win the tie-break.
