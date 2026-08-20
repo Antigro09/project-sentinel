@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from sentinel.env.boundary import is_boundary
 from sentinel.env.history import History
 from sentinel.env.types import GRID_SIZE
 from sentinel.gen.spec import Mechanics, WorldSpec
@@ -50,6 +51,13 @@ more: it is the label that actually converts into solve rate."""
 
 N_CELL_VALUES = 16
 N_ACTIONS = 5
+
+BOUNDARY_ACTION = -2
+"""Marks a transition no action caused: a level change or an engine reset.
+
+Distinct from the -1 used for padding, because the two mean opposite
+things -- padding is "nothing here", a boundary is "something happened
+that you must not attribute to the action"."""
 
 CHANNELS = 3
 """before, after, changed."""
@@ -132,24 +140,36 @@ def encode_history(history: History) -> tuple[np.ndarray, np.ndarray]:
     grids = np.zeros((MAX_TRANSITIONS, CROP, CROP, CHANNELS), dtype=np.int8)
     actions = np.full((MAX_TRANSITIONS,), -1, dtype=np.int32)
 
-    resets = set(history.reset_points)
     previous = history.initial
-    prev_level = history.steps[0].level_index if history.steps else 0
     count = 0
     for step in history.steps:
         if count >= MAX_TRANSITIONS:
             break
         settled = step.settled
 
-        # A reset or a level change is not the effect of an action. Encoding
-        # one teaches the network that an action rebuilt the whole board --
-        # and worse, that targets can reappear, which is the exact signature
-        # `ordered_targets` depends on. `History.transition_pairs` already
-        # excludes these; this walk has to do the same.
-        if step.index in resets or step.level_index != prev_level:
-            previous = settled
-            prev_level = step.level_index
-            continue
+        # A reset or a level change is not the effect of an action, and
+        # encoding one as though it were teaches the network that a single
+        # move can rebuild the board -- including reinstating collected
+        # targets, which is the exact signature `ordered_targets` rests on.
+        #
+        # But DROPPING them is worse, and the measurement was brutal:
+        # charge_period fell from 0.795 to 0.088, well below the 0.33 chance
+        # line for three classes. The hidden counter is *periodic*. It keeps
+        # ticking across a level change, so removing a transition leaves a
+        # gap the network cannot see, and moves n, n+1, n+3 get read as
+        # consecutive. Every phase it learns is then wrong, which is how
+        # accuracy lands below chance rather than at it.
+        #
+        # So boundaries stay in the sequence, preserving the time axis, and
+        # are MARKED instead. The action id says "no action caused this",
+        # leaving the network free to discount the content without losing
+        # count of when things happened.
+        #
+        # The check is `levels_completed`, NOT `level_index`: a step carries
+        # the level it ENDED on, so the crossing step already reports the
+        # new number and comparing consecutive `level_index` values misses
+        # the crossing itself. See env/boundary.
+        boundary = is_boundary(previous, settled)
 
         before = np.array(
             [row[x0 : x0 + CROP] for row in previous.grid[y0 : y0 + CROP]], dtype=np.int8
@@ -170,10 +190,9 @@ def encode_history(history: History) -> tuple[np.ndarray, np.ndarray]:
         grids[count, :, :, 0] = before
         grids[count, :, :, 1] = after
         grids[count, :, :, 2] = (before != after).astype(np.int8)
-        actions[count] = step.action.action_id
+        actions[count] = BOUNDARY_ACTION if boundary else step.action.action_id
 
         previous = settled
-        prev_level = step.level_index
         count += 1
 
     return grids, actions

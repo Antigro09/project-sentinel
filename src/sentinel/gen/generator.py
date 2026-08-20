@@ -19,6 +19,7 @@ holdout.
 from __future__ import annotations
 
 import random
+from collections import Counter
 from dataclasses import dataclass
 from typing import Iterator, Sequence
 
@@ -44,30 +45,76 @@ class GeneratorConfig:
     layouts solvable, so this is rarely approached."""
 
 
-def mechanic_space() -> list[Mechanics]:
+def mechanic_space(wide: bool = False) -> list[Mechanics]:
     """The enumerated combinations the generator draws from.
 
     Kept explicit rather than sampled independently so the train/holdout
     split can withhold *specific combinations* and we can say exactly which
     ones the system had never seen.
+
+    `wide=False` is the original 26-combination space and remains the
+    default so existing corpora, splits and measurements keep their
+    meaning. `wide=True` is the compositional space.
+
+    **Why the wide space exists.** At 96 encodable rule sets, exhaustive
+    verifier search identifies a world's rules in 1.7 seconds and beats the
+    trained core on every rule the evidence determines. Nothing there needs
+    a learned prior, so the setup cannot test whether one is worth having.
+    One verifier replay costs 17.5ms, so against the plan's five-minute
+    budget per novel environment, brute force only stops being viable past
+    roughly 17,000 hypotheses. That is the number this is walking toward.
     """
-    combos: list[Mechanics] = []
-    for charge in (None, 3, 4):
-        for hazards in (False, True):
-            for switches in (False, True):
-                for ordered in (False, True):
-                    combos.append(
-                        Mechanics(
-                            step_distance=1,
-                            charge_period=charge,
-                            has_hazards=hazards,
-                            has_switches=switches,
-                            ordered_targets=ordered,
+    if not wide:
+        combos: list[Mechanics] = []
+        for charge in (None, 3, 4):
+            for hazards in (False, True):
+                for switches in (False, True):
+                    for ordered in (False, True):
+                        combos.append(
+                            Mechanics(
+                                step_distance=1,
+                                charge_period=charge,
+                                has_hazards=hazards,
+                                has_switches=switches,
+                                ordered_targets=ordered,
+                            )
                         )
-                    )
-    combos.append(Mechanics(step_distance=2, charge_period=None))
-    combos.append(Mechanics(step_distance=1, charge_period=3, wrap_edges=True))
-    return combos
+        combos.append(Mechanics(step_distance=2, charge_period=None))
+        combos.append(Mechanics(step_distance=1, charge_period=3, wrap_edges=True))
+        return combos
+
+    # `slide` is deliberately absent. It is implemented and tested, but a
+    # sliding agent cannot choose where to stop, so a target that is not
+    # against a wall is usually unreachable: measured at 5/40 solvable
+    # against 40/40 without it, and the failing combinations cost 60s each
+    # to reject. A mechanic that almost never yields a solvable world is not
+    # really in the space, and pretending otherwise would inflate the
+    # hypothesis count without making the problem harder. Reinstating it
+    # needs a level generator that places targets at wall-adjacent cells.
+    wide_combos: list[Mechanics] = []
+    for step in (1, 2, 3):
+        for charge in (None, 2, 3, 4, 5):
+            for edge in ("block", "wrap", "bounce", "respawn"):
+                for hazard in (None, "kill", "pushback", "respawn"):
+                    for switch in (None, "toggle", "latch"):
+                        for ordered in (False, True):
+                            for gates_open_at_start in (False, True):
+                                for wait_ticks in (True, False):
+                                    wide_combos.append(
+                                        Mechanics(
+                                            step_distance=step,
+                                            charge_period=charge,
+                                            edge_mode=edge,
+                                            has_hazards=hazard is not None,
+                                            hazard_effect=hazard or "kill",
+                                            has_switches=switch is not None,
+                                            switch_mode=switch or "toggle",
+                                            ordered_targets=ordered,
+                                            gates_start_open=gates_open_at_start,
+                                            wait_advances_charge=wait_ticks,
+                                        )
+                                    )
+    return wide_combos
 
 
 def _free_cells(size: int, taken: set[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -189,6 +236,75 @@ def generate_many(
     return out
 
 
+
+LABEL_VIEW = (
+    ("step_distance", lambda m: m.step_distance),
+    ("charge_period", lambda m: m.charge_period or 0),
+    ("edge_mode", lambda m: m.effective_edge_mode()),
+    ("hazards", lambda m: m.hazard_effect if m.has_hazards else "none"),
+    ("switches", lambda m: m.switch_mode if m.has_switches else "none"),
+    ("ordered_targets", lambda m: m.ordered_targets),
+    ("gates_start_open", lambda m: m.gates_start_open),
+    ("wait_advances_charge", lambda m: m.wait_advances_charge),
+)
+"""How a rule set looks to an evaluation, one entry per thing being judged."""
+
+
+def _confounding(combos: Sequence[Mechanics]) -> float:
+    """Worst pairwise predictability between labels across these rule sets.
+
+    1.0 means some label is perfectly predictable from another, so scoring
+    well on it proves nothing about the label itself. This is not a
+    theoretical worry: the original random holdout drew four combinations
+    in which `charge_period` was *exactly* `has_hazards`, so a model that
+    only ever detected hazards -- coloured cells, plainly visible --
+    scored as though it had inferred a counter that appears in no frame.
+    """
+    if len(combos) < 2:
+        return 1.0
+    worst = 0.0
+    views = [[fn(m) for m in combos] for _, fn in LABEL_VIEW]
+    for i, a in enumerate(views):
+        if len(set(a)) < 2:
+            return 1.0  # a constant label measures nothing at all
+        for j, b in enumerate(views):
+            if i >= j:
+                continue
+            # Fraction of combos explained by the best map from b to a.
+            groups: dict = {}
+            for va, vb in zip(a, b):
+                groups.setdefault(vb, []).append(va)
+            hits = sum(max(Counter(g).values()) for g in groups.values())
+            worst = max(worst, hits / len(combos))
+    return worst
+
+
+def balanced_withhold(
+    space: Sequence[Mechanics],
+    count: int,
+    rng: random.Random,
+    attempts: int = 4000,
+) -> tuple[Mechanics, ...]:
+    """Pick holdout combinations whose labels vary independently.
+
+    Random sampling is what produced a benchmark where four of six labels
+    were unmeasurable -- two constant, one perfectly confounded, one absent
+    from training. Choosing the subset instead costs a few thousand cheap
+    evaluations and is the difference between a number that means something
+    and a number that does not.
+    """
+    best: tuple[Mechanics, ...] = tuple(rng.sample(list(space), min(count, len(space))))
+    best_score = _confounding(best)
+    for _ in range(attempts):
+        pick = tuple(rng.sample(list(space), min(count, len(space))))
+        score = _confounding(pick)
+        if score < best_score:
+            best, best_score = pick, score
+            if best_score <= 0.5 + 1e-9:
+                break
+    return best
+
+
 @dataclass(frozen=True, slots=True)
 class Split:
     """Train and held-out worlds, with the holdout basis recorded."""
@@ -216,6 +332,7 @@ def make_split(
     withhold: int = 4,
     seed: int = 0,
     cfg: GeneratorConfig | None = None,
+    wide: bool = False,
 ) -> Split:
     """Build a corpus split that withholds whole mechanic combinations.
 
@@ -223,9 +340,9 @@ def make_split(
     the worlds Phase 3 should be judged on: everything else only asks
     whether the system can rearrange rules it has already been taught.
     """
-    space = mechanic_space()
+    space = mechanic_space(wide=wide)
     rng = random.Random(seed)
-    withheld = tuple(rng.sample(space, min(withhold, len(space))))
+    withheld = balanced_withhold(space, withhold, rng)
     train_pool = [m for m in space if m not in withheld]
 
     train = generate_many(n_train, start_seed=0, mechanics_pool=train_pool, cfg=cfg)

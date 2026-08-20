@@ -59,6 +59,53 @@ class Mechanics:
     ordered_targets: bool = False
     """Targets must be collected in a fixed order; wrong order does nothing."""
 
+    # ---- compositional mechanics -------------------------------------
+    # Everything below defaults to the original behaviour, so worlds
+    # serialised before these existed load and behave identically.
+    #
+    # These exist for one reason. With six switches the hypothesis space
+    # holds 96 rule sets, and exhaustive verifier search solves a world in
+    # 1.7 seconds -- beating the trained core on every identifiable rule.
+    # A space that small cannot test whether a learned prior is worth
+    # anything, because nothing needs pruning. Measured against the plan's
+    # five-minute budget per novel environment, search stops being viable
+    # somewhere past ~17,000 hypotheses; that is the target these widen
+    # toward.
+
+    edge_mode: str = "block"
+    """What happens at the boundary: block, wrap, bounce, respawn.
+
+    `wrap_edges=True` is the legacy spelling of `edge_mode="wrap"` and still
+    wins if set, so old specs keep their meaning."""
+
+    hazard_effect: str = "kill"
+    """What a hazard does: kill, pushback (undo the move), respawn."""
+
+    switch_mode: str = "toggle"
+    """toggle flips the gates each time; latch opens them permanently."""
+
+    slide: bool = False
+    """The agent keeps moving in the chosen direction until something stops
+    it. Ice. Turns every action into a variable-length move, which makes
+    step_distance and the hidden counter far harder to disentangle."""
+
+    gates_start_open: bool = False
+    """Whether gates begin passable. Invisible in the rules, visible in the
+    first frame -- so unlike the hidden counter this is observable, and it
+    widens the space without adding hidden state."""
+
+    wait_advances_charge: bool = True
+    """Whether a non-move action ticks the hidden counter.
+
+    True is the original behaviour and the one that keeps the counter
+    genuinely hidden. With False the counter can be pinned by waiting and
+    watching, which makes it recoverable by elimination -- a strictly
+    easier world, and worth having in the space precisely because a good
+    hypothesis search should notice the difference."""
+
+    def effective_edge_mode(self) -> str:
+        return "wrap" if self.wrap_edges else self.edge_mode
+
     def summary(self) -> str:
         bits = [f"step={self.step_distance}"]
         if self.charge_period:
@@ -71,6 +118,19 @@ class Mechanics:
             bits.append("switches")
         if self.ordered_targets:
             bits.append("ordered")
+        edge = self.effective_edge_mode()
+        if edge != "block":
+            bits.append(edge)
+        if self.has_hazards and self.hazard_effect != "kill":
+            bits.append(f"hz:{self.hazard_effect}")
+        if self.has_switches and self.switch_mode != "toggle":
+            bits.append(f"sw:{self.switch_mode}")
+        if self.slide:
+            bits.append("slide")
+        if self.gates_start_open:
+            bits.append("gates-open")
+        if not self.wait_advances_charge:
+            bits.append("wait-free")
         return " ".join(bits)
 
     def to_json(self) -> dict[str, Any]:
@@ -81,6 +141,12 @@ class Mechanics:
             "has_hazards": self.has_hazards,
             "has_switches": self.has_switches,
             "ordered_targets": self.ordered_targets,
+            "edge_mode": self.edge_mode,
+            "hazard_effect": self.hazard_effect,
+            "switch_mode": self.switch_mode,
+            "slide": self.slide,
+            "gates_start_open": self.gates_start_open,
+            "wait_advances_charge": self.wait_advances_charge,
         }
 
     @classmethod
@@ -92,6 +158,12 @@ class Mechanics:
             has_hazards=bool(d.get("has_hazards", False)),
             has_switches=bool(d.get("has_switches", False)),
             ordered_targets=bool(d.get("ordered_targets", False)),
+            edge_mode=str(d.get("edge_mode", "block")),
+            hazard_effect=str(d.get("hazard_effect", "kill")),
+            switch_mode=str(d.get("switch_mode", "toggle")),
+            slide=bool(d.get("slide", False)),
+            gates_start_open=bool(d.get("gates_start_open", False)),
+            wait_advances_charge=bool(d.get("wait_advances_charge", True)),
         )
 
 

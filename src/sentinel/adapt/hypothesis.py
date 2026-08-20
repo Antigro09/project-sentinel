@@ -127,6 +127,23 @@ def score_hypothesis(
     board.
     """
     mech = mechanics_from_classes(classes)
+    return score_mechanics(mech, history, observed, field_size, world_id, classes)
+
+
+def score_mechanics(
+    mech: Mechanics,
+    history: History,
+    observed: LevelSpec,
+    field_size: int,
+    world_id: str = "hypothesis",
+    classes: tuple[int, ...] | None = None,
+) -> ScoredHypothesis:
+    """Score a rule set directly.
+
+    The six-head class encoding only spans the narrow 26-combination space.
+    The compositional space has no such encoding, so search there works in
+    `Mechanics` objects and this is the entry point it uses.
+    """
     history = scorable_segment(history)
 
     # Under ordered rules the REQUIRED SEQUENCE is part of the hypothesis,
@@ -157,7 +174,7 @@ def score_hypothesis(
         )
         report = verify(GridWorldModel(spec), history)
         candidate = ScoredHypothesis(
-            classes=tuple(int(c) for c in classes),
+            classes=tuple(int(c) for c in classes) if classes is not None else (),
             mechanics=mech,
             fitness=report.fitness,
             transition_match=report.transition_match,

@@ -91,9 +91,14 @@ def transition_state(
     aid = action.action_id
 
     if aid not in MOVES:
-        # Waiting still advances charge. Otherwise the hidden counter could
-        # be recovered by elimination, which would make it not hidden.
-        return replace(state, charge=state.charge + 1)
+        # Waiting still advances charge by default. Otherwise the hidden
+        # counter could be recovered by elimination -- wait, watch, and the
+        # period falls out -- which would make it not hidden. Worlds where
+        # it does NOT advance are genuinely easier, and both belong in the
+        # space so that search has to tell them apart.
+        if mech.wait_advances_charge:
+            return replace(state, charge=state.charge + 1)
+        return state
 
     charge = state.charge + 1
     distance = mech.step_distance
@@ -103,18 +108,50 @@ def transition_state(
     dx, dy = MOVES[aid]
     x, y = state.x, state.y
     gates_open = state.gates_open
+    edge_mode = mech.effective_edge_mode()
+    start_x, start_y = state.x, state.y
 
-    for _ in range(distance):
+    # `slide` turns one action into motion that continues until something
+    # stops it, so the loop runs to a bound rather than a fixed count. The
+    # bound is the board width: a slide cannot outlast the grid, and an
+    # unbounded loop would hang on a wrap world with no obstacles.
+    steps = size * 2 if mech.slide else distance
+
+    for _ in range(steps):
         nx, ny = x + dx, y + dy
-        if mech.wrap_edges:
-            nx, ny = _wrap(nx, size), _wrap(ny, size)
+        off = not (0 <= nx < size and 0 <= ny < size)
+
+        if off:
+            if edge_mode == "wrap":
+                nx, ny = _wrap(nx, size), _wrap(ny, size)
+            elif edge_mode == "bounce":
+                # Reverse and take the step the other way instead.
+                dx, dy = -dx, -dy
+                nx, ny = x + dx, y + dy
+                if not (0 <= nx < size and 0 <= ny < size):
+                    break
+            elif edge_mode == "respawn":
+                x, y = level.start
+                break
+            else:  # block
+                break
+
         if blocked((nx, ny), level, size, gates_open):
             break
         x, y = nx, ny
+
         if mech.has_hazards and (x, y) in level.hazards:
-            return replace(state, x=x, y=y, charge=charge, dead=True)
+            if mech.hazard_effect == "kill":
+                return replace(state, x=x, y=y, charge=charge, dead=True)
+            if mech.hazard_effect == "pushback":
+                x, y = start_x, start_y
+                break
+            if mech.hazard_effect == "respawn":
+                x, y = level.start
+                break
+
         if mech.has_switches and (x, y) in level.switches:
-            gates_open = not gates_open
+            gates_open = True if mech.switch_mode == "latch" else not gates_open
 
     remaining = state.remaining
     collected = state.collected
@@ -168,6 +205,7 @@ def render_grid(state: GridState, spec: WorldSpec) -> tuple[tuple[int, ...], ...
 
 def initial_state(level_index: int, spec: WorldSpec) -> GridState:
     level = spec.levels[level_index]
+    mech = spec.mechanics
     return GridState(
         level=level_index,
         x=level.start[0],
@@ -175,7 +213,7 @@ def initial_state(level_index: int, spec: WorldSpec) -> GridState:
         collected=0,
         remaining=frozenset(level.targets),
         charge=0,
-        gates_open=False,
+        gates_open=mech.gates_start_open,
         dead=False,
         cleared=not level.targets,
     )

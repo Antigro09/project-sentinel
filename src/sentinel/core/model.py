@@ -34,7 +34,15 @@ from dataclasses import dataclass
 import mlx.core as mx
 import mlx.nn as nn
 
-from .encoding import CHANNELS, CROP, HEADS, MAX_TRANSITIONS, N_ACTIONS, N_CELL_VALUES
+from .encoding import (
+    BOUNDARY_ACTION,
+    CHANNELS,
+    CROP,
+    HEADS,
+    MAX_TRANSITIONS,
+    N_ACTIONS,
+    N_CELL_VALUES,
+)
 
 
 def _coord_grid(size: int) -> mx.array:
@@ -104,7 +112,8 @@ class TransitionEncoder(nn.Module):
     def __init__(self, cfg: CoreConfig) -> None:
         super().__init__()
         self.cell = nn.Embedding(N_CELL_VALUES, cfg.cell_embed)
-        self.action = nn.Embedding(N_ACTIONS + 1, cfg.d_model)
+        # +1 for padding, +1 for the boundary marker.
+        self.action = nn.Embedding(N_ACTIONS + 2, cfg.d_model)
 
         # Coordinate channels, CoordConv-style. Flattening a 16x16 grid
         # through a Linear destroys spatial relationships, and the label that
@@ -195,7 +204,14 @@ class TransitionEncoder(nn.Module):
             tokens = tokens + self.proj(joined.reshape(b, t, -1))
 
         # -1 marks padding; shift to the reserved final embedding row.
-        action_ids = mx.where(actions < 0, N_ACTIONS, actions)
+        # Three-way: real action, padding (-1), boundary (-2). Folding the
+        # last two together would tell the network a board rebuild and an
+        # empty slot are the same event.
+        action_ids = mx.where(
+            actions == BOUNDARY_ACTION,
+            N_ACTIONS + 1,
+            mx.where(actions < 0, N_ACTIONS, actions),
+        )
         return self.norm(tokens + self.action(action_ids))
 
 
