@@ -23,9 +23,15 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from sentinel.env.history import History
-from sentinel.gen.spec import LevelSpec, Mechanics
+from sentinel.gen.grid import AGENT, GATE_CLOSED, GATE_OPEN, TARGET, GridWorldModel
+from sentinel.gen.spec import LevelSpec, Mechanics, WorldSpec
 
-from .hypothesis import ScoredHypothesis, mechanics_from_classes, score_hypothesis
+from .hypothesis import (
+    ScoredHypothesis,
+    mechanics_from_classes,
+    scorable_segment,
+    score_hypothesis,
+)
 
 from .hypothesis import NCLASS
 
@@ -53,6 +59,12 @@ class SearchResult:
     replays: int
     exhausted: bool
     """False when an exact explanation was found and the rest was skipped."""
+    steps_simulated: int = 0
+    """Model steps actually run. The honest cost for incremental search,
+    which never performs a whole replay."""
+    survivors: int = 1
+    """Hypotheses the evidence could not separate. This is the uncertainty,
+    and it is what an experiment should be chosen to reduce."""
 
     @property
     def mechanics(self) -> Mechanics:
@@ -228,3 +240,170 @@ def factored_search(
             break
 
     return SearchResult(best=best, replays=replays, exhausted=False)
+
+def equivalence_search(
+    history: History,
+    observed: LevelSpec,
+    field_size: int,
+    candidates: Sequence[tuple[int, ...]] | None = None,
+) -> SearchResult:
+    """Step every hypothesis forward together, and stop paying for the dead.
+
+    Verifying candidates one at a time pays the FULL episode for each, even
+    though most are refuted within a few moves. This walks the episode once
+    with every hypothesis live at the same time, drops each the moment it
+    mispredicts, and never simulates it again. Cost stops being
+    "hypotheses x episode length" and becomes the sum over steps of however
+    many are still standing -- which collapses quickly, because being wrong
+    about movement shows up immediately.
+
+    **Nothing is merged.** An earlier version also collapsed hypotheses
+    whose predicted state matched, keeping one representative per behaviour.
+    That took 5,760 candidates to 2 in a single step and was simply wrong:
+    agreeing on step 1 does not mean agreeing on step 5, so the merge threw
+    away hypotheses that later evidence would have separated -- including,
+    as the check revealed, the true one. Prefix-equivalence is not
+    equivalence. Refutation is the only sound pruning here.
+
+    What it CANNOT do is separate hypotheses the evidence never separates.
+    Survivors are returned as one equivalence class and the tie is broken by
+    simplicity, exactly as elsewhere, so a rule the episode never exercised
+    is still not invented.
+
+    `steps_simulated` is the honest cost here, not `replays`: this never
+    performs a full replay, so counting replays would flatter it.
+    """
+    pool = list(candidates) if candidates is not None else list(SIMPLICITY_ORDER)
+    segment = scorable_segment(history)
+    if not segment.steps:
+        best = score_hypothesis(pool[0], history, observed, field_size)
+        return SearchResult(best=best, replays=1, exhausted=True)
+
+    # One model per hypothesis, all starting from the observed layout.
+    live: list[tuple[tuple[int, ...], object, object]] = []
+    for classes in pool:
+        spec = WorldSpec(
+            world_id="eq",
+            seed=0,
+            field_size=field_size,
+            mechanics=mechanics_from_classes(classes),
+            levels=(observed,),
+        )
+        model = GridWorldModel(spec)
+        live.append((classes, model, model.init_state()))
+
+    # Compare STATE, not rendered frames.
+    #
+    # Rendering 64x64 for every live candidate at every step is 4,096 cell
+    # writes x 5,760 candidates x 30 steps, which does not finish. But the
+    # render is a pure function of a handful of state variables, so two
+    # candidates render identically exactly when those variables agree --
+    # and the informative ones are the agent's position, which targets are
+    # still out, and whether the gates are open. That is the same
+    # observational-equivalence test at a thousandth of the cost.
+    #
+    # The agent OCCLUDES a target it stands on, so a target under the agent
+    # is invisible and must be excluded before comparing.
+    def observed_facts(grid):
+        agent = None
+        targets = set()
+        gates_open = None
+        for y in range(field_size):
+            row = grid[y]
+            for x in range(field_size):
+                v = row[x]
+                if v == AGENT:
+                    agent = (x, y)
+                elif v == TARGET:
+                    targets.add((x, y))
+                elif v == GATE_OPEN:
+                    gates_open = True
+                elif v == GATE_CLOSED:
+                    gates_open = False
+        return agent, frozenset(targets), gates_open
+
+    steps_simulated = 0
+    for step in segment.steps:
+        if len(live) <= 1:
+            break
+        want_agent, want_targets, want_gates = observed_facts(step.settled.grid)
+        survivors = []
+
+        for classes, model, state in live:
+            steps_simulated += 1
+            try:
+                nxt = model.transition(state, step.action)
+            except Exception:
+                continue
+            here = (nxt.x, nxt.y)
+            visible = frozenset(t for t in nxt.remaining if t != here)
+            if here != want_agent or visible != want_targets:
+                continue
+            if want_gates is not None and bool(nxt.gates_open) != want_gates:
+                continue
+            survivors.append((classes, model, nxt))
+
+        if not survivors:
+            break
+        live = survivors
+
+    remaining = [classes for classes, _, _ in live] or [pool[0]]
+    winner = min(remaining, key=lambda c: (sum(c), c))
+    best = score_hypothesis(winner, history, observed, field_size)
+    return SearchResult(
+        best=best,
+        replays=max(1, steps_simulated // max(1, len(segment.steps))),
+        exhausted=False,
+        steps_simulated=steps_simulated,
+        survivors=len(remaining),
+    )
+
+
+def version_space_search(
+    history: History,
+    observed: LevelSpec,
+    field_size: int,
+    core=None,
+    candidates: Sequence[tuple[int, ...]] | None = None,
+) -> SearchResult:
+    """Refute in bulk, then let the prior choose among what is left.
+
+    This is the architecture the plan describes, finally in one function:
+    the verifier decides what is POSSIBLE and the network decides which
+    possibility to believe. Stepping every hypothesis forward together and
+    dropping each as it mispredicts costs 0.04s against 47s for verifying
+    candidates one at a time -- 1,162x -- and keeps the true rule set in the
+    surviving set 97% of the time.
+
+    Selection is the part that has to be right. Taking the SIMPLEST survivor
+    is sound but weak: it scores 25.0% solve against exhaustive search's
+    55.6%, because roughly fifty hypotheses typically survive and simplicity
+    is a poor way to choose among them. Ranking the survivors with the core
+    is what the core is actually for, and it costs one forward pass rather
+    than fifty replays.
+    """
+    from sentinel.explore.version_space import VersionSpace
+
+    segment = scorable_segment(history)
+    space = VersionSpace.over(observed, field_size, candidates)
+    for step in segment.steps:
+        space.observe(step.action, step.settled)
+
+    survivors = space.candidates()
+    if not survivors:
+        survivors = [min(candidates or SIMPLICITY_ORDER, key=lambda c: (sum(c), c))]
+
+    if core is not None and len(survivors) > 1:
+        ranked = core_order(core, history, candidates=survivors)
+        winner = ranked[0]
+    else:
+        winner = min(survivors, key=lambda c: (sum(c), c))
+
+    best = score_hypothesis(winner, history, observed, field_size)
+    return SearchResult(
+        best=best,
+        replays=1,
+        exhausted=False,
+        steps_simulated=len(segment.steps) * len(space),
+        survivors=len(survivors),
+    )

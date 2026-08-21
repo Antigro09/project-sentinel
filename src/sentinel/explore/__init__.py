@@ -7,5 +7,20 @@ ORDER until it knows how far it moves.
 """
 
 from .staged import StagedResult, staged_exploration
+from .version_space import (
+    VersionSpace,
+    information_gain_history,
+    planned_information_gain_history,
+    observed_facts,
+    state_key,
+)
 
-__all__ = ["StagedResult", "staged_exploration"]
+__all__ = [
+    "StagedResult",
+    "VersionSpace",
+    "information_gain_history",
+    "planned_information_gain_history",
+    "observed_facts",
+    "staged_exploration",
+    "state_key",
+]
