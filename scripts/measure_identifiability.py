@@ -26,6 +26,7 @@ from sentinel.core.agent import read_layout
 from sentinel.core.data import exploration_history, load_split, probing_history
 from sentinel.core.encoding import HEADS
 from sentinel.explore import (
+    disagreement_planning_history,
     information_gain_history,
     planned_information_gain_history,
     staged_exploration,
@@ -37,6 +38,7 @@ EPISODES = {
     "staged": lambda spec: staged_exploration(spec, seed=0).history,
     "info-gain": lambda spec: information_gain_history(spec, seed=0, steps=60),
     "planned-ig": lambda spec: planned_information_gain_history(spec, seed=0, steps=60),
+    "plan-disagree": lambda spec: disagreement_planning_history(spec, seed=0, steps=60),
 }
 
 

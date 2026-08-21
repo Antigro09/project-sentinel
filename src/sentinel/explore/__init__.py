@@ -9,6 +9,7 @@ ORDER until it knows how far it moves.
 from .staged import StagedResult, staged_exploration
 from .version_space import (
     VersionSpace,
+    disagreement_planning_history,
     information_gain_history,
     planned_information_gain_history,
     observed_facts,
@@ -18,6 +19,7 @@ from .version_space import (
 __all__ = [
     "StagedResult",
     "VersionSpace",
+    "disagreement_planning_history",
     "information_gain_history",
     "planned_information_gain_history",
     "observed_facts",

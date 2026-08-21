@@ -298,3 +298,130 @@ def planned_information_gain_history(spec, seed: int = 0, steps: int = 60, depth
             spent += 1
 
     return world.history
+
+
+def disagreement_planning_history(spec, seed: int = 0, steps: int = 60, max_nodes: int = 4000):
+    """Search the believed world for a state the survivors disagree about, and go there.
+
+    Enumerating short action sequences is not enough, and the measurement
+    says exactly why: `ordered_targets` stays near 18% because collection
+    order cannot be learned until the agent is STANDING on a target, and a
+    target is routinely eight or more moves away. A depth-6 sequence search
+    never arrives.
+
+    So plan. Breadth-first search inside the simplest surviving model
+    enumerates reachable states with the paths that reach them; each path is
+    then replayed under every survivor and scored by how many distinct end
+    states it produces. The winner is the experiment worth running.
+
+    Nothing here mentions targets, or order, or any other mechanic. Walking
+    onto a target emerges because ordered and unordered survivors are
+    precisely the hypotheses that disagree about what happens there -- the
+    experiment is DISCOVERED from disagreement rather than hand-written,
+    which is what `staged_exploration` had to do and what makes that
+    function narrow.
+    """
+    from collections import deque
+
+    import numpy as np
+
+    from sentinel.core.agent import read_layout
+    from sentinel.gen.grid import GridWorld
+
+    world = GridWorld(spec)
+    world.reset()
+    rng = np.random.default_rng(seed)
+
+    observed = read_layout(world.history.last.grid, spec.field_size)
+    space = VersionSpace.over(observed, spec.field_size)
+
+    spent = 0
+    while spent < steps and not world.done:
+        if space.settled:
+            world.step(Action(int(rng.integers(1, 6))))
+            spent += 1
+            continue
+
+        # Navigate with the simplest survivor; it only has to propose paths,
+        # and every proposal is judged by all survivors.
+        guide_classes, guide_model, guide_state = space.live[0]
+        # Dedup on a FULLER key than state_key here. state_key deliberately
+        # omits the hidden counter because it compares against what a frame
+        # shows, and a frame cannot show it -- but waiting changes only that
+        # counter, so BFS deduping on the visible key prunes every wait as
+        # "already seen". That silently removed wait from every plan and
+        # took `wait_advances_charge` from 82% to 26%.
+        def search_key(st):
+            return state_key(st) + (st.charge,)
+
+        frontier = deque([(guide_state, [])])
+        seen = {search_key(guide_state)}
+        paths = []
+        while frontier and len(seen) < max_nodes:
+            state, path = frontier.popleft()
+            if len(path) >= 12:
+                continue
+            for aid in (1, 2, 3, 4, 5):
+                try:
+                    nxt = guide_model.transition(state, Action(aid))
+                except Exception:
+                    continue
+                key = search_key(nxt)
+                if key in seen:
+                    continue
+                seen.add(key)
+                new_path = path + [aid]
+                paths.append(new_path)
+                frontier.append((nxt, new_path))
+
+        # Score by the ENTROPY of the split, not the number of groups.
+        #
+        # Counting distinct outcomes sounds like the same thing and is not,
+        # and the difference is why `ordered_targets` would not move.
+        # Movement rules -- five charge periods, three step distances, four
+        # edge modes -- shatter a long walk into dozens of distinct end
+        # positions, so a raw count always prefers another movement
+        # experiment. But movement is settled within a few moves, and after
+        # that those dozens of groups are one survivor apiece: a large count
+        # that eliminates almost nothing.
+        #
+        # Ordered versus unordered is a two-way split, and a BALANCED
+        # two-way split halves the survivors. Entropy prefers that, which is
+        # the standard result from Bayesian experimental design: what
+        # matters is expected reduction in uncertainty, not how many
+        # outcomes are possible.
+        import math
+
+        best_path, best_score = None, -1.0
+        for path in paths:
+            groups: dict = {}
+            for _, model, state in space.live:
+                s = state
+                try:
+                    for aid in path:
+                        s = model.transition(s, Action(aid))
+                except Exception:
+                    break
+                k = state_key(s)
+                groups[k] = groups.get(k, 0) + 1
+            total = sum(groups.values())
+            if total < 2 or len(groups) < 2:
+                continue
+            entropy = -sum((n / total) * math.log(n / total) for n in groups.values())
+            # Among equally informative experiments prefer the shorter walk;
+            # a real action is the currency the benchmark charges for.
+            score = entropy - 0.01 * len(path)
+            if score > best_score:
+                best_path, best_score = path, score
+
+        if best_path is None:
+            best_path = [int(rng.integers(1, 6))]
+        for aid in best_path:
+            if world.done or spent >= steps:
+                break
+            action = Action(aid)
+            world.step(action)
+            space.observe(action, world.history.last)
+            spent += 1
+
+    return world.history
