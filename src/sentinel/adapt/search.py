@@ -173,3 +173,58 @@ def replays_to_truth(
         if tuple(classes) == tuple(truth):
             return i + 1
     return len(order) + 1
+
+def factored_search(
+    history: History,
+    observed: LevelSpec,
+    field_size: int,
+    passes: int = 3,
+    start: tuple[int, ...] | None = None,
+) -> SearchResult:
+    """Infer each rule separately instead of enumerating joint rule sets.
+
+    Exhaustive search costs the PRODUCT of the per-head class counts --
+    3*5*4*4*3*2*2*2 = 5,760 -- because it enumerates whole rule sets. But a
+    rule set is eight largely independent facts, and the verifier reports
+    which transition falsified a candidate, so the facts can be settled one
+    at a time. That makes the cost the SUM instead: 3+5+4+4+3+2+2+2 = 25 per
+    pass. The difference is multiplicative versus additive, which is the
+    difference between a space you can enumerate and one you cannot.
+
+    It matters beyond this generator. Exhaustive search stops fitting the
+    plan's five-minute budget past roughly 17,000 hypotheses; a factored
+    search of the same space costs 25 replays whether the space holds 5,760
+    rule sets or ten million.
+
+    **Coordinate ascent, not one pass.** The heads are not fully
+    independent: `step_distance` and `charge_period` both change how far the
+    agent travels, so the best charge depends on the step already assumed.
+    Sweeping repeatedly until nothing changes lets those settle against each
+    other. `passes` bounds the work; convergence is usually immediate.
+
+    Ties are broken toward simplicity, exactly as in `exhaustive_search`, so
+    a rule the evidence never exercised is not invented.
+    """
+    current = list(start) if start is not None else [0] * len(NCLASS)
+    best = score_hypothesis(tuple(current), history, observed, field_size)
+    replays = 1
+
+    def better(a: ScoredHypothesis, b: ScoredHypothesis) -> bool:
+        return (a.fitness, -sum(a.classes)) > (b.fitness, -sum(b.classes))
+
+    for _ in range(max(1, passes)):
+        changed = False
+        for head, n_classes in enumerate(NCLASS):
+            for value in range(n_classes):
+                if value == current[head]:
+                    continue
+                trial = list(current)
+                trial[head] = value
+                scored = score_hypothesis(tuple(trial), history, observed, field_size)
+                replays += 1
+                if better(scored, best):
+                    best, current, changed = scored, trial, True
+        if not changed:
+            break
+
+    return SearchResult(best=best, replays=replays, exhausted=False)
