@@ -149,7 +149,7 @@ def main() -> int:
         ex = grid_example(spec)
         if ex:
             train_ex.append(ex)
-        if len(train_ex) >= 150:
+        if len(train_ex) >= 250:
             break
     grid_test = []
     for spec in splits["holdout_mechanics"][:120]:
@@ -163,21 +163,37 @@ def main() -> int:
     print("building dial test examples (never trained on)...")
     rng = np.random.default_rng(0)
     dial_test = []
-    for i, m in enumerate(dial_space() * 6):
+    for i, m in enumerate(dial_space() * 30):
         start = tuple(int(v) for v in rng.integers(0, 6, 4))
         target = tuple(int(v) for v in rng.integers(0, 6, 4))
         ex = dial_example(m, start, target, seed=i, steps=int(rng.integers(3, 7)))
         if ex:
             dial_test.append(ex)
-        if len(dial_test) >= 30:
+        if len(dial_test) >= 120:
             break
     print(f"  {len(dial_test)} dial test")
 
+    # Three seeds: the dial number is the load-bearing claim and a single
+    # run of 30 examples is not enough to carry it.
+    import mlx.core as mxc
+    results = []
+    for seed in (0, 1, 2):
+        mxc.random.seed(seed)
+        results.append(run_one(train_ex, grid_test, dial_test, seed))
+    g = np.array([r[0] for r in results]); d = np.array([r[1] for r in results])
+    gch, dch = results[0][2], results[0][3]
+    print(f"\nTRAINED ON GRIDS ONLY, 3 seeds")
+    print(f"  grid worlds: {g.mean():.1%} +/- {g.std():.1%}  against {gch:.1%} chance")
+    print(f"  dial worlds: {d.mean():.1%} +/- {d.std():.1%}  against {dch:.1%} chance   <- the checkpoint")
+    print("\nbeating chance on dials means the SELECTOR generalises, not just the verifier.")
+    return 0
+
+
+def run_one(train_ex, grid_test, dial_test, seed):
     model = UniversalRanker(CoreConfig(cycles=2))
     opt = optim.AdamW(learning_rate=3e-4, weight_decay=1e-4)
     loss_and_grad = nn.value_and_grad(model, ranking_loss)
 
-    print("\ntraining on GRID worlds only")
     for epoch in range(12):
         started = time.perf_counter()
         order = np.random.default_rng(epoch).permutation(len(train_ex))
@@ -188,19 +204,11 @@ def main() -> int:
             opt.update(model, grads)
             mx.eval(model.parameters(), opt.state)
             total += float(loss)
-        g_acc, g_ch, g_n = accuracy(model, grid_test)
-        d_acc, d_ch, d_n = accuracy(model, dial_test)
-        print(f"  epoch {epoch}  loss {total/len(order):.3f}  "
-              f"grid {g_acc:.1%} (chance {g_ch:.1%})  dial {d_acc:.1%} (chance {d_ch:.1%})  "
-              f"({time.perf_counter()-started:.0f}s)")
-
     g_acc, g_ch, _ = accuracy(model, grid_test)
     d_acc, d_ch, _ = accuracy(model, dial_test)
-    print(f"\nTRAINED ON GRIDS ONLY")
-    print(f"  grid worlds: {g_acc:.1%} against {g_ch:.1%} chance")
-    print(f"  dial worlds: {d_acc:.1%} against {d_ch:.1%} chance   <- the checkpoint")
-    print("\nbeating chance on dials means the SELECTOR generalises, not just the verifier.")
-    return 0
+    print(f"  seed {seed}: grid {g_acc:.1%} (chance {g_ch:.1%})  "
+          f"dial {d_acc:.1%} (chance {d_ch:.1%})")
+    return g_acc, d_acc, g_ch, d_ch
 
 
 if __name__ == "__main__":
