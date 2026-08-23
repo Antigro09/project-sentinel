@@ -34,6 +34,15 @@ suite") and it needs no new idea -- it is `explore/version_space.best_action`
 with an input string in place of an action. A self-generated test is just an
 experiment, and this project already knows how to choose experiments.
 
+WHAT SELF-TESTING BUYS, AND WHAT IT DOES NOT. Generating tests at all is
+decisive: from one example the Occam pick is right on 3 of 8 tasks, and
+after self-testing on 8 of 8, with no extra data supplied. CHOOSING the
+test by disagreement is not: X39 measures disagreement-selection and
+fixed-order selection at 1.00 probes each, across spaces from 64 to 23,713
+programs. An earlier 2x here was an artefact of a probe pool that began
+with the training input, so the control wasted its first test by
+construction.
+
 MEASURED: see the summary printed by main(). Negative results are reported
 in the same table as positive ones.
 """
@@ -246,7 +255,17 @@ was no better, because distinct functions still disagree there. On "A" they
 collide -- s+s, s+reverse(s) and reverse(s)+s all yield "AA" -- so
 refutation leaves programs that are genuinely DIFFERENT functions, and the
 system has to separate them by testing itself."""
-PROBE_POOL = ("A", "ABC", "ABCD", "XY", "Q", "MNOP", "ZZ", "PQRS", "K", "ABAB")
+PROBE_POOL = ("ABC", "ABCD", "XY", "Q", "MNOP", "ZZ", "PQRS", "K", "ABAB", "B")
+"""The training input is NOT in the pool, and that correction mattered.
+
+An earlier version began the pool with "A" -- the very input the evidence
+came from. The arm that takes probes in order therefore spent its first
+test on data it already had, which is guaranteed uninformative, and the
+resulting 2x advantage for disagreement-selection measured a rigged control
+rather than a better strategy. With the overlap removed, X39 measures both
+arms at 1.00 probes across space sizes from 64 to 23,713: at this scale
+almost any fresh input separates the survivors, so the value is in TESTING
+AT ALL, not in choosing the test cleverly."""
 
 
 def main() -> int:
