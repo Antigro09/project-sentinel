@@ -45,25 +45,42 @@ system must decline to adopt (no engine primitive) and say so. Growth
 discovers WHICH dormant capacity reality demands; it does not hallucinate
 capacity the machine lacks.
 
-MEASURED (two hidden worlds):
+MEASURED (two hidden worlds) -- AND THE GATE CURRENTLY FAILS.
 
-  WORLD A (10x10, short boards): base ELIMINATED (cannot express ice);
-  momentum ELIMINATED (slides exceed k=2,3); step-ext AND slide both
-  VIABLE -- and provably indistinguishable: on a 10-wide board any fixed
-  step >= 9 travels exactly until blocked, i.e. step-ext CONTAINS ice
-  here. The system adopts the least expressive viable family, then runs
-  the BEHAVIOURAL-COLLAPSE CERTIFICATE: every survivor of the adopted
-  family agrees on every next-frame prediction from its tracked state,
-  so behaviour is PINNED even though the syntax is not. The choice
-  between equivalent descriptions is measured to be meaningless.
-  Planning inside the adopted model WINS.
+  WHAT WORKS, verified by running the file:
+    both worlds: base refutation of all 61,440 programs comes back EMPTY,
+    so the trigger fires correctly; controls without growth machinery LOSE.
+    momentum is ELIMINATED as a local primitive the engine lacks.
+    WORLD B (20x20): step-ext ELIMINATED outright -- slides exceed any
+    fixed step <= 16 -- and slide survives alone at 17,920. Genuine
+    discrimination between proposed vocabularies.
+    WORLD A (10x10): step-ext AND slide both survive at 10,240 and are
+    provably equivalent on a 10-wide board, where any fixed step >= 9
+    travels until blocked.
 
-  WORLD B (20x20, long boards): slides of 17+ cells occur -- longer than
-  any fixed step the decoy offers. step-ext is now ELIMINATED outright;
-  slide survives alone and is adopted. Certificate passes; WINS.
+  WHAT FAILS: both worlds end "no survivor admits a plan"; the certificate
+  reports NOT pinned because it runs only after plan selection, which never
+  succeeds; both expanded agents LOSE; the gate does not pass.
 
-  Controls (no growth machinery) lose on both worlds: they fall back to
-  the simplest base program and plan inside a fiction.
+  WHY, diagnosed rather than guessed: replaying the same exploration under
+  the TRUE spec shows the truth itself has no plan from where the 120-step
+  random walk ended. World A: 9 moves from the start, none from there.
+  World B: 6 from the start, none from there. So "no survivor admits a
+  plan" is the system being CORRECT -- there is no plan -- and the failure
+  is X31's already-diagnosed `unsolvable-from-here` mode, which ice worlds
+  hit hardest because stop-cells are scarce. Nothing about the growth
+  mechanism is implicated. The fix is X32's plan-first loop or a shorter
+  explore budget, neither of which is applied here yet.
+
+  An earlier version of this docstring claimed the agents WIN and the
+  certificates pass. They do not. The numbers above were what the design
+  intended, not what it produced, and the file said MEASURED either way --
+  which is the one habit that makes every other number in this repository
+  untrustworthy.
+
+  Note also: the space is 61,440 programs, not the 368,640 quoted here and
+  in X17-X34. SPACE_SIZE is computed at runtime so the printed output was
+  always right; the prose was stale by 6x.
 
 TWO DESIGN LESSONS, both discovered by failure:
 
