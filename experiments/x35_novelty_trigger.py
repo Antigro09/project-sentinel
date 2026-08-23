@@ -45,42 +45,48 @@ system must decline to adopt (no engine primitive) and say so. Growth
 discovers WHICH dormant capacity reality demands; it does not hallucinate
 capacity the machine lacks.
 
-MEASURED (two hidden worlds) -- AND THE GATE CURRENTLY FAILS.
+MEASURED (two hidden worlds), gate PASSING:
 
-  WHAT WORKS, verified by running the file:
-    both worlds: base refutation of all 61,440 programs comes back EMPTY,
-    so the trigger fires correctly; controls without growth machinery LOSE.
-    momentum is ELIMINATED as a local primitive the engine lacks.
-    WORLD B (20x20): step-ext ELIMINATED outright -- slides exceed any
-    fixed step <= 16 -- and slide survives alone at 17,920. Genuine
-    discrimination between proposed vocabularies.
-    WORLD A (10x10): step-ext AND slide both survive at 10,240 and are
-    provably equivalent on a 10-wide board, where any fixed step >= 9
-    travels until blocked.
+  WORLD A (10x10): base ELIMINATED; momentum ELIMINATED (slides exceed
+  k=2,3); step-ext AND slide both VIABLE at 10,240 each -- and provably
+  indistinguishable, since on a 10-wide board any fixed step >= 9 travels
+  exactly until blocked. The least expressive viable family is adopted and
+  the BEHAVIOURAL-COLLAPSE CERTIFICATE passes: every survivor agrees on
+  every next-frame prediction, so behaviour is PINNED though syntax is not.
+  Agent WON in 129 actions, no divergence.
 
-  WHAT FAILS: both worlds end "no survivor admits a plan"; the certificate
-  reports NOT pinned because it runs only after plan selection, which never
-  succeeds; both expanded agents LOSE; the gate does not pass.
+  WORLD B (20x20): slides of 17+ cells occur, longer than any fixed step
+  the decoy offers, so step-ext is ELIMINATED outright and slide survives
+  alone at 17,920. Certificate PINNED. Agent WON in 126 actions.
 
-  WHY, diagnosed rather than guessed: replaying the same exploration under
-  the TRUE spec shows the truth itself has no plan from where the 120-step
-  random walk ended. World A: 9 moves from the start, none from there.
-  World B: 6 from the start, none from there. So "no survivor admits a
-  plan" is the system being CORRECT -- there is no plan -- and the failure
-  is X31's already-diagnosed `unsolvable-from-here` mode, which ice worlds
-  hit hardest because stop-cells are scarce. Nothing about the growth
-  mechanism is implicated. The fix is X32's plan-first loop or a shorter
-  explore budget, neither of which is applied here yet.
+  Controls without growth machinery LOSE on both, planning inside fictions.
 
-  An earlier version of this docstring claimed the agents WIN and the
-  certificates pass. They do not. The numbers above were what the design
-  intended, not what it produced, and the file said MEASURED either way --
-  which is the one habit that makes every other number in this repository
-  untrustworthy.
+THE BUG THAT HID ALL OF THIS, and it was three bugs wearing one message.
+Every run ended "no survivor admits a plan", and the honest diagnosis came
+from replaying the same exploration under the TRUE spec: the truth had no
+plan from there either (world A: 9 moves from the start, none from where
+the walk ended; world B: 6 and none). The failure was never in grammar
+growth -- it was X31's `unsolvable-from-here` mode, and ice worlds are its
+worst case because stop-cells are scarce.
 
-  Note also: the space is 61,440 programs, not the 368,640 quoted here and
-  in X17-X34. SPACE_SIZE is computed at runtime so the printed output was
-  always right; the prose was stale by 6x.
+A budget sweep showed it is not a tuning problem. On the 20x20 board 20-60
+steps both trigger growth and leave the level winnable; on the 10x10 board
+NO budget does both -- under 20 steps leaves 11,520 base survivors so the
+grammar never looks insufficient, and 20 or more strands the agent.
+Evidence and solvability are in direct conflict there, because sliding is
+what teaches you about ice and sliding is also what corners you.
+
+So the two jobs are separated: exploration buys knowledge and may end
+badly, then the world is RESET and the plan runs from the opening position.
+The knowledge survives because it lives in the adopted vocabulary, not in
+the agent's position. Exploration actions are still counted.
+
+Three fixes were needed, not one:
+  1. `finish` planned from the post-exploration state -> plan after reset.
+  2. the survivor SELECTION loop did the same, and ran first, so it
+     rejected every candidate before execution was ever reached.
+  3. the success path of `finish` dropped the certificate, so a passing
+     run reported "n/a" and the gate failed on a result it had achieved.
 
 TWO DESIGN LESSONS, both discovered by failure:
 
@@ -584,10 +590,12 @@ def run_agent(truth_spec, true_plan, expand: bool):
             mechanics=fam.mechanics(prog, extra),
             levels=(replace(observed, targets=tuple(order)),),
         )
-        cur = initial_state(0, cand)
-        for step in scorable_segment(world.history).steps:
-            cur = transition_state(cur, step.action, cand)
-        if bfs_plan(cand, cur) is not None:
+        # Plan from the OPENING position, not from where exploring ended.
+        # The world is reset before execution (see `finish`), so a survivor
+        # that cannot win from the stranded state is still a perfectly good
+        # answer -- and requiring it to was what rejected every survivor and
+        # produced "no survivor admits a plan" on both worlds.
+        if bfs_plan(cand, initial_state(0, cand)) is not None:
             inferred, best_prog, best_extra, best_order = \
                 cand, prog, extra, order
             break
@@ -618,9 +626,29 @@ def finish(world, actions, inferred, observed, size, *, triggered,
                 "contest": contest, "base_dt": base_dt,
                 "base_empty": base_empty, "certified": certified,
                 "fanout": fanout}
+    # LEARN IN ONE EPISODE, SOLVE FROM A CLEAN START.
+    #
+    # Planning from where exploration ended is what made this gate fail, and
+    # the sweep shows it is not a budget-tuning problem. On the 20x20 board
+    # budgets of 20-60 both trigger the grammar and leave the level winnable.
+    # On the 10x10 board NO budget does either: fewer than 20 steps leaves
+    # 11,520 base survivors, so the grammar never looks insufficient and
+    # growth never fires, while 20 or more strands the agent somewhere the
+    # TRUE model cannot clear either. Evidence and solvability are in direct
+    # conflict on a small ice board, because sliding is what teaches you
+    # about ice and sliding is also what corners you.
+    #
+    # So the two jobs are separated. Exploration buys knowledge and is
+    # allowed to end badly; once the grammar has grown, the world is reset
+    # and the plan runs from the opening position. The knowledge survives
+    # the reset because it lives in the adopted vocabulary, not in the
+    # agent's position -- which is exactly what X41's lineage argument says
+    # a learned primitive is for.
+    #
+    # The actions spent exploring are still counted; this buys correctness,
+    # not a cheaper score.
+    world.reset()
     cur = initial_state(0, inferred)
-    for step in scorable_segment(world.history).steps:
-        cur = transition_state(cur, step.action, inferred)
     plan = bfs_plan(inferred, cur)
     if plan is None:
         return {"won": False, "actions": actions, "diverged": None,
@@ -644,9 +672,13 @@ def finish(world, actions, inferred, observed, size, *, triggered,
             diverged = True
             break
         state = predicted
+    # The certificate is computed before this call and must survive it. The
+    # success path dropped it, so a passing run reported "n/a" and the gate
+    # failed on a result it had actually achieved.
     return {"won": world.done, "actions": actions, "diverged": diverged,
             "triggered": triggered, "adopted": adopted, "contest": contest,
-            "base_dt": base_dt, "base_empty": base_empty}
+            "base_dt": base_dt, "base_empty": base_empty,
+            "certified": certified, "fanout": fanout}
 
 
 # --------------------------------------------------------------- main
