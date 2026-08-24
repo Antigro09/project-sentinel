@@ -124,6 +124,12 @@ def test_pred(p, tape, st) -> bool:
         return not st.stack
     if k == "TOP":
         return bool(st.stack) and st.stack[-1] == p[1]
+    if k == "EQTOP":
+        # Variable binding, not a literal: does the character at this offset
+        # equal whatever is on top of the stack? No alphabet appears in it.
+        i = st.pos + p[1]
+        return (bool(st.stack) and 0 <= i < len(tape)
+                and tape[i] == st.stack[-1])
     _, off, ch = p                                     # ("AT", offset, char)
     i = st.pos + off
     if ch == "$":
@@ -173,7 +179,7 @@ def run(expr, tape, st, fuel=8192, bound=None):
 def size_of(e) -> int:
     if isinstance(e, str):
         return 1
-    if e[0] in ("AT", "TOP", "EMPTY"):
+    if e[0] in ("AT", "TOP", "EMPTY", "EQTOP"):
         return 1
     return 1 + sum(size_of(p) for p in e[1:])
 
@@ -184,6 +190,8 @@ def render(e) -> str:
     k = e[0]
     if k == "EMPTY":
         return "EMPTY"
+    if k == "EQTOP":
+        return f"EQTOP@{e[1]:+d}"
     if k == "TOP":
         return f"TOP{e[1]!r}"
     if k == "AT":
