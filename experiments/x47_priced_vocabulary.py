@@ -289,6 +289,10 @@ class Logistic:
     def fit(self, xs, ys, epochs=300, lr=0.5):
         xs = np.asarray(xs, dtype=np.float64)
         ys = np.asarray(ys, dtype=np.float64)
+        # Size the weights from the data rather than a module constant, so a
+        # caller with a different feature set is not silently shape-mismatched.
+        if self.w.shape[0] != xs.shape[1] + 1:
+            self.w = np.zeros(xs.shape[1] + 1)
         self.mu, self.sd = xs.mean(0), xs.std(0) + 1e-9
         z = np.hstack([(xs - self.mu) / self.sd, np.ones((len(xs), 1))])
         for _ in range(epochs):
