@@ -5,11 +5,19 @@ almost all compiler, parsing and translation work runs in a bounded working
 set, so registers are enough and the next move is a bigger substrate. That is
 measurable rather than arguable.
 
-The minimum working set of a string-to-string task is its Myhill-Nerode index:
-how many prefix classes must be told apart, where two prefixes are equivalent
-when the output produced AFTER them agrees for every suffix. A bounded index
-means k registers suffice once |alphabet|^k reaches it. A growing one means no
-register machine does the task at any k.
+A Myhill-Nerode-style distinguishability analysis estimates a task's RESIDUAL
+STATE COMPLEXITY: how many prefix classes must be told apart, where two
+prefixes are equivalent when the output produced AFTER them agrees for every
+suffix. A bounded index means some fixed finite memory suffices; a growing one
+means no fixed finite memory does, at any size.
+
+TWO THINGS THE INDEX IS NOT, because an earlier draft of this file said both.
+It is not literally the working set: distinguishing N classes needs
+ceil(log2 N) bits, not N units of memory, and an exponentially growing
+finite-state index can correspond to a linear-size stack. And it is not a
+search cost -- X51 spent three experiments on a task whose index is 6. Index
+growth, bits of memory, register count, stack depth and synthesis cost are
+five different quantities and only the first is measured here.
 
 MEASURED ON THE DIAGONAL, and that qualifier is the methodological point.
 Sweeping prefix length with suffixes fixed caps the index at what a short
@@ -35,11 +43,18 @@ WHAT IT MEANS FOR THE ARCHITECTURE, which is better news than the headline.
 Every growing task is one this machine already solves, and it solves them with
 the STACK -- the unbounded memory it has had since X50 and which X60's
 register work never replaced. Registers and stack are not competing designs
-for the same problem; they cover different tasks. X60's registers handle
-`emit matching first` and `dedupe adjacent`, which no stack discipline
-reaches; the stack handles nesting and reversal, which no bounded register
-reaches at any k. The machine needed both, and now there is a measurement
-saying why rather than an intuition.
+for the same problem; they cover different tasks. X60's registers make
+`emit matching first` and `dedupe adjacent` compact and findable; the stack
+does the same for nesting and reversal.
+
+THE TWO DIRECTIONS ARE NOT SYMMETRIC, and an earlier draft claimed they were.
+That no bounded register machine handles unbounded nesting or reversal is a
+real expressiveness limit. That no stack handles the register tasks is NOT --
+a sufficiently general pushdown machine can simulate bounded memory, and
+adjacent deduplication is well within one. What was measured is that the
+CURRENT stack primitives and searched program shapes did not reach those
+tasks while an explicit register made them immediate. That is a result about
+representation and inductive bias, not a theorem.
 
 WHAT THIS DOES NOT SHOW. Eight tasks over a five-byte alphabet, hand-chosen to
 span the cases. Which half is larger in real work depends on the task mix and
@@ -212,10 +227,11 @@ def main() -> int:
     print(f"  bounded working set, so registers are enough. {b} of "
           f"{len(verdicts)} do.")
     print("  Every task that does not is one this machine already solves, and")
-    print("  it solves them with the STACK -- the unbounded memory it has had")
-    print("  since X50. Registers and stack are not competing designs; they")
-    print("  cover different tasks, and which half is larger depends entirely")
-    print("  on the task mix, not on anything measured here.")
+    print("  it solves them with the STACK it has had since X50. Registers and")
+    print("  stack proved COMPLEMENTARY for compact synthesis here -- which is")
+    print("  a claim about representation, not expressiveness: a general")
+    print("  pushdown machine could simulate a register. Which half is larger")
+    print("  in real work depends on the task mix and is not measured here.")
     print(f"\ntotal {time.perf_counter()-t0:.0f}s")
     return 0
 

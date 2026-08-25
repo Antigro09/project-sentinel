@@ -27,8 +27,18 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # all gates: replay, verifier, planner, agent
+uv run pytest tests/ -q                    # 227 passing, 1 skipped (~10 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
+```
+
+The Level 5 substrates each run standalone and print their own measured
+table -- the fastest way to see the current state is:
+
+```bash
+uv run python experiments/x47_priced_vocabulary.py   # the depth wall, priced
+uv run python experiments/x56_byte_vm.py             # real text, quotiented
+uv run python experiments/x58_sweep.py               # 14 parsing tasks
+uv run python experiments/x61_working_set.py         # which memory class (~30s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -79,7 +89,15 @@ src/sentinel/
 scripts/      fetch_games.py, bench_engine.py, build_corpus.py, preflight.py,
               rescore_corpus.py, train_core.py, run_agent.py, and the
               measure_*.py family that reproduces every number below
-tests/        determinism, verifier gate, planner, generator, bootstrap
+experiments/  the research arc, X1-X61. X17-X34 is the DSL loop; X35-X61
+              dissolves the vocabulary anchor, moves the substrate onto real
+              text, and measures the memory it needs -- each self-contained,
+              with measured results (including the negative ones) in its
+              docstring
+tests/        determinism, verifier gate, planner, generator, bootstrap, and
+              the X46-X61 substrates: interpreter/fast-path agreement,
+              certificates, ablations, and the measurement artefacts that
+              once produced wrong readings
 ```
 
 Nothing above `env/` imports the ARC engine. That boundary is deliberate:
@@ -90,9 +108,27 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**Phases 0-5 built. 141 tests passing.** The headline numbers in earlier
-versions of this file were wrong, and the correction is the most useful
-thing here.
+**227 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+gone, the substrate runs on real text, and the memory it needs has been
+measured rather than assumed (see Level 5 below).** The headline numbers in
+earlier versions of this file were wrong, and the correction is the most
+useful thing here.
+
+### What this system is, stated precisely
+
+Two claims that appeared in earlier drafts and in outside summaries are
+**not** supported and should not be repeated:
+
+- **It is not Turing-complete.** The substrate is finite control, a bounded
+  number of finite-alphabet registers, and one pushdown stack. X60's own
+  argument -- registers cost `|alphabet|^count` where a writable tape costs
+  `|alphabet|^length` -- is exactly the statement that the register half is
+  finite-state. Turing-completeness would not be evidence of generality
+  anyway; a tiny interpreter has it.
+- **It is not label-free discovery.** The defensible version: the system
+  receives no semantic rule-class labels during hypothesis selection, but
+  every task behaviour and target program in `experiments/` is
+  human-authored. That is a real property and a much smaller one.
 
 ### The benchmark could not measure what it claimed
 
@@ -273,3 +309,287 @@ nothing to measure.
    brute force beat the trained core on the original benchmark outright.
 5. **Single runs lie**, and so do confounded ones. Everything above is
    multi-seed on a holdout chosen for label independence.
+
+## Level 4: the DSL loop (X17-X32)
+
+The label vocabulary is gone. The system now infers **programs** from a
+product grammar over transition rules -- 61,440 programs x collection
+orders = 368,640 hypotheses, 3.6x past the point where exhaustive search
+stops being viable. Every component of the loop speaks DSL; no label
+vocabulary exists anywhere.
+
+```
+identifiability-aware generation   (X19)
+  -> purposeful exploration        (X20: DSL-committee QbC + hazard-seeking)
+  -> bulk refutation               (X17: all programs, seconds)
+  -> simplicity / learned ranking  (X21-X23)
+  -> planning inside the model     (plan/search.py)
+  -> divergence-checked execution, re-inference on divergence
+```
+
+### The product demonstration
+
+On fresh held-out worlds, the assembled agent:
+
+| agent | solve rate | avg real actions |
+|---|---|---|
+| random actions | 2/12 | 529 |
+| **full agent** | **9/12** | 231 |
+| oracle (true model) | 10/12 | 12 |
+
+At 40 worlds: **27/40 = 68% +/- 15**, average 229 actions. The agent wins
+by exploring purposefully, inferring an executable model beyond exhaustive
+reach, planning inside it, and re-inferring when reality diverges.
+
+### What the experiments established
+
+- The behavioural quotient stays small at scale: signatures ~ K^0.43
+  (10,000 sampled programs -> 377 behaviours). Enumeration was never the
+  right frame.
+- Refutation is exact where fitness is coarse: coordinate ascent fails
+  completely (no single-axis gradient); refute-then-select works.
+- Identifiability is a property of the world distribution: hazard density
+  must scale with step distance, or episodes die before the hidden counter
+  can be observed (X18/X19).
+- The narrowness migrates: when the explorer's committee was still drawn
+  from the old label space, purposeful exploration lost to random walk
+  (X18). Every component must speak the current hypothesis language.
+- Charge_period at extended ranges (up to 20) is bounded by encoded window
+  size, not epochs (X23-X26); three representational fixes failed (X27/
+  X28). It remains refutation-resolved only.
+- The dominant remaining loss is painting yourself into corners:
+  infer-then-solve gathers evidence without regard for whether the task
+  stays solvable. X31 diagnosed it; solvability-aware exploration (X32)
+  is the fix under test.
+
+### Beyond the grammar anchor (X33-X34)
+
+The eight DSL axes are a closed vocabulary: a world whose dynamics do not
+fit them is unlearnable by construction. X33 demonstrated the anchor and
+broke it -- an elementary-CA world behind the same env boundary, its rule
+recovered exactly by refutation within a new axis. X34 removed the human
+from the loop: candidate axis FAMILIES generated from a generic
+meta-grammar, scored by version-space collapse, the least expressive
+viable family adopted. 3/3 hidden worlds from three different families,
+rules recovered exactly, 0.0s. The load-bearing discovery: max-collapse
+always picks the most expressive family (it contains the others);
+vocabulary growth must be EARNED by the refutation of everything smaller.
+This is recursive self-improvement in its smallest measurable form.
+
+### Experiment index
+
+| # | file | question |
+|---|---|---|
+| X17 | `experiments/x17_dsl_search.py` | does the DSL regress, and does search survive scale? |
+| X18 | `experiments/x18_exploration_resolution.py` | which exploration policy raises evidence resolution? |
+| X19 | `experiments/x19_identifiable_worlds.py` | does identifiability-aware generation close the loop? |
+| X20 | `experiments/x20_dsl_explorer.py` | does a DSL-committee explorer beat random? |
+| X21 | `experiments/x21_derivation_core.py` | can a derivation-trained core rank survivors? |
+| X22 | `experiments/x22_scaled_loop.py` | does training scale close the per-head gap? |
+| X23 | `experiments/x23_charge_recipe.py` | does the full recipe fix charge? |
+| X24 | `experiments/x24_charge_window.py` | is charge bounded by window size? |
+| X25 | `experiments/x25_long_episodes.py` | does the window fix replicate? |
+| X26 | `experiments/x26_seed_metrology.py` | seed noise or configuration signal? |
+| X27 | `experiments/x27_autocorr_encoder.py` | mass-change autocorrelation features? |
+| X28 | `experiments/x28_centroid_autocorr.py` | centroid-displacement autocorrelation? |
+| X29 | `experiments/x29_full_agent.py` | does knowing the rules let it win? |
+| X30 | `experiments/x30_agent_taxonomy.py` | solve rate at scale + failure taxonomy |
+| X31 | `experiments/x31_no_plan_diagnosis.py` | why do no-plan losses happen? |
+| X32 | `experiments/x32_solvability_aware.py` | does solvability-aware exploration fix them? |
+| X33 | `experiments/x33_ca_world.py` | can the grammar anchor be broken symbolically? |
+| X34 | `experiments/x34_axis_synthesis.py` | can the system generate AND choose its own axes? |
+
+Each docstring carries its full measured results, including the negative
+ones -- five of this arc's experiments failed, and each failure named the
+next experiment.
+
+
+## Level 5: dissolving the vocabulary, then finding the memory (X35-X61)
+
+Level 4 ended with a system that could generate and choose its own *axes*.
+It still had an anchor underneath: eight hand-written rule menus. This arc
+dissolved that, moved the result onto real text, and then measured what
+memory the resulting machine actually needs.
+
+```
+invented rules      (X44/X45: motion and hazards built from atoms, not chosen)
+  -> one substrate  (X46: both domains, one primitive pool)
+  -> priced search  (X47: the depth wall was accounting, not expressiveness)
+  -> token/byte VM  (X48/X56: derive tests from events; the lattice is gone)
+  -> memory         (X49/X50/X60: counter, typed stack, registers)
+  -> measurement    (X61: which memory class real tasks actually demand)
+```
+
+### The substrate stopped being a menu
+
+X44 and X45 made motion and hazards **generative** -- `slide` is not a
+symbol anywhere, it is `(COND FREE (ADD1 REC) ZERO)` recovered uniquely from
+displacement evidence. X46 unified both into one pool where no primitive
+names a domain, and charged for it: a proximity mine went from 3 nodes to
+15, past what enumeration reaches.
+
+X47 showed that wall was **accounting, not expressiveness**. The predicate
+lattice closes under OR at 403 truth vectors, so `near` was in the pool the
+whole time; size simply charged 7 nodes for one lattice element. Re-pricing
+the vocabulary recovered the 15-node rule at 9,000 candidates against the
+~2x10^9 that size-first enumeration needs.
+
+| arm | X47 grid | X48 tokens |
+|---|---|---|
+| cover (coverage + model) | **6/6** | 6/6 |
+| learned (model rank) | 5/6 | 6/6 |
+| size | 4/6 | 3/6 |
+| similar | 3/6 | 3/6 |
+| random *(calibration)* | 1/6 | 4/6 |
+
+### The port that wasn't a port
+
+X47's foundation is that the lattice is small. On a token stream it is a
+**powerset** -- character tests at one offset are mutually exclusive, so
+unions never collapse: 1,024 at one offset, 55,783 at two, 344k+ at three.
+The answer was to stop enumerating tests and **derive them from events**:
+`is-digit` falls out of "where did the target halt" in 11 comparisons.
+
+X56 carried this to real text (JSON, code, comments) and found the second
+scaling wall -- the stack's state space is `|alphabet|^depth`, 14.47 MB per
+behaviour on real bytes. The fix is exact rather than approximate: a program
+can only inspect the stack through the `TOP(c)` tests it has, so bytes with
+no test are indistinguishable and collapse losslessly. 35x-100x smaller,
+verified against the interpreter.
+
+### Memory, measured
+
+| experiment | result |
+|---|---|
+| X49 | window certificate: same window, opposite decisions -- no window-only program can nest. Bounded counter fixes it. |
+| X50 | a counter cannot remember *which* bracket. Same window **and** depth, opposite decisions. Typed stack, 5/5, depth-6 generalisation. |
+| X59 | two read heads; `SAME` load-bearing on 3/6 by ablation. A read/write scratchpad prices at **7,338 GB per behaviour**. |
+| X60 | the proposed fix for that -- collapse states agreeing on current predicates -- is **unsound**, and the counterexample is one `ADV` long. Bounded registers are exact and cheap: 0.0077 MB. 4/5 tasks need them. |
+| X61 | **half** of ordinary parsing needs a working set that grows with the input, not "almost all bounded". |
+
+X61's split, measured on the diagonal (growing prefix and suffix together,
+because fixing either manufactures a false plateau):
+
+```
+strip comment / capture quoted / dedupe adjacent / emit matching first   bounded
+capture brackets / only at depth 2 / balanced prefix / reverse           GROWING
+```
+
+Every growing task is one the machine already solves -- with the stack.
+Registers and stack turned out **complementary for compact synthesis**, and
+that is a claim about representation, not expressiveness: a general pushdown
+machine could simulate a register.
+
+### What the negative results established
+
+Four experiments produced no positive result and they were the most useful
+of the arc. X51 measured a "deceptive valley" and found that widening the
+beam (1->8) and enriching the vocabulary both fail. X52 built lookahead
+credit assignment: 10x the cost, and it *lost* a target greedy solves.
+
+X53 explained all of it. A monotone route to `copy inside any` **exists**;
+the "decoy" that three experiments were built around is its *first step*.
+Greedy takes the argmax while the route only needs non-decreasing, and a
+per-round beam discards what it needs, permanently. The fix was bookkeeping
+-- one global frontier, no discard -- not scoring. 5/5.
+
+X54 then tried to learn a ranker for that frontier and could not: an
+efficient search generates no training data, and an inefficient one solves
+nothing to label. X55 tried to build a curriculum and measured the band at
+**1 usable task in 22** -- roughly 20 hours for a 100-task corpus. Across
+X53-X55, **the learned component has no measured role in this substrate.**
+
+### Three shape gaps in three experiments
+
+The most transferable finding. Tasks that scored `--` and looked like search
+failures were not:
+
+- **X58** `halt at m` -- needed a lookahead test; offset-0 tests cannot
+  express it at all.
+- **X59** `zip both` -- needed a depth-2 rule body.
+- **X60** `SEQ(LOAD, LOOP(...))` -- needed a prologue shape.
+
+None was a search problem. When a task fails, ask whether its *shape* is in
+the language before asking whether the search is strong enough -- probing
+shapes is nearly free, since a shape that fits is found in 26-78
+evaluations against a 400-state budget.
+
+### Primitives must earn their place
+
+Every new primitive is ablated against the tasks that motivated it:
+
+| primitive | verdict |
+|---|---|
+| `EQTOP` (X51) | appears in **0 of 4** recovered programs -- did not earn it |
+| `SAME` (X59) | **3 of 6** tasks unrecoverable without it |
+| register `LOAD`/`MATCH` (X60) | **4 of 5** tasks unrecoverable without it |
+
+### Measurement artefacts caught
+
+- **X61**: two readings said nested brackets need bounded memory. Both were
+  horizon artefacts -- a fixed suffix caps the index at what a short suffix
+  distinguishes. The wrong measurement looks tidier than the right one.
+- **X58**: a `pos-1` clamp made the first byte of every tape look
+  halt-associated, deriving a spurious marker.
+- **X46**: `STEP` refused to enter walls, so the primitive was doing the
+  collision test the program was meant to express.
+- **X50**: halting collapsed to one sentinel, so `SEQ(ADV,HALT)` and `HALT`
+  had identical tables while the interpreter told them apart.
+
+Every one of these made the system look better than it was.
+
+### Open problems
+
+- **No associative memory.** Registers are bounded, the stack is LIFO.
+  Symbol tables, maps, graphs, object identity and cross-references have no
+  representation here, and X61 says the memory question is a hierarchy
+  rather than one substrate.
+- **The learned component still has no measured role** (X53-X55). Any future
+  claim for it needs a curriculum that does not yet exist.
+- **Tasks and shapes are hand-authored.** Target programs are written by
+  hand, and each of the three shape gaps was closed by hand.
+- **Scope is small.** Five-byte alphabets, tapes of at most eleven bytes,
+  stack depth 2 in search. X56's real-text tasks are the largest thing run.
+
+### Experiment index (X35-X61)
+
+| # | file | question |
+|---|---|---|
+| X35 | `x35_novelty_trigger.py` | can an agent detect that its grammar is inadequate? |
+| X36 | `x36_micro_vm.py` | does a micro-VM substrate beat axis menus? |
+| X37 | `x37_micro_rsi_memory.py` | does a learned library compound across worlds? |
+| X38 | `x38_atomic_synthesis.py` | can rules be built from atoms rather than chosen? |
+| X39 | `x39_probe_scaling.py` | how does probe cost scale with hypothesis count? |
+| X40 | `x40_free_recursion.py` | can free recursion be enumerated without divergence? |
+| X41 | `x41_primitive_lineage.py` | where does each primitive come from? |
+| X42 | `x42_trigger_guard.py` | novelty or corrupted evidence? |
+| X43 | `x43_scaled_growth.py` | does the growth loop hold on 20+ worlds? |
+| X44 | `x44_invented_motion.py` | can the grid invent its movement rule? |
+| X45 | `x45_invented_hazards.py` | can it invent hazard rules the axes cannot express? |
+| X46 | `x46_unified_substrate.py` | one pool for motion and hazards -- at what cost? |
+| X47 | `x47_priced_vocabulary.py` | is the depth wall expressiveness or accounting? |
+| X48 | `x48_token_vm.py` | does the substrate survive a token stream? |
+| X49 | `x49_nested_structure.py` | what can no window-only program do? |
+| X50 | `x50_stack.py` | what can no counter remember? |
+| X51 | `x51_deceptive_valley.py` | how much lookahead does the landscape need? |
+| X52 | `x52_lookahead.py` | does scoring what a rule enables beat what it fixes? |
+| X53 | `x53_monotone_reachability.py` | unreachable, or merely unfound? |
+| X54 | `x54_frontier_ranker.py` | can a ranker pay back the frontier's cost? |
+| X55 | `x55_curriculum.py` | can the difficulty band be farmed? |
+| X56 | `x56_byte_vm.py` | does it survive real text? |
+| X57 | `x57_repair.py` | can a program be generalised after the fact? |
+| X58 | `x58_sweep.py` | how often does the one-rule repair bound bind? |
+| X59 | `x59_multistream.py` | two read heads, and what a scratchpad costs |
+| X60 | `x60_registers.py` | can the machine read what it wrote? |
+| X61 | `x61_working_set.py` | which memory class does real parsing need? |
+
+### The next experiment
+
+X62, a **memory-class audit**: measure expressibility, memory growth,
+synthesis cost and generalisation *separately* across parameterised task
+families -- streaming, register, stack, associative, sequence, set and
+graph-shaped. The decision it settles: whether stack plus a few registers
+covers realistic work, or whether the next mechanism has to be a sparse
+mutable store that executes only the keys a candidate program touches.
+Building a POSIX substrate first would wrap the architecture in a larger
+environment without answering that.
