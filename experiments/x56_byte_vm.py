@@ -330,6 +330,29 @@ def derive_markers(tapes, truth, k=4):
         hit, tot = per_byte[c]
         if hit:
             cands.append((hit / tot, hit, c))
+    if not cands:
+        # A target that never EMITS leaves no emission boundary to read, so
+        # the whole derivation comes back empty and the task is unreachable --
+        # which is exactly how `halt at '#'` failed. Halting is an observable
+        # event too: a byte is a marker if arriving at it stops the machine.
+        for c in sorted(every - emitted):
+            hit = tot = 0
+            for tape in tapes:
+                for pos, ch in enumerate(tape):
+                    # pos 0 has no predecessor, and clamping to 0 made the
+                    # first byte of every tape look halt-associated -- it
+                    # derived a spurious 'p' from 'p#q"r"s', where the halt is
+                    # caused by the '#' one step later.
+                    if ch != c or pos == 0:
+                        continue
+                    tot += 1
+                    res, _ = run(truth, tape, St(pos=pos - 1), set(tape))
+                    hit += int(not res.live)
+            if tot == 0:
+                continue
+            if hit:
+                cands.append((hit / tot, hit, c))
+        cands.sort(reverse=True)
     cands.sort(reverse=True)
     return set(c for _, _, c in cands[:k]), cands
 
