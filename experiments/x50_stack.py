@@ -176,10 +176,16 @@ def run(expr, tape, st, fuel=8192, bound=None):
     return st, fuel - 1
 
 
+COMPOUND = ("OR", "IF", "LOOP", "SEQ", "BOTH")
+
+
 def size_of(e) -> int:
     if isinstance(e, str):
         return 1
-    if e[0] in ("AT", "TOP", "EMPTY", "EQTOP"):
+    # Anything that is not a compound is an atomic test, whatever its arity.
+    # Listing atom names instead meant a later file's test -- X59's
+    # SAME(o1, o2) -- recursed into its integer offsets and crashed polish.
+    if not isinstance(e, tuple) or e[0] not in COMPOUND:
         return 1
     return 1 + sum(size_of(p) for p in e[1:])
 
