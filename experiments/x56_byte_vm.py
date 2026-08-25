@@ -11,9 +11,14 @@ the difference between an experiment and an out-of-memory error:
     real       2  full (32)            62,363              14.47
     real       2  quotient                            0.07-0.21
 
-The situation space is tapes x positions x |stack alphabet|^depth, and the
-frontier holds thousands of behaviours at once. Real text at depth 2 costs
-tens of gigabytes on a machine that ran fine on toy tapes.
+The situation space is tapes x positions x |stack alphabet|^depth. The cost
+is primarily COMPUTE: every composition touches 14.47 MB instead of 0.20, so
+each candidate is ~70x more memory traffic, and the successful bracket run's
+18,281 evaluations would move hundreds of terabytes instead of finishing in
+15 seconds. Memory is a secondary risk -- the frontier heap holds a table per
+state, so ~10^4 states would approach this machine's 128 GB -- but calling it
+a certain out-of-memory failure, as an earlier draft of this file did, was an
+overstatement. It is a slowdown first and a ceiling second.
 
 THE QUOTIENT, AND IT IS EXACT. A program inspects the stack only through the
 TOP(c) tests in its vocabulary, so two stacks differing only in symbols that
