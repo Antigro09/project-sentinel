@@ -1429,3 +1429,74 @@ Five of the ten closure gates were run (G1, G2, G3, G9, G10). G4–G8 —
 phrase-level contribution, unknown vocabulary, evidence authority, conflict
 replication, open-world safety — were not, because G2's failure is terminal
 under the stop rule and they could not change the verdict.
+
+## X64H: the implementation slice, and H1 fails before the freeze
+
+X64G's finding was that a self-generated controlled language cannot show
+induction beating authoring. X64H's answer is to withhold the realized
+convention from every arm except the oracle. This delivers the
+**implementation slice only** — the research result is decided by H1–H10 on
+conventions sampled *after* a freeze manifest is committed, and **no final
+seed has been sampled or inspected.**
+
+### What is built
+
+`experiments/x64h/` — `types` (taint lattice), `semantic` (adapter over the
+existing forms and trusted executor), `convention` (the seven-tuple spec,
+sampler, structural audit, equivalence classes), `grammar` (FT-SPCFG with
+exact inside), `posterior`, `queries`, `decision`, `persistence`, `arms`
+(all 14), `metrics`, `protocol` (freeze/seed-release/taint), `microcase`,
+`layer0`. Runner: `experiments/x64h_hidden_convention.py`.
+
+**Layer 0 reproduces every reference value** from the theory package:
+separating probabilities 0 / 0.09375 / 0.41015625 / 0.66650390625, entropy
+4.58496 bits, alphabet 6, bound 1.77371, optimal 2.0, greedy 2.0, random
+2.857142857. Implemented with the standard library, so agreement is about
+the mathematics rather than a shared dependency.
+
+**Exactness**: the inside algorithm equals a brute-force derivation
+enumeration on 80/80 checks, and every per-(φ,z) likelihood is normalized to
+within 3.3e-16. No beam, no truncation, no unreported cap.
+
+**All 20 required pins plus 2 extras pass** (`tests/test_x64h_core.py`,
+`tests/test_x64h_protocol.py`).
+
+### H1 fails, at every family size
+
+| convention family | oracle | static family-aware | H1 |
+|---|---|---|---|
+| 8 | 1.00 | **1.00** | FAIL |
+| 32 | 1.00 | **1.00** | FAIL |
+| 64 | 1.00 | **1.00** | FAIL |
+
+H1 requires the oracle ≥ 0.98 **and the static family-aware parser below
+0.95**. A parser that merely marginalizes over the whole convention family,
+with no persistence, reaches the oracle — because a full utterance under any
+well-formed convention identifies (φ, z) on its own, phrases being
+unambiguous within a role.
+
+**The episode needs convention *decoding*, not convention *inference*.**
+That is X64G's authored-inverse ceiling in a new costume, and freezing now
+would freeze a testbed that fails its own validity gate. **No freeze
+manifest is written and no final seed is sampled.**
+
+### Two bugs the build found
+
+**The persisted convention prior was unnormalized**, so accumulated evidence
+leaked into the prior's *scale*; by the second task the IN component of the
+open-world mixture was compared against frozen OTHER priors on the wrong
+scale and `p_in` collapsed to 0.05. The exact arm executed 1 task of 24
+while the memoryless control executed all 24 — the persistent arm was
+strictly worse than having no memory, which is what exposed it.
+
+**The task stream changed the convention every task**, but a convention is
+persistent *within an episode*. The persistent arm locked onto the first
+convention and was punished on every later task.
+
+### Tooling
+
+`hydra`, `omegaconf`, `mlflow`, `dvc`, `jax`, `numpyro` are all absent, and
+DVC initialization additionally needs the repository owner's approval. Their
+*properties* are implemented with the standard library: the fully resolved
+config is serialized into every artifact, each run writes a structured
+record, and JSON is the authoritative output.

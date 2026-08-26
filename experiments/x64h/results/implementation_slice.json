@@ -1,0 +1,592 @@
+{
+  "arms": {
+    "amortized_convention": {
+      "abstained": 6,
+      "arm": "amortized_convention",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 18,
+      "executed": 18,
+      "expanded": 0,
+      "incomplete_candidates": true,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.7495527210613273,
+      "n": 24,
+      "wrong": 0
+    },
+    "demonstrations_only": {
+      "abstained": 18,
+      "arm": "demonstrations_only",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 6,
+      "executed": 6,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 1.0,
+      "n": 24,
+      "wrong": 0
+    },
+    "exact_bayesian_convention": {
+      "abstained": 0,
+      "arm": "exact_bayesian_convention",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997894615413736,
+      "n": 24,
+      "wrong": 0
+    },
+    "joint_infogain_queries": {
+      "abstained": 0,
+      "arm": "joint_infogain_queries",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997894615413736,
+      "n": 24,
+      "wrong": 0
+    },
+    "joint_random_queries": {
+      "abstained": 0,
+      "arm": "joint_random_queries",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997894615413736,
+      "n": 24,
+      "wrong": 0
+    },
+    "joint_task_and_convention": {
+      "abstained": 0,
+      "arm": "joint_task_and_convention",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997894615413736,
+      "n": 24,
+      "wrong": 0
+    },
+    "no_confirmation": {
+      "abstained": 0,
+      "arm": "no_confirmation",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997894615413736,
+      "n": 24,
+      "wrong": 0
+    },
+    "no_convention_memory": {
+      "abstained": 0,
+      "arm": "no_convention_memory",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997709424006928,
+      "n": 24,
+      "wrong": 0
+    },
+    "no_open_world": {
+      "abstained": 0,
+      "arm": "no_open_world",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 1.0,
+      "n": 24,
+      "wrong": 0
+    },
+    "oracle_convention": {
+      "abstained": 0,
+      "arm": "oracle_convention",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997924521410473,
+      "n": 24,
+      "wrong": 0
+    },
+    "oracle_task_meaning": {
+      "abstained": 0,
+      "arm": "oracle_task_meaning",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 1.0,
+      "n": 24,
+      "wrong": 0
+    },
+    "shuffled_convention_history": {
+      "abstained": 17,
+      "arm": "shuffled_convention_history",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 7,
+      "executed": 7,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.29160389577253604,
+      "n": 24,
+      "wrong": 0
+    },
+    "static_default_convention": {
+      "abstained": 18,
+      "arm": "static_default_convention",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 6,
+      "executed": 6,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.24995496071371792,
+      "n": 24,
+      "wrong": 0
+    },
+    "static_family_aware": {
+      "abstained": 0,
+      "arm": "static_family_aware",
+      "asked_behavioral": 0,
+      "asked_semantic": 0,
+      "conflict_flag": 0,
+      "convention_class_mass": 0.0,
+      "correct": 24,
+      "executed": 24,
+      "expanded": 0,
+      "incomplete_candidates": false,
+      "mean_ambiguity": 0.0,
+      "mean_p_in": 0.9997709424006928,
+      "n": 24,
+      "wrong": 0
+    }
+  },
+  "digest": "bccf04acdc1264170a846d538a7ba34c7895448e3f138322f65e618e818dd130",
+  "environment": {
+    "optional_tools": {
+      "dvc": false,
+      "hydra": false,
+      "jax": false,
+      "mlflow": false,
+      "numpyro": false,
+      "omegaconf": false
+    },
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.12.14"
+  },
+  "exactness": {
+    "checks": 80,
+    "max_normalisation_error": 3.3306690738754696e-16,
+    "mismatches": 0
+  },
+  "final_seeds_released": false,
+  "frozen": false,
+  "h1_pre_freeze": [
+    {
+      "family": 8,
+      "oracle": 1.0,
+      "pass": false,
+      "static_family": 1.0
+    },
+    {
+      "family": 32,
+      "oracle": 1.0,
+      "pass": false,
+      "static_family": 1.0
+    },
+    {
+      "family": 64,
+      "oracle": 1.0,
+      "pass": false,
+      "static_family": 1.0
+    }
+  ],
+  "layer0": {
+    "noise": {
+      "exact_all_signature_success": 0.9365414790121802,
+      "hoeffding_success_lower_bound": 0.0,
+      "repetitions": 7
+    },
+    "query": {
+      "entropy_lower_bound_questions": 1.7737056144690833,
+      "greedy_information_gain_expected_questions": 2.0,
+      "hypotheses": 24,
+      "k": 4,
+      "largest_answer_alphabet": 6,
+      "optimal_expected_questions": 2.0,
+      "posterior_entropy_bits": 4.584962500721156,
+      "random_disagreement_expected_questions": 2.857142857142857
+    },
+    "separating": [
+      0.0,
+      0.09375,
+      0.41015625,
+      0.66650390625
+    ]
+  },
+  "resolved_config": {
+    "arms": [
+      "demonstrations_only",
+      "static_family_aware",
+      "static_default_convention",
+      "exact_bayesian_convention",
+      "amortized_convention",
+      "joint_task_and_convention",
+      "joint_random_queries",
+      "joint_infogain_queries",
+      "no_convention_memory",
+      "shuffled_convention_history",
+      "oracle_convention",
+      "oracle_task_meaning",
+      "no_open_world",
+      "no_confirmation"
+    ],
+    "bootstrap": {
+      "resamples": 2000,
+      "seed": 13,
+      "unit": "task_meaning"
+    },
+    "convention_meta": {
+      "filter_atoms": [
+        "everything",
+        "letters",
+        "brackets",
+        "hashes",
+        "repeats in a row",
+        "symbols seen before",
+        "the first symbol",
+        "the last symbol"
+      ],
+      "function_words": [
+        "uh",
+        "so",
+        "well"
+      ],
+      "op_atoms": [
+        "keep",
+        "remove"
+      ],
+      "phrase_pool": [
+        [
+          "alpha"
+        ],
+        [
+          "beta"
+        ],
+        [
+          "gamma"
+        ],
+        [
+          "delta"
+        ],
+        [
+          "epsilon"
+        ],
+        [
+          "zeta"
+        ],
+        [
+          "eta"
+        ],
+        [
+          "theta"
+        ],
+        [
+          "iota"
+        ],
+        [
+          "kappa"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "mu"
+        ],
+        [
+          "nu"
+        ],
+        [
+          "xi"
+        ],
+        [
+          "alpha",
+          "beta"
+        ],
+        [
+          "alpha",
+          "gamma"
+        ],
+        [
+          "alpha",
+          "delta"
+        ],
+        [
+          "alpha",
+          "epsilon"
+        ],
+        [
+          "alpha",
+          "zeta"
+        ],
+        [
+          "beta",
+          "gamma"
+        ],
+        [
+          "beta",
+          "delta"
+        ],
+        [
+          "beta",
+          "epsilon"
+        ],
+        [
+          "beta",
+          "zeta"
+        ],
+        [
+          "gamma",
+          "delta"
+        ],
+        [
+          "gamma",
+          "epsilon"
+        ],
+        [
+          "gamma",
+          "zeta"
+        ],
+        [
+          "delta",
+          "epsilon"
+        ],
+        [
+          "delta",
+          "zeta"
+        ],
+        [
+          "epsilon",
+          "zeta"
+        ]
+      ],
+      "scope_atoms": [
+        "whole",
+        "before hash",
+        "after hash",
+        "inside brackets",
+        "outside brackets"
+      ],
+      "words": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta",
+        "eta",
+        "theta",
+        "iota",
+        "kappa",
+        "lambda",
+        "mu",
+        "nu",
+        "xi"
+      ]
+    },
+    "costs": {
+      "abstain": 4.0,
+      "behavioral_query": 1.0,
+      "expand": 6.0,
+      "semantic_query": 1.0,
+      "wrong_execution": 20.0
+    },
+    "gates": {
+      "max_conflict": 0.25,
+      "min_leading_behaviour": 0.9,
+      "min_p_in": 0.6
+    },
+    "inference": {
+      "exact": true,
+      "prior_conflict": 0.1,
+      "rho": 0.0
+    },
+    "metrics_schema": [
+      "arm",
+      "n",
+      "executed",
+      "correct",
+      "wrong",
+      "abstained",
+      "expanded",
+      "asked_semantic",
+      "asked_behavioral",
+      "conflict_flag",
+      "mean_p_in",
+      "mean_ambiguity",
+      "incomplete_candidates",
+      "convention_class_mass"
+    ],
+    "other_model": {
+      "out_alphabet": 8,
+      "prior_in": 0.94,
+      "prior_unknown_meaning": 0.02,
+      "prior_unknown_program": 0.02,
+      "prior_unknown_realization": 0.02,
+      "vocab": 20
+    },
+    "query": {
+      "budget": 6,
+      "universe_size": 12
+    },
+    "semantic": {
+      "filters": [
+        "everything",
+        "letters",
+        "brackets",
+        "hashes",
+        "repeats in a row",
+        "symbols seen before",
+        "the first symbol",
+        "the last symbol"
+      ],
+      "held_out": [
+        "abc#de",
+        "((xy))",
+        "zz#z",
+        "(p)(q)",
+        "a#b#c#d",
+        "xyzzy",
+        "#a#b#c",
+        "(((z)))",
+        "(xy)x",
+        "aabbc"
+      ],
+      "n_forms": 64,
+      "polarities": [
+        "keep",
+        "remove"
+      ],
+      "scopes": [
+        "whole",
+        "before hash",
+        "after hash",
+        "inside brackets",
+        "outside brackets"
+      ],
+      "universe": [
+        "a#b#a",
+        "(ab)a",
+        "abab",
+        "((a))",
+        "ab#()",
+        "(ab)ba",
+        "a#(b)",
+        "b#ba",
+        "(aa)(",
+        "aabb",
+        "#ab",
+        "(a)b",
+        "ba#",
+        "(bb)a",
+        "ab(a)",
+        ")ab(",
+        "a",
+        "b",
+        "#",
+        "(",
+        ")",
+        "aa",
+        "ab",
+        "a#",
+        "(a",
+        "a)",
+        "((",
+        "))",
+        "a#b",
+        "(ab",
+        "ab)",
+        "b#a",
+        "(a)",
+        "a()",
+        "()a",
+        "#a#",
+        "aba",
+        "bab",
+        "(ab)(ba)",
+        "ab#ab",
+        "((ab))",
+        "a#b#c",
+        "(ac)a",
+        "cab",
+        "(ca)c",
+        "cc#c"
+      ]
+    }
+  },
+  "runtime_s": 0.93
+}
