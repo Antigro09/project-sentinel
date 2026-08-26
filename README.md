@@ -583,13 +583,42 @@ Every one of these made the system look better than it was.
 | X60 | `x60_registers.py` | can the machine read what it wrote? |
 | X61 | `x61_working_set.py` | which memory class does real parsing need? |
 
+### X62: the memory audit, and what it decided
+
+Eleven tasks across six families, with the four quantities kept apart:
+
+| family | expressible | memory class |
+|---|---|---|
+| streaming | 2/2 | constant -- registers |
+| register | 2/2 | constant -- registers |
+| stack | 2/2 | linear -- counter or stack |
+| set | **0/2** | converging at 2^\|alphabet\| -- set-shaped |
+| sequence | 1/2 | `reverse` is the only task growing with input length |
+| associative | **0/1** | converging -- table-shaped |
+
+**Only `reverse` grows with input length.** Set and associative memory are
+*bounded* for a fixed alphabet -- 32 and 58 classes -- so the gap is not
+capacity but **shape**: a register holds a byte, and neither a subset nor a
+key-value map is a byte. X61's "growing working set" framing was too coarse
+to see that. The bound is exponential in *alphabet* size, so scaling the
+alphabet is what forces the issue, not scaling the input.
+
+The pre-registered rule fired: set 0/2 and associative 0/1 means the next
+mechanism is a **sparse mutable store**, keyed and executed lazily -- not a
+bigger substrate, and not a writable tape at 7,338 GB per behaviour.
+
+Two findings worth as much as the decision. Reading the index from its last
+two values called the set tasks "linear" -- their increments run 10, 10, 5,
+1 and 32 is exactly 2^5, so a plateau arriving looks like growth. And **four
+of seven expressible tasks were not found** within ~10^6 evaluations, with
+one found program failing held-out: expressibility and findability come
+apart on more than half the suite, which is why they are separate columns.
+
 ### The next experiment
 
-X62, a **memory-class audit**: measure expressibility, memory growth,
-synthesis cost and generalisation *separately* across parameterised task
-families -- streaming, register, stack, associative, sequence, set and
-graph-shaped. The decision it settles: whether stack plus a few registers
-covers realistic work, or whether the next mechanism has to be a sparse
-mutable store that executes only the keys a candidate program touches.
-Building a POSIX substrate first would wrap the architecture in a larger
-environment without answering that.
+X63, the sparse store: a keyed memory that materialises only the entries a
+candidate program touches, with the same three-way expressibility reporting.
+The open risk is that its state space is defined by the keys *touched*
+rather than the keys *possible*, so the table representation that every
+experiment since X47 depends on may not survive it -- which is the first
+thing to price, before building anything on top.
