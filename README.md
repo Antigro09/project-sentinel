@@ -1241,3 +1241,51 @@ rather than arms; it now runs on the intersection.
 All ten planted defects caught. Freeze digest covers grammar, slots,
 role–slot alignment, splits, hyperparameters, confirmation inputs, universe
 and held-out set; a test verifies that mutating any of it changes the digest.
+
+### The F−1 audit, which corrects two of the claims above
+
+**The commitment rule was misdescribed.** X64E's text says the system answers
+"only when the evidence leaves one behaviour". It does not. The arm whose
+numbers were reported also commits when the behaviour posterior exceeds 0.99,
+so **language can authorise an answer while behaviourally distinct rivals
+remain**. Separating the two sources:
+
+| policy | answered | correct | wrong | queries |
+|---|---|---|---|---|
+| A demonstrations only | 80 | 80 | 0 | 196 |
+| B language ranks queries, **evidence** commits | 80 | 80 | 0 | 150 |
+| C language ranks **and** commits at 0.99 (reported) | 80 | 80 | 0 | **2** |
+
+Ranking the questions is worth 196 → 150. Authorising commitment is worth
+150 → 2. The headline came from the second; the text described the first.
+
+**The query advantage is not statistically stable.** Paired bootstrap,
+resampled *by task meaning*:
+
+| difference | mean | 95% CI | |
+|---|---|---|---|
+| queries saved vs authored structure | +0.139 | (+0.000, +0.326) | **includes 0** |
+| queries saved vs role-blind | +0.119 | (−0.070, +0.302) | **includes 0** |
+| conflict margin vs authored | +0.279 | (+0.181, +0.384) | excludes 0 |
+
+So **learning buys calibration — that survives a paired interval — and the
+query advantage does not.** E2's pass on query count was a point estimate.
+
+**On the full population, main answers fewer.** 114/129 correct in 12
+queries against demonstrations-only's 120/129 in 294. Main trades coverage
+for efficiency; it does not dominate. The 66-condition intersection hid that.
+
+**Unknown words: 43 forms, 0 wrong — but 1 interpreted, 29 resolved by
+clarification, 9 reported unsupported, and 4 silently ignored.** E8 passes
+because nothing is answered wrongly, *not* because unseen vocabulary was
+understood, and the 4 silent cases are a partial failure of its spirit.
+
+**What the audit strengthens:** exact-form accuracy is **1.00** on the 29
+behaviourally identifiable forms; the 0.84 overall is entirely explained by
+forms no observation can separate. Median gold-form rank 1, mean posterior
+mass on the gold behaviour 0.987.
+
+**Retracted: "X64 is closed."** The realizer is nearly a serialization of the
+logical form — which is why an authored parser reaches 1.00 exact-form — so
+the linguistic problem is largely solved by the data generator. X64 remains
+open pending X64F, which breaks that one-to-one correspondence.

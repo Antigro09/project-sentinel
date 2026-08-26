@@ -217,7 +217,22 @@ vs 2, conflict AUROC 0.988 vs 0.996), because the induced weights were
 fitted to a likelihood and calibration is what the commit threshold and the
 conflict mass consume.
 
-X64 is closed. X65 follows.
+**The F-1 audit corrects two of those claims.** The commitment rule was
+misdescribed: the reported arm also commits when the behaviour posterior
+exceeds 0.99, so language can authorise an answer while rivals remain.
+Ranking questions is worth 196->150; authorising commitment is worth
+150->2. And a paired bootstrap resampled by task meaning shows the query
+advantage over the strongest controls INCLUDES ZERO (+0.139, CI
+0.000-0.326 vs authored; +0.119, CI -0.070-0.302 vs role-blind) while the
+conflict-calibration advantage excludes it (+0.279, CI 0.181-0.384). So
+learning buys calibration, which survives, and not query efficiency, which
+does not. On the full population main answers 114/129 against
+demonstrations-only's 120/129 -- a coverage-for-efficiency trade, not
+dominance.
+
+**X64 is NOT closed.** The realizer is nearly a serialization of the logical
+form, which is why an authored parser reaches 1.00 exact-form. X64F breaks
+that one-to-one correspondence; X65 waits.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:
