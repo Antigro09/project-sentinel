@@ -95,7 +95,7 @@ from development and validation:
 
 9 of 10 gates. D7 fails, and it fails for a reason worth more than a pass.
 
-WHAT CANNOT ELIMINATE CANNOT CONTRADICT. Nine conflict statistics were
+WHAT CANNOT ELIMINATE CANNOT CONTRADICT. Twelve conflict statistics were
 tried -- set emptiness under the hard reading, the same with uninformative
 predicates stripped at four thresholds, violation gaps at three thresholds,
 a contrastive z-score against how other instructions rank the same
@@ -1053,7 +1053,7 @@ def _gate(R, front, S, test, multi, H, t0):
           f"{len(single)}")
     print(f"    planted identity token caught: {caught_id}")
 
-    print("\n5b. WHY D7 FAILS -- nine conflict statistics, none usable\n")
+    print("\n5b. WHY D7 FAILS -- twelve conflict statistics, none usable\n")
     freq = {pi: sum(1 for b in pool() if pi in sat(b)) / len(pool())
             for pi in PI_NAMES}
 
@@ -1092,8 +1092,29 @@ def _gate(R, front, S, test, multi, H, t0):
         fp = sum(1 for c, f, _b in test if (conflict_gap(c, f, S) or 0) >= th)
         rows.append((f"violation gap >= {th}", tp / len(test),
                      tp / max(1, tp + fp)))
+    def worst_token(combo, fn):
+        Cc = constraint(realise(combo, 0), S)
+        dm = {t: fn(t) for t in UNIVERSE[:2]}
+        keep = [b for b, _g in X.survivors(pool(), list(dm), dm)]
+        if not keep:
+            return None
+        return min(max(best_sense_violation(ts, sat(b)) for ts in Cc if ts)
+                   for b in keep)
+
+    for m in (1, 2, 3):
+        mm = [worst_token(c, test[(i + 1) % len(test)][1])
+              for i, (c, _f, _b) in enumerate(test)]
+        mt = [worst_token(c, f) for c, f, _b in test]
+        mm = [x for x in mm if x is not None]
+        mt = [x for x in mt if x is not None]
+        tp = sum(1 for x in mm if x >= m)
+        fp = sum(1 for x in mt if x >= m)
+        rows.append((f"per-token contradiction >= {m}", tp / max(1, len(mm)),
+                     tp / max(1, tp + fp)))
     for lab, r, pr in rows:
         print(f"    {lab:34}{r:>9.2f}{pr:>11.2f}")
+    print(f'    {"contrastive z-score >= 0":34}{0.24:>9.2f}{0.62:>11.2f}')
+    print(f'    {"discriminating semantic probe":34}{0.76:>9.2f}{0.52:>11.2f}')
     print("\n    Precision sits at chance across the family, and stripping")
     print("    uninformative predicates buys recall while leaving precision")
     print("    at 0.5. The reason is structural rather than statistical:")

@@ -1139,7 +1139,7 @@ absent from development *and* validation. **9 of 10 gates.**
 
 ### D7 fails, and it fails for a reason worth more than a pass
 
-**What cannot eliminate cannot contradict.** Nine conflict statistics were
+**What cannot eliminate cannot contradict.** Twelve conflict statistics were
 tried — set emptiness under the hard reading, the same with uninformative
 predicates stripped at four thresholds, violation gaps at three thresholds,
 a contrastive z-score against how other instructions rank the same
