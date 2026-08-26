@@ -147,11 +147,11 @@ outside of its own hypothesis pool.
 B-1 attacks X64A's own limit -- that a singleton version space implies
 uniqueness inside the hypothesis class and nothing more. Confirmation on
 challenge inputs, an explicit none-of-the-above, and an expansion ladder
-whose recovering rung MEASURES what was missing. Headline: **confident
-wrongness goes UP with pool richness** (0, 0, 1, 0, 2 across the rungs) --
-a poor pool says `inconsistent` and is right to, a rich one produces a
-singleton that survives every question anyone thought to ask. Growing the
-hypothesis space without external criticism makes the failure more likely.
+whose recovering rung MEASURES what was missing. Headline: **richer pools
+can create wrong singletons that poorer pools avoid by reporting
+inconsistency** -- 0, 0, 1, 0, 2 across the rungs, not monotonic, with the
+richest rung tested producing the most. Expansion buys recall and can cost
+safety at the same time.
 
 B-2 maps WORDS to behavioural predicates rather than phrases to task
 labels; an instruction means the conjunction of its words' constraints.

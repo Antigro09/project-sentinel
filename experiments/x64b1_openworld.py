@@ -64,11 +64,13 @@ pinned in turn:
     +vocabulary               0                0                5
     +search                   2                0                6
 
-It goes UP with pool richness, which is the opposite of the intuition. A
-poor pool says `inconsistent` and is right to; a rich pool produces a
-singleton that survives every question anyone thought to ask, and is wrong.
-Growing the hypothesis space without an external criticism step makes the
-failure MORE likely, not less.
+The sequence is 0, 0, 1, 0, 2 -- NOT monotonic, and calling it "goes up
+with richness" would overstate it. What it does show: richer pools can
+create wrong singletons that poorer pools avoid by reporting inconsistency,
+and the richest rung tested produced the most. A poor pool says
+`inconsistent` and is right to; a rich pool can produce a singleton that
+survives every question anyone thought to ask and is still wrong. Expansion
+buys recall and can cost safety at the same time.
 
 Confirmation catches all four instances and produces none of its own. It
 cannot make a poor pool good -- 5 tasks remain with no adequate
@@ -243,9 +245,21 @@ def run_identify(pool, answers, f, budget=X.BUDGET):
 
 
 def confirm(rep, f, rng, k=4):
-    """The external criticism step. Returns (ok, counterexample). A
-    counterexample from CHALLENGE is evidence no survivor count could have
-    produced, because the survivors all agreed."""
+    """The external criticism step. Returns (ok, counterexample).
+
+    What a pass licenses is narrow and the name has to carry it: the
+    candidate agreed with the user on `k` inputs drawn from CHALLENGE. It
+    may still be wrong outside U, outside CHALLENGE's support, outside the
+    held-out tapes, and outside the query budget. The verdict is
+    `confirmed_on_challenge`, never `correct`.
+
+    Three things stay separate throughout, because they came apart in this
+    very experiment:
+      reference recovery  same behaviour as the hidden target over U
+      empirical adequacy  right on every input actually tested
+      global correctness  right on the intended domain -- not measured here
+    `balanced prefix` is empirically adequate and is NOT a reference
+    recovery, and recording it as one would be a false claim."""
     for t in rng.sample(CHALLENGE, k):
         if P.semit(rep, t) != f(t):
             return False, t
@@ -277,11 +291,12 @@ def solve(f, rng, exclude=(), confirmations=True, max_rung=4):
                         pool=pool)
         if not confirmations:
             return dict(verdict="answered", rep=rep, trail=trail,
-                        rung=RUNGS[level], pool=pool)
+                        rung=RUNGS[level], pool=pool, scope="unconfirmed")
         ok, ce = confirm(rep, f, rng)
         if ok:
             return dict(verdict="answered", rep=rep, trail=trail,
-                        rung=RUNGS[level], pool=pool)
+                        rung=RUNGS[level], pool=pool,
+                        scope="confirmed_on_challenge")
         extra[ce] = f(ce)         # the user said none of the above, and why
         trail.append((RUNGS[level], "REJECTED on " + ce, used, len(surv)))
     return dict(verdict="none_of_the_above", rep=None, trail=trail,

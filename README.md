@@ -954,11 +954,14 @@ With the target removed and every rung pinned in turn:
 | +vocabulary | 0 | 0 | 5 |
 | +search | **2** | 0 | 6 |
 
-**Confident wrongness goes up with pool richness.** A poor pool says
-`inconsistent` and is right to; a rich pool produces a singleton that
-survives every question anyone thought to ask, and is wrong. Growing the
-hypothesis space *without* an external criticism step makes the failure more
-likely — the opposite of the intuition that motivated the ladder.
+**Richer pools can create wrong singletons that poorer pools avoid by
+reporting inconsistency, and the richest rung tested produced the most.**
+The sequence is 0, 0, 1, 0, 2 — *not* monotonic, and an earlier draft of
+this paragraph said "goes up with pool richness", which the numbers do not
+support. What they do support: a poor pool says `inconsistent` and is right
+to, while a rich pool can produce a singleton that survives every question
+anyone thought to ask and is still wrong. Expansion buys recall and can cost
+safety at the same time.
 
 One thing the measurement forced: exact equivalence over the universe is
 **stricter** than "produces the intended behaviour on everything anyone will
