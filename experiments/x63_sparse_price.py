@@ -163,7 +163,14 @@ def srun(expr, tape, st, fuel=8192):
                 return st.copy(store=s2 | {(st.reg, tape[st.pos])}), fuel - 1
             return st, fuel - 1
         if expr == "GET":
-            v = lookup(st.store, st.reg) if st.reg != A.NONE else None
+            # Guarded at the end of the tape like EMIT, LOAD, PUSH and PUT --
+            # GET was the only act without it, and an unguarded emitting act
+            # never reaches a LOOP fixed point: `substitute` on '(ab)a'
+            # produced 'bbbbbb' because the register still held a key after
+            # the head ran off the end.
+            if st.pos >= len(tape) or st.reg == A.NONE:
+                return st, fuel - 1
+            v = lookup(st.store, st.reg)
             return (st.copy(out=st.out + (v,)) if v else st), fuel - 1
         return st, fuel - 1
     h = expr[0]
