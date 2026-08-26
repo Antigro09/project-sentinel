@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 277 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 285 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -48,6 +48,7 @@ uv run python experiments/x64a_identify.py           # the eight gates (~70s)
 uv run python experiments/x64b1_openworld.py         # open-world, 9 gates (~65s)
 uv run python experiments/x64b2_language.py          # language, 10 gates (~55s)
 uv run python experiments/x64c_frozen.py             # frozen audit, 10/12 (~65s)
+uv run python experiments/x64d_senses.py             # induced senses, 9/10 (~60s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -117,7 +118,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**277 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**285 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -599,6 +600,7 @@ Every one of these made the system look better than it was.
 | X64B-1 | `x64b1_openworld.py` | can it notice that none of its interpretations fits? |
 | X64B-2 | `x64b2_language.py` | can an instruction narrow the space without naming the task? |
 | X64C | `x64c_frozen.py` | the same lexicon, frozen, against tasks it has never seen |
+| X64D | `x64d_senses.py` | senses induced from evidence; language that cannot delete |
 
 ### X62: the memory audit, and what it decided
 
@@ -1087,3 +1089,81 @@ disagreement-maximising questions, detects conflict, abstains when nothing
 adequate exists, and fails safely when its language is wrong. **It has not
 been shown to understand language that was not authored around its
 evaluation set.**
+
+## X64D: senses induced from evidence, and language that cannot delete
+
+X64C falsified the authored lexicon. X64D replaces it. The change is to the
+*model*, not the vocabulary:
+
+```
+Pi          19 task-independent behavioural predicates
+t = (w, r)  a token: a surface word in a syntactic role
+Sigma(t)    a SET of senses, induced by clustering the predicate
+            signatures of the development examples containing t
+I           a reading: one sense chosen per token
+viol(b)     sum over tokens of min over senses of |S minus sat(b)|
+answer      only when the evidence leaves one candidate
+```
+
+**Three choices, each forced by a measured failure.**
+
+*Sense sets, not one sense.* A single intersection is the most-specific
+boundary of a version space and fails in both directions — with three
+examples it kept an accident (`brackets` acquired "only after the hash");
+with thirty-eight it collapsed, and `first`, `hash`, `last` all reduced to
+the same generic core so the role stopped mattering. On validation,
+clustering matched the single intersection's accuracy (105/105) with fewer
+questions (137 vs 153) and four polysemous words instead of one.
+
+*Language ranks, never eliminates.* The empty reading is always available,
+so **D5 is a property of the definition rather than something to test for**.
+
+*Evidence decides.* Committing when the language-preferred tier was a
+singleton produced four confident errors, and no confirmation against a
+fixed list repairs that — the target is always among the survivors, so a
+disagreeing rival always exists. Waiting for the evidence drove it to zero,
+and cost most of the query saving. That cost is itself the finding.
+
+| arm | retained | answered | correct | **wrong** | queries |
+|---|---|---|---|---|---|
+| demonstrations only | 126 | 123 | 123 | 0 | 285 |
+| X64C hard lexicon | **77** | 76 | 76 | 0 | 176 |
+| role-blind, joint | 126 | 125 | 125 | 0 | 263 |
+| induced, hard filter | **98** | 101 | 97 | **4** | 179 |
+| **induced, joint** | **126** | 125 | 125 | 0 | 267 |
+| induced, joint + semantic | 126 | **126** | **126** | 0 | 253 |
+| oracle senses | 126 | 126 | 126 | 0 | 246 |
+
+42 held-out tasks, 126 instruction forms, 24 scope×filter compositions
+absent from development *and* validation. **9 of 10 gates.**
+
+### D7 fails, and it fails for a reason worth more than a pass
+
+**What cannot eliminate cannot contradict.** Nine conflict statistics were
+tried — set emptiness under the hard reading, the same with uninformative
+predicates stripped at four thresholds, violation gaps at three thresholds,
+a contrastive z-score against how other instructions rank the same
+behaviour, and a discriminating semantic probe:
+
+| statistic | recall | precision |
+|---|---|---|
+| hard reading empty | 0.31 | 0.62 |
+| minus predicates >50% common | **0.83** | **0.51** |
+| violation gap ≥ 2 | 0.24 | 0.56 |
+| contrastive z ≥ 0 | 0.24 | 0.62 |
+
+Precision sits at chance across the whole family. Induction by intersection
+keeps only what examples **share**, so senses are generic, and a generic
+constraint is satisfied by the wrong task as readily as the right one.
+X64B-2 detected conflict at 8/12 precisely because its senses were
+**authored and sharp** — and X64C measured what sharp authored senses cost
+on unseen compositions. **D5 and D7 are in tension; this architecture buys
+D5.**
+
+### The arm that should temper the headline
+
+Role-blind joint scores **125/126 in 263 queries** against induced joint's
+**125/126 in 267**. On this test set the syntactic role earns *nothing
+measurable*. Roles are what make polysemy representable; keeping
+alternatives is what makes the system work. Those are different claims and
+only the second is supported by a performance difference.

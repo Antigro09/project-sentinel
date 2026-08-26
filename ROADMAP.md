@@ -182,8 +182,29 @@ adequate exists, and fails safely when its language is wrong. It has NOT
 been shown to understand language that was not authored around its
 evaluation set.** X64 is not closed as evidence of language understanding.
 
-The staging below is unchanged; X65 follows once the language claim is
-either repaired under a real holdout or dropped.
+**X64D replaced the authored lexicon with induced senses: 9/10 gates.**
+Senses are indexed by (word, role) and induced by clustering the predicate
+signatures of development examples; language RANKS candidates and can never
+eliminate one, so the target is retained 126/126 against 77/126 for X64C's
+authored filter; and the system answers only when the evidence -- not the
+language -- has resolved the set, which took confident errors from four to
+zero.
+
+D7 fails and the failure is the result: **what cannot eliminate cannot
+contradict.** Nine conflict statistics all sit at chance precision, because
+induction by intersection keeps only what examples share and a generic
+constraint is satisfied by the wrong task as readily as the right one.
+X64B-2 detected conflict because its senses were authored and sharp; X64C
+measured what sharp authored senses cost on unseen compositions. D5 and D7
+are in tension and this architecture buys D5.
+
+One arm tempers the headline: role-blind joint scores 125/126 in 263
+queries against induced joint's 125/126 in 267. The syntactic role earns
+nothing measurable here -- roles make polysemy REPRESENTABLE, keeping
+alternatives is what makes the system WORK.
+
+The staging below is unchanged; X65 follows once conflict detection has an
+account that survives induced senses.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:
