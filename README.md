@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 227 passing, 1 skipped (~10 min)
+uv run pytest tests/ -q                    # 248 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -42,6 +42,8 @@ uv run python experiments/x47_priced_vocabulary.py   # the depth wall, priced
 uv run python experiments/x56_byte_vm.py             # real text, quotiented
 uv run python experiments/x58_sweep.py               # 14 parsing tasks
 uv run python experiments/x61_working_set.py         # which memory class (~30s)
+uv run python experiments/x63_sparse_price.py        # what the table buys (~1s)
+uv run python experiments/x63c_gate.py               # the twelve clauses (~1s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -111,7 +113,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**227 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**248 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -585,6 +587,10 @@ Every one of these made the system look better than it was.
 | X59 | `x59_multistream.py` | two read heads, and what a scratchpad costs |
 | X60 | `x60_registers.py` | can the machine read what it wrote? |
 | X61 | `x61_working_set.py` | which memory class does real parsing need? |
+| X62 | `x62_memory_audit.py` | which memory SHAPE, with four quantities kept apart? |
+| X63a | `x63_sparse_price.py` | what does the behaviour table actually buy? |
+| X63b | `x63b_cegis_store.py` | a sparse store, searched without any gradient |
+| X63c | `x63c_gate.py` | twelve clauses specified from outside, not by me |
 
 ### X62: the memory audit, and what it decided
 
@@ -710,3 +716,118 @@ need not sit at the head. Keeping index emission would mean storing
 *positions* rather than bytes, and positions grow with the tape, so the store
 would inherit exactly the unboundedness it was introduced to avoid. X63b
 emits bytes.
+
+### X63b/c: the store passes twelve clauses, the search regresses on two
+
+The gate for X63 was specified from outside this project, not by me, and it
+is stricter than the two clauses X63b had already declared itself to pass.
+
+**The mechanism passes.** Set 2/2, associative 1/1 -- all three tasks X62
+proved inexpressible now have witnesses. Held-out split by axis so a failure
+names its axis: longer tapes, unseen symbols, unseen **keys**, unseen
+**values**, unseen keys+values, 5/5. Ablation: removing `PUT`/`GET`/`HAS`
+fails exactly those three and leaves the other seven untouched. `reverse`
+stays a control -- no positional indexing, no store iteration.
+
+Cost follows what is touched, not what is possible, which was the whole
+argument for a sparse store:
+
+| key universe | keys touched | us/run | if tabulated |
+|---|---|---|---|
+| 5 | 1 | 11.6 | 7.78e+03 |
+| 50 | 1 | 11.4 | 3.10e+20 |
+| 500 | 1 | 11.0 | 2.50e+32 |
+| 5,000 | 1 | 11.0 | 2.45e+44 |
+
+1.06x runtime across a 1,000x universe, with 200 keys, a 200-deep stack and
+200 emitted bytes all unbounded.
+
+**Two clauses caught real problems.**
+
+*The differential test passed while being vacuous.* Its calibration arm -- an
+interpreter crippled the exact way X62's actually was, with a capped `PUSH`
+-- was caught on **0 of 400** programs. The cause is a genuine property of
+X62's evidence rather than a coding slip: on five-byte tapes a run only
+exceeds depth 2 by pushing the *same* byte repeatedly, so `TOP` reads the
+same value at every level and no emitted byte can depend on the depth. 129
+runs went over the bound and not one changed its output. Rebuilt on
+seven-byte tapes with adjacent distinct bytes plus a hand-built
+depth-sensitive probe: 2 of 10 probes now distinguish a capped stack, and
+the real test passes with 0 unexplained mismatches. **A differential test
+without a calibration arm proves nothing, and this one proved nothing while
+printing PASS.**
+
+*The search regresses.* X62's table search solved `capture brackets` and
+`emit matching first` cleanly; CEGIS loses both and gains `balanced prefix`
+and `delayed copy`. Same count, different three -- reported as its own
+clause rather than folded into the witness count, which is 7/7 and would
+have hidden it.
+
+**And the equivalence key was worth more than the search machinery.**
+Output-only merges 4 of 23 behaviour classes, with up to 5 distinct stores
+collapsed into one -- three programs that emit nothing on all four training
+tapes while holding `{}`, `{'a':'a'}` and `{'(':'('}`. Keying on
+`(output, store)` splits 23 classes into 30 and merges none. That one change
+took the plateau arm from 8 found to **10 of 10**, and its worst case from
+**12,830,685 evaluations to 50,829**, because a plateau move that keeps
+`width` alternatives had been keeping `width` copies of a single behaviour.
+
+Against X62, at the end:
+
+| | expressible | found | generalises | worst evals |
+|---|---|---|---|---|
+| X62, table + frontier | 7 | 4 | 3 | 976,521 |
+| X63b arm A, store + strict CEGIS | 10 | 7 | 3 | 16,750 |
+| X63b arm B, + plateau | 10 | **10** | 3 | 50,829 |
+
+**A bug the gate found.** `GET` was the only emitting act without an
+end-of-tape guard, so a `LOOP` containing it never reached a fixed point:
+`substitute` on `'(ab)a'` emitted `'bbbbbb'`. Every other act -- `EMIT`,
+`LOAD`, `PUSH`, `PUT` -- already had it.
+
+### And the finding underneath it: fitting is not identifying
+
+CEGIS finds **10 of 10** and **3 of 10 generalise**. That gap is the real
+X63 result, so it got four explanations and four experiments rather than a
+sentence:
+
+| task | 2 tapes | 4 | 8 | minimised | shape forced |
+|---|---|---|---|---|---|
+| strip comment | 10 | 10 | 10 | 10 | 10 |
+| capture quoted | 5 | 6 | 3 | 3 | 6 |
+| dedupe adjacent | 3 | 4 | **10** | 4 | 4 |
+| emit matching first | 0 | 3 | 3 | 3 | 3 |
+| capture brackets | 6 | 3 | - | 5 | - |
+| balanced prefix | 10 | 10 | 10 | 10 | 10 |
+| first occurrence only | 1 | 0 | **10** | 0 | 0 |
+| emit if seen before | 1 | 1 | - | 1 | 2 |
+| delayed copy | 10 | 10 | 10 | 10 | 10 |
+| substitute | 6 | 9 | - | 9 | - |
+| **TOTAL held-out** | **52** | **56** | **56** | **55** | **45** / 100 |
+
+- **Thin evidence** -- *not monotone, and nearly flat.* 52 → 56 → 56 while
+  the evidence doubles twice. Two tasks climb to 10, two collapse. More
+  evidence is not a reliable fix.
+- **No simplicity bias** -- *refuted.* Deleting every rule that can be
+  deleted moves the total from 56 to 55.
+- **A missing shape** -- *refuted*, and this is the decisive one. The
+  witness for `first occurrence only` is `LOOP(SEQ(LOAD, IF(HAS, …)))`, and
+  CEGIS's shape is `LOOP(IF …)` -- so `HAS` could only ever describe the
+  *previous* byte. Adding the loop prologue, then **forcing** it, still
+  gives 0/10: the returned program even opens with the right rule
+  `IF HAS then NOP` and then piles on `AT` tests that fit by accident.
+  Forcing the shape lowers the total to 45, because the shapes it displaces
+  were carrying other tasks.
+- **A weak search** -- *refuted.* It finds 10 of 10.
+
+**A correct program exists in exactly the shape the search was handed, and
+the search returns a different one.** Nothing in this machine prefers the
+general program, and nothing in it can notice the question is undetermined.
+That is precisely what `measure_identifiability.py` reports about
+`ordered_targets` at the other end of this repo, and it is the content of
+X64 arrived at from the opposite direction.
+
+Three consecutive shape gaps became four, and then the fourth turned out
+not to be a shape gap at all. The rule the README has carried since X60 --
+*check the shape before blaming the search* -- needs a second clause:
+**check whether the evidence identifies the answer before blaming either.**

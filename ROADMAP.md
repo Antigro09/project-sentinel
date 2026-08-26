@@ -86,10 +86,41 @@ byte-valued -- index emission would force the store to hold *positions*,
 which grow with the tape, reintroducing exactly the unboundedness the store
 was meant to avoid.
 
+**X63b/c are done, against an externally specified twelve-clause gate.**
+The mechanism passes all of it: set 2/2, associative 1/1, held-out split by
+axis (longer / unseen symbols / unseen keys / unseen values) 5/5, ablation
+kills exactly those three tasks and no others, 1.06x runtime across a
+1,000x key universe, no capacity bound at 200 keys, `reverse` preserved as
+a control. Two clauses caught real defects: the differential test **passed
+while being vacuous** until it was given a calibration arm, and the
+**search regresses** against X62 on two tasks.
+
 **Gate.** Solves held-out tasks requiring registers, nesting,
 arbitrary-distance lookup, and references, **and** correctly reports tasks
 outside its memory class -- keeping X62's three-way split of
 *not-expressible / expressible-but-not-found / found*.
+
+**Status: the memory half passes, the identification half does not, and
+that is the finding.** CEGIS finds 10 of 10 and only 3 generalise. Four
+explanations, four experiments: thin evidence is **not monotone and nearly
+flat** (52 -> 56 -> 56 of 100 while the evidence doubles twice, two tasks
+climbing to 10 and two collapsing); no simplicity bias is **refuted**
+(56 -> 55); a missing shape is **refuted** -- forcing the witness's exact
+shape still gives 0/10 on the task it was built for, and lowers the total
+to 45; a weak search is **refuted** (10/10 found).
+
+What remains is that **fitting the evidence does not identify the
+program**. A correct program exists in exactly the shape the search was
+handed and the search returns a different one. That is X64's subject
+reached from the other direction, and the same thing
+`measure_identifiability.py` reports about `ordered_targets`.
+
+Which sharpens X64's design: a version space over *interpretations* is not
+an enrichment of this machine, it is the missing piece this machine's
+failure names. The four states it must distinguish map directly onto what
+X63b conflates -- "my implementation is wrong" is the only one it can
+currently represent, and "the request is underspecified" is the one that
+was true 7 times out of 10.
 
 This completes the substrate foundation. On its own it does not move the
 project substantially toward AGI, and should not be described as if it did.

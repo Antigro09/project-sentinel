@@ -136,3 +136,37 @@ def test_reverse_is_still_a_control_and_nothing_indexes_positions():
     assert B.WITNESS["reverse"] is None
     acts = set(A.ACTS) | {"PUT", "GET"}
     assert not (acts & {"SEEK", "AT_INDEX", "ITER", "NEXTKEY", "SCAN"})
+
+
+def test_fitting_the_evidence_does_not_identify_the_program():
+    """X63b's headline, and the reason X64 is next rather than a bigger
+    search. Forcing the witness's exact shape -- LOOP(SEQ(LOAD, .)) -- still
+    returns a program that fits every training tape and fails held-out. If
+    this ever passes, the identification problem moved and X64's premise
+    needs re-reading."""
+    f = TASKS["first occurrence only"]
+    alpha = sorted(set("".join(B.TRAIN)))
+    tests = [("AT", o, c) for o in (0, 1, 2, 3) for c in alpha + ["$"]]
+    tests += [B.EMPTY, ("FULL",), B.M0, ("MATCH", 1), B.HAS]
+    tests += [("TOP", c) for c in alpha]
+    acts = A.ACTS + ("PUT", "GET")
+    bodies = list(acts) + [B.seq(a, b) for a in acts for b in acts if a != b]
+    bodies += [B.seq("EMIT", "PUT", "ADV"), B.seq("PUT", "ADV"),
+               B.seq("GET", "ADV"), B.seq("LOAD", "ADV")]
+    cases = [(t, f(t), P.SSt(0)) for t in B.TRAIN]
+    ctr = B.Counter()
+    prog = B.cegis_plateau(cases, tests, bodies, ctr,
+                           wrap=lambda c: ("LOOP", ("SEQ", "LOAD", c)))
+    assert prog is not None, "the forced shape stopped being searchable"
+    assert all(B.trace(prog, t, s0)[0] == w for t, w, s0 in cases), \
+        "the returned program does not even fit its training evidence"
+    held = sum(1 for t in B.HELD_OUT if P.semit(prog, t) == f(t))
+    assert held < 10, "fitting now identifies; X64's premise has changed"
+
+
+def test_the_witness_generalises_where_the_found_program_does_not():
+    """The pair that makes the point: a correct program EXISTS in exactly the
+    shape the search was given, and the search returns a different one."""
+    f, w = TASKS["first occurrence only"], B.WITNESS["first occurrence only"]
+    assert w[0] == "LOOP" and w[1][0] == "SEQ" and w[1][1] == "LOAD"
+    assert all(P.semit(w, t) == f(t) for t in B.HELD_OUT)
