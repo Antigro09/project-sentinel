@@ -230,9 +230,27 @@ does not. On the full population main answers 114/129 against
 demonstrations-only's 120/129 -- a coverage-for-efficiency trade, not
 dominance.
 
-**X64 is NOT closed.** The realizer is nearly a serialization of the logical
-form, which is why an authored parser reaches 1.00 exact-form. X64F breaks
-that one-to-one correspondence; X65 waits.
+**X64F broke the one-to-one realiser and passes 12/12 over three
+independently seeded frozen splits.** The same nouns serve as either the
+filter or the scope delimiter, so `X before Y` and `Y before X` have
+identical multisets and different meanings -- 50 such collisions over 46 of
+230 forms. On those, the contextual parser scores 0.58 against
+bag-of-words' 0.22, paired difference +0.359 with a 95% CI of
+(+0.220,+0.500) that EXCLUDES zero; across all cases the difference is
+-0.026 with a CI that includes it. Context buys exactly the construction it
+should and nothing else. The authored word-to-slot control collapses from
+1.00 on X64E's realiser to 0.02-0.18 here, which is the point.
+
+Still weak: the operational gain over bag-of-words is negligible (721
+queries against 727) and only the comparison against demonstrations-only
+survives an interval; 167 of 180 unknown-word cases are answered correctly
+because the EVIDENCE resolved them, not because the words were understood;
+and with the target removed the system answers 6 of 1080 conditions.
+
+**X64 is closed at the controlled-language level.** The supported claim is
+that Sentinel weakly induces context-sensitive semantics in a controlled
+task language and uses them to improve interactive task identification. It
+does not establish unrestricted natural-language understanding. X65 follows.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:

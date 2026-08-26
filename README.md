@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 294 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 301 passing, 1 skipped (~14 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -50,6 +50,8 @@ uv run python experiments/x64b2_language.py          # language, 10 gates (~55s)
 uv run python experiments/x64c_frozen.py             # frozen audit, 10/12 (~65s)
 uv run python experiments/x64d_senses.py             # induced senses, 9/10 (~60s)
 uv run python experiments/x64e_semantics.py          # posterior semantics, 12/12 (~16s)
+uv run python experiments/x64e_audit.py              # the F-1 audit (~15s)
+uv run python experiments/x64f_context.py            # contextual, 12/12 (~32 min)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -119,7 +121,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**294 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**301 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -603,6 +605,8 @@ Every one of these made the system look better than it was.
 | X64C | `x64c_frozen.py` | the same lexicon, frozen, against tasks it has never seen |
 | X64D | `x64d_senses.py` | senses induced from evidence; language that cannot delete |
 | X64E | `x64e_semantics.py` | a distribution over logical forms; conflict as posterior mass |
+| F−1 | `x64e_audit.py` | the X64E audit; two claims come down |
+| X64F | `x64f_context.py` | surface language a word-to-slot table cannot decode |
 
 ### X62: the memory audit, and what it decided
 
@@ -1289,3 +1293,77 @@ mass on the gold behaviour 0.987.
 logical form — which is why an authored parser reaches 1.00 exact-form — so
 the linguistic problem is largely solved by the data generator. X64 remains
 open pending X64F, which breaks that one-to-one correspondence.
+
+## X64F: surface language a word-to-slot table cannot decode — 12/12
+
+X64E's realizer was nearly a serialization of the logical form, which is why
+an authored word-to-slot table reached 1.00 exact-form without learning
+anything. X64F replaces it. The decisive device: **the same nouns serve as
+either the filter or the scope delimiter, and only order says which.**
+
+```
+remove the brackets before the hash  ->  remove(brackets @ before hash)
+remove the hash before the brackets  ->  remove(hashes  @ before brackets)
+```
+
+Identical multisets, different meanings. **50 such collisions** cover 46 of
+230 live forms. No surface *string* is ambiguous, so word order resolves
+them and the denotation ceiling is 1.00.
+
+Three independently seeded frozen splits:
+
+| parser | 101 den/coll | 202 den/coll | 303 den/coll |
+|---|---|---|---|
+| **contextual** | 0.67 / **0.50** | 0.67 / **0.89** | 0.71 / **0.29** |
+| bag-of-words | 0.67 / 0.11 | 0.68 / 0.44 | 0.76 / 0.07 |
+| authored structure | 0.11 | 0.18 | 0.02 |
+| shuffled | 0.00 | 0.00 | 0.01 |
+| gold | 1.00 | 1.00 | 1.00 |
+
+**Pooled and paired by task meaning:** on collisions, contextual 29/50 =
+0.58 against bag-of-words 11/50 = 0.22, difference **+0.359, 95% CI
+(+0.220, +0.500) — excludes zero**. Across *all* cases the difference is
+**−0.026, CI (−0.078, +0.028) — includes zero**.
+
+**Context buys exactly the construction it should and nothing else.**
+Reporting only the overall number would have hidden both halves of that.
+
+| arm | answered | correct | wrong | queries |
+|---|---|---|---|---|
+| demonstrations only | 360 | 360 | 0 | 842 |
+| bag-of-words | 360 | 360 | 0 | 727 |
+| **contextual (main)** | 360 | 360 | 0 | **721** |
+| shuffled language | 356 | 356 | 0 | 1087 |
+| main, no confirmation | 382 | 374 | **8** | 721 |
+| main, target removed | 6 | 6 | 0 | 0 |
+
+Conflict AUROC **0.943**, CI (0.918, 0.966). F8 paired saving per task
+meaning **+0.625**, CI (+0.440, +0.834).
+
+**The authored control collapses to 0.02–0.18**, from 1.00 on X64E's
+realizer. That is the whole point: the realizer, not the parser, had been
+doing the work.
+
+### What is still weak
+
+- **The operational gain over bag-of-words is negligible** — 721 queries vs
+  727. The saving that survives an interval is against *demonstrations
+  only*, not against BOW.
+- **180 unknown-word cases, 167 correct — and the evidence supplied every
+  one.** The parser does not understand those words; it declines to guess.
+  Safe, not comprehension.
+- With the target removed the system answers **6 of 1080** conditions. Zero
+  errors, very little coverage.
+- F4's margin is thin: 0.74 vs 0.71.
+
+### Three mid-run corrections, each a measured rejection
+
+**AdaGrad** was tried on the hypothesis that sparse contextual features
+needed per-feature rates; it made both arms much worse (0.14 and 0.28 vs
+0.51 and 0.59) and stays off. **The gradient was summed**, so the step
+scaled with the dataset — 504 examples gave 0.58 on validation and 637 gave
+0.04; that was divergence, not overfitting. **The first collision family was
+too small to measure**: 22 bags over 188 forms gave 9 training and 9 test
+instances, contextual tied BOW, and the phenomenon F1 exists to test was 5%
+of the data. Adding `letters` as a third role-swappable noun took it to 50
+bags over 46 forms.
