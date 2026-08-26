@@ -632,13 +632,9 @@ handing the system a target program.**
 
 - **X63, the sparse store.** X62's pre-registered rule already picked the
   branch -- set 0/2 and associative 0/1 means an exact sparse key-value
-  store, materialising only the entries a candidate touches, checked by
-  concrete execution and counterexample-guided refinement. Freeze head +
-  stack + registers; add nothing else. The first thing to price is that
-  execution-based checking abandons the behaviour *table* every experiment
-  since X47 depends on, because a sparse store's state space is defined by
-  the keys *touched* rather than the keys *possible*. If that costs more
-  than ~50x per candidate, the search budgets of X58-X62 are gone.
+  store. **X63a priced it, and priced the wrong risk** (below): the danger
+  was never speed. X63b builds the store on concrete execution with
+  counterexample-guided repair rather than distance-ranked search.
 - **X64, task and goal induction.** The most important transition on the
   list: instruction plus ambiguous demonstrations, no target program, and a
   version space over *interpretations* -- so the system can tell "my
@@ -651,3 +647,66 @@ handing the system a target program.**
 
 Until X64's gate passes, the honest description of this system stays what it
 is now: a synthesiser operated by a human experiment designer.
+
+### X63a: the table is a resolution device, and I priced the wrong risk
+
+A store over 5 keys has (5+1)^5 = 7,776 configurations, so tabulating it
+multiplies X62's situation space by the same factor -- 2,232 situations at
+0.107 MB per behaviour becomes 17,356,032 at **833 MB**. The store therefore
+forces concrete execution, and the pre-registered worry was that execution
+could not carry X58-X62's ~10^6-evaluation budgets.
+
+**That worry was backwards.**
+
+| evaluation | us/candidate | vs the search step |
+|---|---|---|
+| table, rebuilt from atoms | 525.3 | 2.4x |
+| table, one rule + re-wrap (what search pays) | 218.4 | 1.0x |
+| concrete execution | 6.3 | **0.03x** |
+| concrete execution **+ store** | 6.3 | **0.03x** |
+
+Execution is **35x faster** than the step the frontier actually pays, and
+the store costs nothing measurable on top -- a run touches the keys it
+touches whatever the key space is. The table was never a speed device at
+this scale. It is a **resolution** device, bought with memory rather than
+time, which is exactly why the store kills it.
+
+What it sells is the search gradient. Over 300 sampled programs the full
+signature separates 211 behaviours where outputs alone separate 22. As a
+gradient toward `capture brackets`, with four output metrics run as
+calibration arms so no single crude metric could manufacture the answer:
+
+| metric | levels | vs table | r (all) | r (top 10%) |
+|---|---|---|---|---|
+| **full table** | 123 | 1.00x | - | - |
+| positional | 10 | 0.08x | 0.167 | 0.398 |
+| exact match | 2 | 0.02x | -0.012 | **-0.682** |
+| common prefix | 6 | 0.05x | 0.124 | 0.294 |
+| character bag | 8 | 0.07x | 0.190 | 0.555 |
+
+None tracks the table, and `exact match` is *anti*-correlated among near
+misses: matching one more tape exactly can mean moving further away in the
+only ordering the search can act on.
+
+**The resolution is real, not phantom.** The obvious objection is that the
+signature scores all 2,232 situations while a run from a fresh start reaches
+almost none, so most of that precision would be agreement on dead states.
+Only 390 situations (17%) are reachable -- and restricted to those the table
+still separates **129** classes, slightly more than the 123 it separates
+overall. The precision is about programs, not about states nobody visits.
+
+So clause (a) passed by a factor of 1,600 and clause (b) failed. Speed
+survives; the gradient does not. Eight levels cannot order a queue that 123
+levels barely ordered -- X62 failed to find 4 of 7 expressible tasks *with*
+the table. **X63b is counterexample-guided:** localise the first divergence
+between the candidate's output and the evidence and repair at that point
+(X57's mechanism), which needs no global gradient at all. That is a
+different mechanism, not a flag on this one.
+
+One design consequence fell out of building the store interpreter. Emission
+is currently tape-index-valued (`out` holds positions), and the table encodes
+it as counts over tape positions -- but `substitute` must emit a value that
+need not sit at the head. Keeping index emission would mean storing
+*positions* rather than bytes, and positions grow with the tape, so the store
+would inherit exactly the unboundedness it was introduced to avoid. X63b
+emits bytes.

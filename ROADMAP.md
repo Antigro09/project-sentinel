@@ -69,6 +69,23 @@ CEGIS-with-execution is more than ~50x slower per candidate, the search
 budgets of X58-X62 are gone and the whole approach needs re-planning, not
 patching.
 
+**X63a is done, and it priced the wrong risk.** Execution is **35x
+faster** than the step the frontier actually pays (6.3 us vs 218 us), and
+the store costs nothing on top. The table was never a speed device -- it is
+a *resolution* device, bought with memory. What dies is the **gradient**:
+the full signature separates 211 behaviours where outputs separate 22, and
+across four calibration metrics the best output correlation with table
+agreement is r = 0.190 at 8 of 123 levels. Restricting to the 17% of
+situations a run can actually reach leaves 129 classes, so that resolution
+is real rather than agreement on dead states.
+
+**Therefore X63b is counterexample-guided, not distance-ranked:** localise
+the first divergence between output and evidence and repair there (X57's
+mechanism), which needs no global gradient. Emission also becomes
+byte-valued -- index emission would force the store to hold *positions*,
+which grow with the tape, reintroducing exactly the unboundedness the store
+was meant to avoid.
+
 **Gate.** Solves held-out tasks requiring registers, nesting,
 arbitrary-distance lookup, and references, **and** correctly reports tasks
 outside its memory class -- keeping X62's three-way split of
