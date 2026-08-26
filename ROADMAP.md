@@ -203,8 +203,21 @@ queries against induced joint's 125/126 in 267. The syntactic role earns
 nothing measurable here -- roles make polysemy REPRESENTABLE, keeping
 alternatives is what makes the system WORK.
 
-The staging below is unchanged; X65 follows once conflict detection has an
-account that survives induced senses.
+**X64E replaced predicate-set senses with a distribution over typed logical
+forms: 12/12 gates.** Conflict is posterior mass outside the demonstrations'
+consistent set, and it separates at AUROC 0.996 (95% CI 0.986-1.000) where
+X64D's twelve set-based statistics all sat at chance -- a set has no mass, a
+distribution does. On the 66 conditions every arm covers, all are 100%
+correct and the induced parser spends 2 queries against demonstrations-only
+150, X64D 148, uniform 34, authored structure 8, role-blind 6.
+
+What learning bought is CALIBRATION, not accuracy: the authored parser beats
+the induced one on exact-form (1.00 vs 0.84) and loses downstream (8 queries
+vs 2, conflict AUROC 0.988 vs 0.996), because the induced weights were
+fitted to a likelihood and calibration is what the commit threshold and the
+conflict mass consume.
+
+X64 is closed. X65 follows.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:

@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 285 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 294 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -49,6 +49,7 @@ uv run python experiments/x64b1_openworld.py         # open-world, 9 gates (~65s
 uv run python experiments/x64b2_language.py          # language, 10 gates (~55s)
 uv run python experiments/x64c_frozen.py             # frozen audit, 10/12 (~65s)
 uv run python experiments/x64d_senses.py             # induced senses, 9/10 (~60s)
+uv run python experiments/x64e_semantics.py          # posterior semantics, 12/12 (~16s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -118,7 +119,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**285 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**294 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -601,6 +602,7 @@ Every one of these made the system look better than it was.
 | X64B-2 | `x64b2_language.py` | can an instruction narrow the space without naming the task? |
 | X64C | `x64c_frozen.py` | the same lexicon, frozen, against tasks it has never seen |
 | X64D | `x64d_senses.py` | senses induced from evidence; language that cannot delete |
+| X64E | `x64e_semantics.py` | a distribution over logical forms; conflict as posterior mass |
 
 ### X62: the memory audit, and what it decided
 
@@ -1167,3 +1169,75 @@ Role-blind joint scores **125/126 in 263 queries** against induced joint's
 measurable*. Roles are what make polysemy representable; keeping
 alternatives is what makes the system work. Those are different claims and
 only the second is supported by a performance difference.
+
+## X64E: conflict as posterior mass — 12/12
+
+X64D concluded *"what cannot eliminate cannot contradict."* That is not a
+theorem, and X64E refutes it. A model can keep support on every
+interpretation and still measure how much probability mass sits outside what
+the demonstrations allow. X64D could not, because its language layer
+produced **sets** of predicates, and a set has no mass.
+
+```
+z          a typed logical form (op, filter, scope) from the task grammar
+p_theta    a normalized distribution over all 168 forms given instruction u
+C(D)       the forms whose execution fits the demonstrations
+conflict   1 - sum over C(D) of p_theta(z | u)
+answer     only when the EVIDENCE leaves one behaviour
+```
+
+The parser is a log-linear model over `(word, role, slot, value)` indicators
+with exact inference — 168 forms, so nothing is approximated — trained by
+weak supervision on the behaviourally consistent set:
+`L = Σ log Σ_{z ∈ C(D)} p(z|u)`.
+
+### What each arm spends to be right
+
+On the 66 conditions **every** arm covers, all reach 100% correct:
+
+| arm | correct | queries |
+|---|---|---|
+| demonstrations only | 66 | 150 |
+| X64D predicate senses | 66 | 148 |
+| uniform logical forms | 66 | 34 |
+| authored multi-sense parser | 66 | 8 |
+| role-blind induced | 66 | 6 |
+| **MAIN induced parser** | **66** | **2** |
+| gold logical forms | 66 | 0 |
+
+### Conflict
+
+**AUROC 0.996, AUPRC 0.997, 95% bootstrap CI (0.986, 1.000)**, recall 0.98
+and precision 1.00 at a threshold fixed on validation. Calibration is clean:
+43 matched pairs score below 0.2, 42 mismatched score above 0.8, one crosses.
+X64D reported twelve set-based statistics all at chance. The difference is
+not a better statistic — it is that a distribution has mass and a set does
+not.
+
+### What learning actually bought — and it is not accuracy
+
+The **authored** parser (weights read straight off the surface realiser, no
+learning) scores **1.00 exact-form** against the induced parser's **0.84**;
+both reach 1.00 denotation. Learning loses on parsing accuracy and wins
+downstream: **2 queries vs 8**, conflict **AUROC 0.996 vs 0.988**. The
+induced weights are *calibrated* because they were fitted to a likelihood,
+and calibration is exactly what the commit threshold and the conflict mass
+consume. An authored map can be right without being confident in proportion.
+
+Also: **28 of 116 behaviours have more than one logical form** (up to 21), so
+no behavioural observation can separate them. Denotation accuracy is the
+identifiable quantity; exact-form accuracy is reported beside it and should
+not be read as the parser being wrong.
+
+### Three controls that were broken and had to be fixed
+
+The authored baseline was first built over *every* logical form — handed the
+test split's vocabulary, it scored 1.00 on out-of-vocabulary forms. Rebuilt
+over development forms but all three variants, it still had them. Restricted
+to what the induced parser sees, it scores 0.00 on variant 2 like everything
+else. And E2 first compared 80/86 against 66/66, which compares populations
+rather than arms; it now runs on the intersection.
+
+All ten planted defects caught. Freeze digest covers grammar, slots,
+role–slot alignment, splits, hyperparameters, confirmation inputs, universe
+and held-out set; a test verifies that mutating any of it changes the digest.
