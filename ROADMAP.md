@@ -191,7 +191,7 @@ language -- has resolved the set, which took confident errors from four to
 zero.
 
 D7 fails and the failure is the result: **what cannot eliminate cannot
-contradict.** Nine conflict statistics all sit at chance precision, because
+contradict.** Twelve conflict statistics all sit at chance precision, because
 induction by intersection keeps only what examples share and a generic
 constraint is satisfied by the wrong task as readily as the right one.
 X64B-2 detected conflict because its senses were authored and sharp; X64C
