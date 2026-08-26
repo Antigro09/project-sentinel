@@ -202,6 +202,14 @@ def build(level, rng=None, sample=None, exclude=(), gen=0, seed=1000):
 
 # --------------------------------------------- identify, confirm, expand
 
+def keep_consistent(pool, off_universe):
+    """Refute by execution, for evidence that lies outside U."""
+    if not off_universe:
+        return pool
+    return {b: pr for b, pr in pool.items()
+            if all(P.semit(pr, t) == w for t, w in off_universe.items())}
+
+
 def identify(pool, answers, budget=X.BUDGET):
     """X64A's loop, but taking evidence accumulated across expansions rather
     than restarting from the demonstrations."""
@@ -251,8 +259,14 @@ def solve(f, rng, exclude=(), confirmations=True, max_rung=4):
     trail = []
     for level in range(max_rung + 1):
         pool = build(level, exclude=exclude, gen=1 if level == 4 else 0)
+        # Counterexamples come from CHALLENGE, which is deliberately outside
+        # the universe -- so they have no index in a universe-keyed
+        # behaviour tuple and cannot be applied by the usual refutation.
+        # They are applied by EXECUTION instead. (Until this was written,
+        # the ladder only worked because every rejection happened to land on
+        # the last rung; a rejection anywhere else raised a KeyError.)
+        pool = keep_consistent(pool, extra)
         merged = dict(answers)
-        merged.update(extra)
         st, rep, surv, used = run_identify(pool, merged, f)
         answers.update({k: v for k, v in merged.items() if k in UNIVERSE})
         trail.append((RUNGS[level], st, used, len(surv)))

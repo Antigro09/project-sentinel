@@ -141,7 +141,27 @@ and `paranoid`). The honest limit is recorded: with nothing seeded, one task
 is identified confidently and wrongly, because a system cannot see the
 outside of its own hypothesis pool.
 
-**X64B, which follows, adds language.** The staging below is unchanged.
+**X64B-1 and X64B-2 are done and pass all their gates** (9/9 and 10/10;
+`x64b1_openworld.py`, `x64b2_language.py`).
+
+B-1 attacks X64A's own limit -- that a singleton version space implies
+uniqueness inside the hypothesis class and nothing more. Confirmation on
+challenge inputs, an explicit none-of-the-above, and an expansion ladder
+whose recovering rung MEASURES what was missing. Headline: **confident
+wrongness goes UP with pool richness** (0, 0, 1, 0, 2 across the rungs) --
+a poor pool says `inconsistent` and is right to, a rich one produces a
+singleton that survives every question anyone thought to ask. Growing the
+hypothesis space without external criticism makes the failure more likely.
+
+B-2 maps WORDS to behavioural predicates rather than phrases to task
+labels; an instruction means the conjunction of its words' constraints.
+Language and demonstrations each reach 10/11 alone and 7/11 together in
+silence: what language buys is QUESTIONS -- 8 against 14, fewest of any
+policy without future knowledge. Three lexical corrections were forced by
+the gates, including one word that alone selected a single behaviour, which
+is a task identity wearing a word's clothes.
+
+The staging below is unchanged; X65 follows.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:

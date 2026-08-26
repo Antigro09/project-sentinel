@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 256 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 271 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -45,6 +45,8 @@ uv run python experiments/x61_working_set.py         # which memory class (~30s)
 uv run python experiments/x63_sparse_price.py        # what the table buys (~1s)
 uv run python experiments/x63c_gate.py               # the twelve clauses (~1s)
 uv run python experiments/x64a_identify.py           # the eight gates (~70s)
+uv run python experiments/x64b1_openworld.py         # open-world, 9 gates (~65s)
+uv run python experiments/x64b2_language.py          # language, 10 gates (~55s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -114,7 +116,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**256 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**271 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -593,6 +595,8 @@ Every one of these made the system look better than it was.
 | X63b | `x63b_cegis_store.py` | a sparse store, searched without any gradient |
 | X63c | `x63c_gate.py` | twelve clauses specified from outside, not by me |
 | X64A | `x64a_identify.py` | does it know WHICH task it was asked to do? |
+| X64B-1 | `x64b1_openworld.py` | can it notice that none of its interpretations fits? |
+| X64B-2 | `x64b2_language.py` | can an instruction narrow the space without naming the task? |
 
 ### X62: the memory audit, and what it decided
 
@@ -911,3 +915,104 @@ which is exactly why `incomplete candidates` is its own diagnosis.
 
 **8/8 gates pass.** The state this machine was missing was never another
 byte, stack, or map. It was *"I do not yet know which task you mean."*
+
+## X64B: open-world goal induction
+
+X64A's own limit, attacked in two stages. **B-1** asks whether the system
+can notice that *none* of its interpretations is adequate. **B-2** asks
+whether an instruction can narrow the space without naming the task.
+
+### B-1: a richer hypothesis pool makes confident wrongness *more* likely
+
+A singleton version space does not imply correctness — it implies
+uniqueness inside the current hypothesis class, and no survivor-count rule
+can tell the difference, because the count is 1 and the rule is satisfied.
+So identification gets three external criticism steps: **confirmation** on
+challenge inputs longer than anything queried and carrying symbols the
+universe does not contain, an explicit **none-of-the-above**, and
+**expansion** that grows the space instead of picking again inside it.
+
+Each rung of the expansion ladder adds exactly one thing, so the rung that
+recovers a task *measures* what was missing:
+
+| task | recovered at | what was missing |
+|---|---|---|
+| strip comment | base | nothing |
+| dedupe adjacent | +memory | the `MATCH` test |
+| first occurrence only | +shape | the loop prologue |
+| emit if seen before | +shape | same |
+| delayed copy | +vocabulary | an offset-2 test |
+| 5 others | never | nothing expressible is adequate |
+
+With the target removed and every rung pinned in turn:
+
+| rung | naive: wrong | confirm: wrong | naive answered |
+|---|---|---|---|
+| base | 0 | 0 | 2 |
+| +memory | 0 | 0 | 3 |
+| +shape | 1 | 0 | 5 |
+| +vocabulary | 0 | 0 | 5 |
+| +search | **2** | 0 | 6 |
+
+**Confident wrongness goes up with pool richness.** A poor pool says
+`inconsistent` and is right to; a rich pool produces a singleton that
+survives every question anyone thought to ask, and is wrong. Growing the
+hypothesis space *without* an external criticism step makes the failure more
+likely — the opposite of the intuition that motivated the ladder.
+
+One thing the measurement forced: exact equivalence over the universe is
+**stricter** than "produces the intended behaviour on everything anyone will
+check". `balanced prefix` has no exact match in any pool and is still right
+on every held-out tape, differing from the target only on universe inputs
+nobody asked about. The first draft of that gate demanded a wrong
+abstention. **Abstention tracks adequacy, not identity.**
+
+**9/9 gates.**
+
+### B-2: words carry constraints, phrases do not carry tasks
+
+The trap: a "language" that maps a phrase to a memorised task label learns
+nothing and generalises to no paraphrase. So the lexicon maps **words to
+behavioural predicates** and an instruction means the *conjunction* of its
+words' constraints. The semantics is authored — that is what "controlled"
+means, and it is supervision. What is tested is whether it **composes**.
+
+| instruction | narrows 3,965 → | target kept |
+|---|---|---|
+| copy what is inside the brackets | 21 | yes |
+| keep the symbols seen before | 39 | yes |
+| remove repeats in a row | 534 | yes |
+| **remove repeats** | **2,461** | *ambiguous — adjacent, or first-occurrence?* |
+| replace names using the table | 3,965 | *no constraint — correctly weak* |
+
+Getting there took three real lexical corrections, each caught by a gate:
+`within` had inherited a bracket constraint, so *"keep the characters within
+the hash"* excluded its own target; `first` had taken the uniqueness reading,
+so *"the symbols matching the first"* excluded its own target; and `comment`
+alone selected exactly **one** behaviour — a task identity wearing a word's
+clothes, the precise trap the design claims to avoid. `first` is genuinely
+ambiguous — positional in one phrase, uniqueness in the other — and a
+bag-of-words semantics *cannot* disambiguate it, so the constraint has to
+live on the words that are not.
+
+| arm | answered | correct | queries | held-out |
+|---|---|---|---|---|
+| demos only | 10 | 10 | 14 | 100 |
+| language only | 10 | 10 | 27 | 100 |
+| language + demos, silent | 7 | 7 | 0 | 60 |
+| + random queries | 10 | 10 | 17 | 100 |
+| **+ disagreement** | **10** | **10** | **8** | **100** |
+| oracle (knows the answers) | 10 | 10 | 5 | 100 |
+
+Language and demonstrations each reach 10/11 alone, and together in silence
+reach 7. **What language buys is questions** — 8 against 14, the fewest of
+any policy without future knowledge, at 1.6× the oracle's floor.
+
+The two negative conditions are the point: with the target removed, **0**
+confident errors and 4 none-of-the-above after climbing every rung; with the
+instruction contradicting the demonstrations, 8 tasks report **conflict** and
+none forces a wrong program. Held-out paraphrases: **24/24** land in the
+canonical class, and that gate is *live* — mis-mapping one lexicon entry
+makes it fail, which is how two of the three corrections were found.
+
+**10/10 gates.**
