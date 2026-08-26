@@ -12,8 +12,11 @@ how the environment works. It runs the program against what actually
 happened, repairs it where it mispredicts, simplifies it toward general
 rules, and plans by simulating forward instead of spending real actions.
 
-Full plan, including falsifiable claims and kill criteria:
-`~/.claude/plans/i-want-you-to-tranquil-church.md`
+**Plan of record: [ROADMAP.md](ROADMAP.md)** -- X63 through X73, in
+dependency order, each with the gate it has to pass. Earlier plans, with
+their falsifiable claims and kill criteria, are in
+`~/.claude/plans/`; the five-gap plan is reconciled at the bottom of the
+roadmap rather than discarded.
 
 ## Setup
 
@@ -614,11 +617,37 @@ of seven expressible tasks were not found** within ~10^6 evaluations, with
 one found program failing held-out: expressibility and findability come
 apart on more than half the suite, which is why they are separate columns.
 
-### The next experiment
+### The next experiment, and the eleven after it
 
-X63, the sparse store: a keyed memory that materialises only the entries a
-candidate program touches, with the same three-way expressibility reporting.
-The open risk is that its state space is defined by the keys *touched*
-rather than the keys *possible*, so the table representation that every
-experiment since X47 depends on may not survive it -- which is the first
-thing to price, before building anything on top.
+The plan of record is **[ROADMAP.md](ROADMAP.md)**: X63 -> X73 in dependency
+order, each with an explicit gate. The short version of why it is shaped
+that way:
+
+After X62 this project stops adding one primitive at a time and starts
+crossing the gaps that separate it from human-level intelligence. The next
+step is **not** POSIX, not a larger model, not self-modification. It is to
+remove the strongest remaining source of human supervision, which this
+README already names two sections above: **we define what a task means by
+handing the system a target program.**
+
+- **X63, the sparse store.** X62's pre-registered rule already picked the
+  branch -- set 0/2 and associative 0/1 means an exact sparse key-value
+  store, materialising only the entries a candidate touches, checked by
+  concrete execution and counterexample-guided refinement. Freeze head +
+  stack + registers; add nothing else. The first thing to price is that
+  execution-based checking abandons the behaviour *table* every experiment
+  since X47 depends on, because a sparse store's state space is defined by
+  the keys *touched* rather than the keys *possible*. If that costs more
+  than ~50x per candidate, the search budgets of X58-X62 are gone.
+- **X64, task and goal induction.** The most important transition on the
+  list: instruction plus ambiguous demonstrations, no target program, and a
+  version space over *interpretations* -- so the system can tell "my
+  implementation is wrong" from "my interpretation is wrong" from "the
+  request is underspecified" from "this is impossible with these tools."
+- **X65 - X73:** lifelong memory, real software engineering, cross-domain
+  transfer, uncertainty, grounded causal models, multimodality, long-horizon
+  agency, controlled self-improvement, and an integrated evaluation with the
+  architecture frozen.
+
+Until X64's gate passes, the honest description of this system stays what it
+is now: a synthesiser operated by a human experiment designer.
