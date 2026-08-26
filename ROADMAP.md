@@ -161,7 +161,29 @@ policy without future knowledge. Three lexical corrections were forced by
 the gates, including one word that alone selected a single behaviour, which
 is a task identity wearing a word's clothes.
 
-The staging below is unchanged; X65 follows.
+**X64C froze the lexicon by hash and met unseen compositions: 10/12 gates,
+and the two failures fire pre-registered falsifiers.** The query advantage
+does not survive -- it reverses, with demonstrations alone answering 10/12
+and language cutting that to 3 -- and the gains are confined to the
+development families. The cause is measured: 22 of 40 holdout instruction
+forms exclude their own target against 0 of 30 on the development set,
+because `brackets` carries a sense authored for one task and wrong for
+another. Fitting a lexicon to the evaluation suite is what X64B-2 did, and
+that is what it cost.
+
+What survives: the failure mode is SAFE (22 false exclusions, 0 confident
+errors), conflict detection transfers to unseen pairs (10/12 flagged, 0
+forced), confirmation still earns its place (0 confident errors with, 2
+without), and unseen FORM is not the problem -- unseen COMPOSITION is.
+
+**Standing claim: Sentinel represents ambiguity, asks
+disagreement-maximising questions, detects conflict, abstains when nothing
+adequate exists, and fails safely when its language is wrong. It has NOT
+been shown to understand language that was not authored around its
+evaluation set.** X64 is not closed as evidence of language understanding.
+
+The staging below is unchanged; X65 follows once the language claim is
+either repaired under a real holdout or dropped.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:

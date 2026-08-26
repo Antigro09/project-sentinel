@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 271 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 277 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -47,6 +47,7 @@ uv run python experiments/x63c_gate.py               # the twelve clauses (~1s)
 uv run python experiments/x64a_identify.py           # the eight gates (~70s)
 uv run python experiments/x64b1_openworld.py         # open-world, 9 gates (~65s)
 uv run python experiments/x64b2_language.py          # language, 10 gates (~55s)
+uv run python experiments/x64c_frozen.py             # frozen audit, 10/12 (~65s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -116,7 +117,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**271 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**277 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -597,6 +598,7 @@ Every one of these made the system look better than it was.
 | X64A | `x64a_identify.py` | does it know WHICH task it was asked to do? |
 | X64B-1 | `x64b1_openworld.py` | can it notice that none of its interpretations fits? |
 | X64B-2 | `x64b2_language.py` | can an instruction narrow the space without naming the task? |
+| X64C | `x64c_frozen.py` | the same lexicon, frozen, against tasks it has never seen |
 
 ### X62: the memory audit, and what it decided
 
@@ -1014,8 +1016,74 @@ any policy without future knowledge, at 1.6× the oracle's floor.
 The two negative conditions are the point: with the target removed, **0**
 confident errors and 4 none-of-the-above after climbing every rung; with the
 instruction contradicting the demonstrations, 8 tasks report **conflict** and
-none forces a wrong program. Held-out paraphrases: **24/24** land in the
-canonical class, and that gate is *live* — mis-mapping one lexicon entry
-makes it fail, which is how two of the three corrections were found.
+none forces a wrong program.
 
-**10/10 gates.**
+> **The 24/24 paraphrase figure is development-set performance and is
+> retracted as evidence of generalisation.** The lexicon was edited three
+> times in response to failures on those exact paraphrases. It shows the
+> final lexicon covers the examples used to debug it. X64C tested the
+> frozen lexicon on unseen compositions and the result is below.
+
+**10/10 gates — on the suite the lexicon was authored against.**
+
+### X64C: the same lexicon, frozen — and the claim comes down
+
+The lexicon and predicate set are **hashed** into `x64c_frozen.py`. Editing
+either makes the experiment refuse to run, so a holdout failure cannot be
+quietly repaired. Twelve new task behaviours were built from primitives the
+lexicon knows, in combinations it was never authored against, with 48
+instruction forms — and all of it was committed *before* the protocol ran.
+
+**10/12 gates. The two failures fire pre-registered falsifiers.**
+
+| arm | answered | correct | wrong | queries | held-out |
+|---|---|---|---|---|---|
+| **demos + disagreement** | **10** | **10** | 0 | 23 | **100** |
+| language + disagreement | 3 | 3 | 0 | 38 | 30 |
+| language + demos + dis. | 3 | 3 | 0 | 5 | 30 |
+| random clarification | 3 | 3 | 0 | 14 | 30 |
+| no confirmation | 4 | 3 | **1** | 4 | 35 |
+| oracle | 3 | 3 | 0 | 8 | 30 |
+
+**C1 fails: the query advantage does not survive — it reverses.** On the
+development tasks language cut questions from 14 to 8. Here demonstrations
+alone answer 10 of 12 and language cuts that to **3**. On unseen
+compositions the frozen lexicon is not merely unhelpful, it is harmful.
+
+**C6 fails: the gains are confined to the development families.** 3 of 12
+compositional-holdout tasks solved exactly, against 10 of 11 on the tasks
+the lexicon was authored against.
+
+The cause is measured, not guessed: **22 of 40 holdout instruction forms
+exclude their own target**, against **0 of 30** on the development set.
+`brackets` carries *only inside brackets* — authored for "copy what is
+inside the brackets" and simply wrong for "remove the brackets". The same
+polysemy as `first` and `comment`; the same fix would work; the fix is
+exactly what the freeze forbids. **Fitting a lexicon to the evaluation
+suite is what X64B-2 did, and this is what it cost.**
+
+What does survive, and it is not nothing:
+
+- **The failure mode is safe.** 22 false exclusions, **0** confident errors.
+  A lexicon that excludes the truth makes the system say `CONFLICT`, not
+  guess.
+- **Conflict detection transfers.** 10 of 12 unseen mismatched pairs
+  flagged, 0 forced — it was not memorising the eight authored examples.
+- **Confirmation still earns its place.** With it, 0 confident errors;
+  without it, 2.
+- **Unseen *form* is not the problem — unseen *composition* is.** Where the
+  canonical instruction answered at all, 6/6 unseen forms (new word orders,
+  44 out-of-vocabulary words) landed in the same behavioural class. Small n,
+  and honestly so: an earlier draft of that measurement scored two failures
+  as an agreement when both returned nothing, and reported 17/24.
+
+All five planted defects are caught. Three gates had to be repaired first —
+the identity-injection was too weak to pin anything, condition 4 treated a
+de-seeded target as hopeless when enumeration still reaches it, and the
+paraphrase score counted `None == None` as agreement.
+
+**Standing claim after X64C:** Sentinel represents ambiguity, asks
+disagreement-maximising questions, detects conflict, abstains when nothing
+adequate exists, and fails safely when its language is wrong. **It has not
+been shown to understand language that was not authored around its
+evaluation set.**
