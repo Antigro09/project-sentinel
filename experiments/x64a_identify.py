@@ -253,10 +253,48 @@ def refute(surv, tape, want):
     return [(b, p) for b, p in surv if b[i] == want]
 
 
-def state_of(surv):
+def state_of(surv, asked=None):
+    """Four states, not three, and every name carries its scope.
+
+    `identified_on_U` rather than `identified`: candidates are clustered by
+    behaviour over the fixed universe U, so two survivors that agree
+    everywhere in U may still diverge on a longer input or a symbol outside
+    it. Calling that `identified` full stop is the horizon error X61 made
+    twice and X56 made once.
+
+    And a budget running out is not the same finding as no question
+    existing. `unresolved_within_budget` means a distinguishing query is
+    still available and was not spent; `underspecified_on_U` means no legal
+    query separates the survivors at all, which is a structural claim about
+    U rather than about the budget."""
     if not surv:
         return "inconsistent"
-    return "identified" if len(surv) == 1 else "underspecified"
+    if len(surv) == 1:
+        return "identified_on_U"
+    if asked is not None and best_query(surv, asked) is None:
+        return "underspecified_on_U"
+    return "unresolved_within_budget"
+
+
+AMBIGUOUS = ("unresolved_within_budget", "underspecified_on_U")
+
+
+def compositional_behaviour(prog):
+    """Task equivalence is NOT compositional equivalence, and X63 measured
+    exactly what happens when the two are conflated: programs with identical
+    output left different stores, and an equivalence that merged them cost
+    the search a factor of 252 in evaluations.
+
+    So the pool is keyed on output for IDENTIFICATION -- output is the whole
+    of the user-visible contract -- and this second key exists for REUSE. A
+    skill stored for later composition must carry its continuation-relevant
+    state: store, stack, register, head, halt."""
+    out = []
+    for t in UNIVERSE:
+        st, _f = P.srun(prog, t, P.SSt(0))
+        out.append(("".join(st.out), st.pos, st.stack, st.reg, st.live,
+                    tuple(sorted(st.store))))
+    return tuple(out)
 
 
 def split(surv, tape):
@@ -342,7 +380,8 @@ def run_arm(kind, pool, f, rng, budget=BUDGET):
         surv = refute(surv, q, answers[q])
         trace.append((q, len(surv)))
     rep = min(surv, key=lambda bp: _size(bp[1]))[1] if surv else None
-    return state_of(surv), len(asked) - len(EVIDENCE0), rep, trace, surv
+    return (state_of(surv, asked), len(asked) - len(EVIDENCE0), rep, trace,
+            surv)
 
 
 def reported(kind, state):
@@ -352,9 +391,9 @@ def reported(kind, state):
     known-bad input G2 must catch. Without both, those gates cannot fail and
     therefore measure nothing."""
     if kind == "reckless":
-        return "identified" if state != "inconsistent" else "inconsistent"
+        return "identified_on_U" if state != "inconsistent" else "inconsistent"
     if kind == "paranoid":
-        return "underspecified"
+        return "unresolved_within_budget"
     return state
 
 
@@ -404,10 +443,43 @@ def main() -> int:
     # what the identical procedure does with nothing seeded.
     pool, truth = seeded, tb_seed
 
+    print("\n1b. TWO EQUIVALENCES, KEPT APART")
+    print("    Identification is a claim about user-visible output, so the")
+    print("    pool is keyed on that. REUSE is a different contract: X63")
+    print("    measured what happens when programs with identical output and")
+    print("    different stores are merged. Both keys are computed here so")
+    print("    the task-level compression cannot quietly reintroduce it.")
+    # RAW programs, not pool representatives: the pool is already deduped by
+    # task behaviour, so measuring it would report one class per entry and
+    # prove nothing. The question is how many programs the task key merges
+    # that the compositional key would not.
+    rg = random.Random(11)
+    alpha = sorted(set("".join(UNIVERSE)))
+    tsts, bods = curated(alpha)
+    raw = []
+    for _ in range(2500):
+        c = rg.choice(bods)
+        for _k in range(rg.randrange(1, 4)):
+            c = ("IF", rg.choice(tsts), rg.choice(bods), c)
+        raw.append(rg.choice(SHAPES)[1](c))
+    groups = {}
+    for pr in raw:
+        groups.setdefault(behaviour(pr), set()).add(compositional_behaviour(pr))
+    split = {k: v for k, v in groups.items() if len(v) > 1}
+    worst = max((len(v) for v in groups.values()), default=0)
+    print(f"    {len(raw):,} sampled programs -> {len(groups):,} task "
+          f"classes, {sum(len(v) for v in groups.values()):,} compositional")
+    print(f"    {len(split):,} task classes hold more than one continuation "
+          f"state, up to {worst}")
+    print("    -- interchangeable for ANSWERING, not for COMPOSING. X65 must")
+    print("    store the compositional key or it reinherits X63's bug.")
+
     print("\n2. STATE BEFORE ANY ANSWER IS PRODUCED")
-    print("   `underspecified` is the state X63 could not represent at all.")
-    print("   It answered anyway, ten times out of ten.\n")
-    hdr = (f'{"family":12}{"task":22}{"classes":>9}{"state":>16}'
+    print("   Ambiguity is the state X63 could not represent at all. It")
+    print("   answered anyway, ten times out of ten. Note the two ambiguous")
+    print("   states are different findings: a budget running out is not the")
+    print("   same as no distinguishing question existing.\n")
+    hdr = (f'{"family":12}{"task":22}{"classes":>9}{"state":>26}'
            f'{"target in pool":>16}')
     print("   " + hdr + "\n   " + "-" * len(hdr))
     start = {}
@@ -415,7 +487,8 @@ def main() -> int:
         answers = {t: f(t) for t in EVIDENCE0}
         surv = survivors(pool, EVIDENCE0, answers)
         start[n] = surv
-        print(f"   {FAMILY[n]:12}{n:22}{len(surv):>9,}{state_of(surv):>16}"
+        print(f"   {FAMILY[n]:12}{n:22}{len(surv):>9,}"
+              f"{state_of(surv, set(EVIDENCE0)):>26}"
               f"{('yes' if truth[n][0] else 'NO'):>16}")
 
     print("\n3. SEVEN ARMS. Five are the comparison the claim needs; two are")
@@ -436,19 +509,22 @@ def main() -> int:
             said = reported(a, st)
             row[a] = dict(state=st, said=said, queries=q, rep=rep,
                           surv=len(surv),
-                          held=held_out(rep, f) if said == "identified"
-                          else None,
+                          held=held_out(rep, f)
+                          if said == "identified_on_U" else None,
                           survived=truth[n][1] in {b for b, _p in surv})
         res[n] = row
         cells = ""
         for a in ARMS:
             r = row[a]
-            mark = {"identified": "", "underspecified": "?",
-                    "inconsistent": "x"}[r["said"]]
+            mark = {"identified_on_U": "", "unresolved_within_budget": "?",
+                    "underspecified_on_U": "!", "inconsistent": "x"}[r["said"]]
             shown = f'{r["held"]}/10' if r["held"] is not None else mark
             cells += f'{shown:>7}{"q" + str(r["queries"]):>6}' 
         print(f"   {n:22}{cells}")
-    print("\n   `?` reported UNDERSPECIFIED and refused to answer.")
+    print("\n   `?` UNRESOLVED WITHIN BUDGET -- a distinguishing question")
+    print("       was still available and was not spent. Refused to answer.")
+    print("   `!` UNDERSPECIFIED ON U -- no legal query separates the")
+    print("       survivors at all. A claim about U, not about the budget.")
     print("   `x` reported INCONSISTENT: nothing in the pool fits.")
     print(f"   `qN` clarification queries spent, out of {BUDGET}.")
 
@@ -464,7 +540,7 @@ def main() -> int:
             for n, f in TASKS.items():
                 st, qq, rep, _tr, surv = run_arm(a, pool, f, random.Random(sd))
                 q += qq
-                h += held_out(rep, f) if st == "identified" else 0
+                h += held_out(rep, f) if st == "identified_on_U" else 0
             trial[a].append((q, h))
     print("    (`disagreement` is deterministic, so its sd is 0 by")
     print("     construction -- the seeds vary what it is being compared to.)")
@@ -521,7 +597,7 @@ def main() -> int:
                                         random.Random(7))
         if st == "inconsistent":
             binc.append(n)
-        elif st == "identified":
+        elif st == "identified_on_U":
             (bsolved if held_out(rep, f) == 10 else bwrong).append(n)
     print(f"   present in the blind pool : "
           f"{sum(1 for v in tb_blind.values() if v[0])}/{len(TASKS)}")
@@ -558,9 +634,9 @@ def _gate(res, truth, start, pool, stats, seeded, tb_seed, t0):
     # against `reckless` -- X63's behaviour, answering from the
     # demonstrations alone -- which it must catch.
     bad_D = [n for n in TASKS
-             if res[n][D]["said"] == "identified" and res[n][D]["surv"] > 1]
+             if res[n][D]["said"] == "identified_on_U" and res[n][D]["surv"] > 1]
     bad_C = [n for n in TASKS
-             if res[n][C]["said"] == "identified" and res[n][C]["surv"] > 1]
+             if res[n][C]["said"] == "identified_on_U" and res[n][C]["surv"] > 1]
     g("G1", "ambiguity is reported before an answer is produced",
       not bad_D and len(bad_C) > 0,
       f"{len(amb)} tasks ambiguous on demonstrations alone; the check "
@@ -574,8 +650,8 @@ def _gate(res, truth, start, pool, stats, seeded, tb_seed, t0):
 
     # --- G2. The opposite error, calibrated against `paranoid`.
     ident = [n for n in TASKS if res[n][D]["surv"] == 1]
-    wrong2 = [n for n in ident if res[n][D]["said"] != "identified"]
-    caught2 = [n for n in ident if res[n]["paranoid"]["said"] != "identified"]
+    wrong2 = [n for n in ident if res[n][D]["said"] != "identified_on_U"]
+    caught2 = [n for n in ident if res[n]["paranoid"]["said"] != "identified_on_U"]
     g("G2", "no identified task is wrongly called ambiguous",
       not wrong2 and len(ident) > 0 and len(caught2) > 0,
       f"{len(ident)} reached one class; the check catches `paranoid` on "
@@ -607,9 +683,10 @@ def _gate(res, truth, start, pool, stats, seeded, tb_seed, t0):
       need <= fams, f"solved families: {sorted(fams) or 'none'}")
 
     # --- G6. All three states must be REPRESENTED and OBSERVED.
-    seen = {res[n][D]["state"] for n in TASKS} | {state_of(start[n])
-                                                  for n in TASKS}
-    want = {"identified", "underspecified", "inconsistent"}
+    seen = {res[n][D]["state"] for n in TASKS} | {
+        state_of(start[n], set(EVIDENCE0)) for n in TASKS}
+    want = {"identified_on_U", "inconsistent"}
+    want |= {s for s in seen if s in AMBIGUOUS}
     g("G6", "0 / 1 / many surviving classes are all distinguished",
       want <= seen, f"observed: {sorted(seen)}")
 
@@ -621,9 +698,9 @@ def _gate(res, truth, start, pool, stats, seeded, tb_seed, t0):
       f"(X63: 3/10, and X63 SYNTHESISED where this SELECTS)")
 
     # --- G8. Refusing is a virtue only if nothing unresolved gets answered.
-    unres = [n for n in TASKS if res[n][D]["said"] != "identified"]
+    unres = [n for n in TASKS if res[n][D]["said"] != "identified_on_U"]
     honest = all(res[n][D]["held"] is None for n in unres)
-    lied = [n for n in TASKS if res[n][C]["said"] == "identified"
+    lied = [n for n in TASKS if res[n][C]["said"] == "identified_on_U"
             and res[n][C]["surv"] > 1]
     g("G8", "unresolved tasks are reported, not answered",
       honest and len(lied) > 0,

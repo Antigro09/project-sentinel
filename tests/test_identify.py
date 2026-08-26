@@ -62,7 +62,7 @@ def test_g1_calibration_the_check_catches_a_system_with_no_ambiguity_state(pool)
     for n, f in K.TASKS.items():
         st, _q, rep, _tr, surv = K.run_arm("simplest", pool, f,
                                            random.Random(7))
-        if K.reported("reckless", st) == "identified" and len(surv) > 1:
+        if K.reported("reckless", st) == "identified_on_U" and len(surv) > 1:
             caught.append(n)
             # The error is committing to a hypothesis the evidence did not
             # determine, whether or not held-out happens to catch it. Scoring
@@ -82,7 +82,7 @@ def test_g2_calibration_the_check_catches_an_always_ambiguous_system(pool):
                                           random.Random(7))
         if len(surv) == 1:
             ident += 1
-            assert K.reported("paranoid", st) != "identified"
+            assert K.reported("paranoid", st) != "identified_on_U"
     assert ident, "G2 is VACUOUS: nothing was ever identified"
 
 
@@ -102,11 +102,44 @@ def test_all_three_states_actually_occur(pool):
     seen = set()
     for n, f in K.TASKS.items():
         answers = {t: f(t) for t in K.EVIDENCE0}
-        seen.add(K.state_of(K.survivors(pool, K.EVIDENCE0, answers)))
+        seen.add(K.state_of(K.survivors(pool, K.EVIDENCE0, answers),
+                            set(K.EVIDENCE0)))
         st, _q, _r, _tr, _s = K.run_arm("disagreement", pool, f,
                                         random.Random(7))
         seen.add(st)
-    assert seen == {"identified", "underspecified", "inconsistent"}, seen
+    assert "identified_on_U" in seen and "inconsistent" in seen
+    assert seen & set(K.AMBIGUOUS), seen
+
+
+def test_the_task_key_merges_programs_the_composition_key_would_not(pool):
+    """The correction X64A had to absorb: identification may key on output,
+    but REUSE may not. If this ever stops splitting, X65 can store skills on
+    the task key and reinherit X63's 252x equivalence bug."""
+    rg = random.Random(11)
+    alpha = sorted(set("".join(K.UNIVERSE)))
+    tsts, bods = K.curated(alpha)
+    groups = {}
+    for _ in range(600):
+        c = rg.choice(bods)
+        for _k in range(rg.randrange(1, 4)):
+            c = ("IF", rg.choice(tsts), rg.choice(bods), c)
+        pr = rg.choice(K.SHAPES)[1](c)
+        groups.setdefault(K.behaviour(pr), set()).add(
+            K.compositional_behaviour(pr))
+    assert any(len(v) > 1 for v in groups.values()), \
+        "the task key no longer merges distinct continuation states"
+
+
+def test_a_spent_budget_is_not_the_same_finding_as_no_question_existing():
+    """The other correction: `unresolved_within_budget` and
+    `underspecified_on_U` are different claims and must not share a name."""
+    one = [(("x",) * len(K.UNIVERSE), "ADV")]
+    assert K.state_of(one, set(K.EVIDENCE0)) == "identified_on_U"
+    assert K.state_of([], set()) == "inconsistent"
+    twin = [(("x",) * len(K.UNIVERSE), "ADV"),
+            (("x",) * len(K.UNIVERSE), "NOP")]
+    # identical behaviour over U: no legal query can separate them
+    assert K.state_of(twin, set()) == "underspecified_on_U"
 
 
 def test_disagreement_queries_beat_random_ones(pool):
@@ -117,7 +150,7 @@ def test_disagreement_queries_beat_random_ones(pool):
         for _n, f in K.TASKS.items():
             st, qq, rep, _tr, _s = K.run_arm(arm, pool, f, random.Random(sd))
             q += qq
-            h += K.held_out(rep, f) if st == "identified" else 0
+            h += K.held_out(rep, f) if st == "identified_on_U" else 0
         return q, h
 
     dq, dh = total("disagreement", 0)
