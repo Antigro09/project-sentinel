@@ -30,7 +30,7 @@ After that, everything runs offline.
 ## Verify
 
 ```bash
-uv run pytest tests/ -q                    # 248 passing, 1 skipped (~12 min)
+uv run pytest tests/ -q                    # 256 passing, 1 skipped (~12 min)
 uv run scripts/bench_engine.py             # engine throughput on this machine
 ```
 
@@ -44,6 +44,7 @@ uv run python experiments/x58_sweep.py               # 14 parsing tasks
 uv run python experiments/x61_working_set.py         # which memory class (~30s)
 uv run python experiments/x63_sparse_price.py        # what the table buys (~1s)
 uv run python experiments/x63c_gate.py               # the twelve clauses (~1s)
+uv run python experiments/x64a_identify.py           # the eight gates (~70s)
 ```
 
 Reproducing the numbers below, in order. The first trains and saves cores
@@ -113,7 +114,7 @@ transfer result is only meaningful if nothing upstream had to change.
 
 ## Status
 
-**248 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
+**256 tests passing, 1 skipped. Level 5 built: the vocabulary anchor is
 gone, the substrate runs on real text, and the memory it needs has been
 measured rather than assumed (see Level 5 below).** The headline numbers in
 earlier versions of this file were wrong, and the correction is the most
@@ -591,6 +592,7 @@ Every one of these made the system look better than it was.
 | X63a | `x63_sparse_price.py` | what does the behaviour table actually buy? |
 | X63b | `x63b_cegis_store.py` | a sparse store, searched without any gradient |
 | X63c | `x63c_gate.py` | twelve clauses specified from outside, not by me |
+| X64A | `x64a_identify.py` | does it know WHICH task it was asked to do? |
 
 ### X62: the memory audit, and what it decided
 
@@ -831,3 +833,81 @@ Three consecutive shape gaps became four, and then the fourth turned out
 not to be a shape gap at all. The rule the README has carried since X60 --
 *check the shape before blaming the search* -- needs a second clause:
 **check whether the evidence identifies the answer before blaming either.**
+
+## X64A: does it know which task it was asked to do?
+
+X63's verdict, stated correctly: **it did not pass its end-to-end gate.**
+The sparse store is validated on every mechanism clause; the synthesis is
+not, at 3 of 10 held-out; and two tasks X62 solved were traded away. A green
+unit suite does not cancel a benchmark regression, and the two should never
+be reported as one number.
+
+X64A stops searching for *a* program and starts representing **which tasks
+are still possible.** Every task gets one of three states, and has to be
+right about which:
+
+| surviving behaviour classes | state |
+|---|---|
+| 0 | inconsistent or inexpressible |
+| 1 | identified |
+| 2+ | **underspecified** — and it must say so *before* answering |
+
+Candidates are clustered by **behaviour over a fixed universe of inputs**,
+not counted syntactically, so "no legal query can separate these" is a
+representable stopping condition rather than an infinite loop. The target is
+hidden: it is never inspected, and acts only as a synthetic user answering
+one input at a time. The candidate pool is **task-independent** — one pool,
+eleven tasks, no labels — so seeding it with every witness leaks nothing
+about which task is being asked.
+
+**Nine of eleven tasks are underspecified by the demonstrations alone.**
+That is the state X63 could not represent, and answered from anyway, ten
+times out of ten.
+
+| arm | answered | queries | held-out | what it is |
+|---|---|---|---|---|
+| simplest | 1/11 | 0 | 10 | commit to the smallest fit |
+| passive examples | 5/11 | 57 | 50 | examples chosen by nobody |
+| random queries | 7/11 | 38 | 70 | ask, but ask arbitrarily |
+| **disagreement** | **9/11** | **30** | **90** | ask what splits the survivors |
+| oracle greedy | 9/11 | 25 | 90 | allowed to know the answers first |
+
+Over 24 seeds, disagreement spends 30.0 queries against random's 36.1 ± 2.9
+and scores 90.0 against 79.6 ± 6.8 — outside a standard deviation on both,
+and matching the oracle's accuracy for five extra queries. An earlier draft
+of that gate passed on a single seed's 13-versus-14 and would have meant
+nothing.
+
+**Four kinds of failure, kept apart**, because "it overfitted" is not a
+diagnosis and is the only one X63 could report:
+
+| diagnosis | n | |
+|---|---|---|
+| resolved | 9 | |
+| underspecified | 1 | `delayed copy` — budget spent, still open, **reported** open |
+| incomplete candidates | 1 | `reverse` — no expressible hypothesis fits |
+| search-selection | 0 | the box X63 was in: target fits, something else returned |
+
+### Four of the eight gates could not have failed, so they were calibrated
+
+G1, G2 and G8 are structurally unfailable against a well-behaved system —
+`run_arm` only answers when one class survives, so of course it never
+answers early. They are only meaningful because they are run against
+known-bad arms: **`reckless`** has no ambiguity state and answers the
+simplest survivor from the demonstrations (this is X63), and **`paranoid`**
+always claims ambiguity. The checks catch reckless on 9 tasks — wrong on 2 —
+and paranoid on all 9 identified ones.
+
+### The honest limit
+
+Selecting a hypothesis from a pool containing a correct one is **easier than
+synthesising it**. So the identical procedure runs on a **blind** pool built
+with no witness seeded: 6 of 11 targets present, 5 resolve correctly, 3
+correctly reported inconsistent — and **1 is identified confidently and
+wrongly**. When the target is absent, every hypothesis the system can
+express may agree, so it converges to one and says `identified`. It cannot
+see the outside of its own pool. That failure is undetectable from inside,
+which is exactly why `incomplete candidates` is its own diagnosis.
+
+**8/8 gates pass.** The state this machine was missing was never another
+byte, stack, or map. It was *"I do not yet know which task you mean."*

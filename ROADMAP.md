@@ -129,6 +129,20 @@ project substantially toward AGI, and should not be described as if it did.
 
 **The most important capability transition on this list.**
 
+**X64A is done and passes all eight of its gates** (`x64a_identify.py`,
+`x64a` section of the README). Nine of eleven tasks are UNDERSPECIFIED by
+the demonstrations alone -- the state X63 could not represent and answered
+from anyway. Disagreement-maximising clarification queries reach 9/11
+answered and 90/110 held-out in 30 queries, against random queries' 7/11 and
+79.6 +/- 6.8 over 24 seeds, and match an oracle allowed to know the answers
+in advance. Four of the eight gates were structurally unfailable and are
+calibrated against two known-bad arms (`reckless`, which is X63's behaviour,
+and `paranoid`). The honest limit is recorded: with nothing seeded, one task
+is identified confidently and wrongly, because a system cannot see the
+outside of its own hypothesis pool.
+
+**X64B, which follows, adds language.** The staging below is unchanged.
+
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:
 
