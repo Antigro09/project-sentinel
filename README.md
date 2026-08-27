@@ -1963,3 +1963,144 @@ globals. The contaminated fixture **is** caught.
 **No stream seed sampled. No X65A manifest written.** Formal evidence: eight
 finite supporting lemmas were mechanically checked in the theory package;
 VDFM itself is not formally verified.
+
+## X65A-S: stable-identity semantic continual memory — 13/13
+
+Eight opaque persistent identities, each with its own hidden X64H
+convention. Can Sentinel learn convention-semantic state per identity,
+retain it across long gaps and a process restart, and reuse it on later
+**new** meanings? Latent identity, procedural memory, general retrieval,
+revision and consolidation are out of scope and not implemented — retrieval
+here is a dictionary lookup by an opaque key.
+
+### Evidence identity, separated from observation content
+
+```
+ExternalEvidenceKey = (source_id, episode_id, external_event_sequence,
+                       observation_hash, context_id)
+```
+
+| case | posterior(0) |
+|---|---|
+| one event | 4/5 |
+| same event twice | 4/5 |
+| same event, new caller-supplied memory id | 4/5 |
+| event + deterministic summary | 4/5 |
+| event reintroduced after restart | 4/5 |
+| **two independent events, identical content** | **16/17** |
+
+Content is not identity. Two memory entries may point at one event; it still
+contributes once.
+
+### The opaque identity audit
+
+The first version of this audit was **wrong**: it computed empirical
+I(label; convention) over per-seed-unique labels, where a label that appears
+once determines everything inside its own seed — so every assigner scored
+log2(8) = 3 bits and all three planted leaks looked identical to the honest
+one. Replaced with an exact test: **the honest assigner is not a function of
+the convention vector at all**, so I = 0 exactly for every convention
+distribution.
+
+| assigner | depends on convention | exact I |
+|---|---|---|
+| honest | no (0/20 seeds) | **0.0 bits** |
+| plant: id encodes convention index | yes (20/20) | > 0 |
+| plant: token correlated with convention | yes (20/20) | > 0 |
+| plant: deterministic order assignment | yes (20/20) | > 0 |
+
+The order plant initially **escaped**, because the probe vectors I passed
+were degenerate — `random.Random(v)` was reconstructed per element, so all
+twelve "random" convention vectors were constant and induced one ranking.
+The audit now generates its own probes and refuses a set with fewer than six
+distinct rankings.
+
+### Exactness, and what is *not* claimed
+
+Each identity-local posterior is exact. Their product is exact **only under
+the frozen cross-identity independence assumption** — the joint over
+13824⁸ ≈ 10³² states is never enumerated and is not claimed to be. The
+assumption is falsifiable and is tested: a deliberately coupled generator
+moves an unrelated identity's marginal by **TV = 0.875** where the honest
+one moves it by exactly **0.000**.
+
+The sufficient statistic is exact by construction. X64H calibration
+likelihoods are indicators, so the posterior is uniform over the surviving
+convention set and the grounded `(z, u)` pairs are sufficient; any pair whose
+removal leaves that set unchanged is dropped. Verified on the **actual**
+model, not just a microcase: 56 episodes, 0 mismatches in posterior or
+predictive.
+
+### Byte preflight (4 KiB active budget)
+
+| identities | obs each | semantic B | archive B | B/identity | ≤4 KiB |
+|---|---|---|---|---|---|
+| 8 | 1 | 1 975 | 1 056 | 246 | yes |
+| 8 | 8 | 2 706 | 8 448 | 338 | yes |
+| 8 | 32 | 2 645 | 34 144 | 330 | yes |
+| 16 | 8 | 5 284 | 16 944 | 330 | **no** |
+
+Growth with repeated observations of one identity **saturates** (246 → 330 B
+across a 32× increase). The measured representation limit is **8 identities**
+at 4 KiB. The archive grows linearly and is reported separately.
+
+### Arms — two regimes, both reported
+
+Stream: 29 episodes, 8 identities, 4 distractors, 1 out-of-family event,
+16 returns with gaps 8–13, restart before episode 13, zero calibration/
+transfer meaning overlap.
+
+| arm | A pre | B q=0 | C q=0 | D ret | C q=1 | units | bytes |
+|---|---|---|---|---|---|---|---|
+| no memory | 0.347 | 0.347 | 0.299 | −0.048 | 0.925 | 3 137 | 2 |
+| within-episode only | 0.296 | 1.000 | 0.299 | −0.701 | 0.925 | 2 794 | 2 |
+| raw replay (unlimited) | 0.347 | 1.000 | 0.898 | −0.102 | 0.995 | 8 459 | 3 064 |
+| **raw replay @ equal compute** | 0.347 | 0.867 | **0.299** | −0.568 | 0.925 | 4 481 | 3 064 |
+| most-recent record | 0.296 | 1.000 | 0.391 | −0.609 | 0.840 | 2 794 | 3 813 |
+| random record | 0.282 | 0.496 | 0.374 | −0.122 | 0.829 | 2 831 | 3 813 |
+| shuffled ID→memory | 0.262 | 0.339 | 0.348 | +0.009 | 0.840 | 2 845 | 3 813 |
+| wrong-but-similar convention | 0.594 | 0.578 | 0.534 | −0.044 | 0.839 | 2 802 | 3 813 |
+| **main stable-ID semantic** | 0.347 | 1.000 | **0.989** | **−0.011** | 1.000 | 2 888 | 3 813 |
+| main without quarantine | 0.347 | 1.000 | 0.904 | −0.096 | 0.984 | 2 759 | 3 710 |
+| oracle | 1.000 | 1.000 | 1.000 | 0.000 | 1.000 | 2 696 | 2 |
+| memoryless, 4× queries | 0.347 | 0.347 | 0.299 | −0.048 | **1.000** | 2 855 | 2 |
+
+**The disclosure that matters.** At zero clarification, memory is worth
++0.69 accuracy on returning identities. At the common budget of *one*
+question, a memoryless learner already reaches 0.925, and with four
+questions it reaches 1.000. **Memory's measurable benefit in this phase is
+query efficiency — 0.78 → 0.01 questions per returning task — not a
+capability clarification lacks.** Reporting only the zero-query column would
+have been the flattering half of that.
+
+Raw replay under **equal cumulative compute** collapses to the no-memory
+level (0.299); unlimited it reaches 0.898 at 3× the compute. Grounding is
+charged identically to every arm; what differs is that replay pays it again
+on every read.
+
+### Retention, interference, restart, quarantine
+
+- **Retention** D = −0.011 (shared) / −0.016 (disjoint), inside the frozen
+  −0.05 margin. Every control loses far more: within-episode −0.701.
+- **Interference** is exactly 0.000 total variation — but that is
+  *architectural*, not empirical. The informative result is the coupled
+  counterexample showing the assumption can fail and is detected.
+- **Restart**: parent PID dies, child runs with a 5-variable environment,
+  audit hash and sufficient statistic identical, post-restart delayed-return
+  transfer **1.000 over 48 tasks**, forbidden channel closed.
+- **Quarantine**: the out-of-family event loses the true convention in
+  **12.5%** of identities without quarantine and **0%** with it.
+
+Order counterfactuals: only `reverse_recurrence` — returns placed before
+their groundings — destroys the effect (0.989 → 0.250). Reverse, random and
+grouped return orders leave it intact, because they preserve
+grounding-before-return; they are reported but they do not test the causal
+claim.
+
+### Gates
+
+**13 of 13 phase-S gates pass**, on development and validation streams in
+both alphabet strata, with the frozen X64H mechanism re-run live first
+(persist 0.887 vs static 0.242). 30 new tests.
+
+**No final X65A manifest. No final stream seed sampled.**

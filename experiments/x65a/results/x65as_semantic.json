@@ -1,0 +1,1713 @@
+{
+  "evidence_identity": {
+    "1_same_key_twice": "4/5",
+    "2_new_memory_uuid_same_event": "4/5",
+    "3_deterministic_summary": "4/5",
+    "4_two_independent_same_content": "16/17",
+    "5_two_entries_one_event": "4/5",
+    "counts_once": true,
+    "independent_counts_twice": true,
+    "single_event": "4/5"
+  },
+  "families": {
+    "disjoint_op": {
+      "ceiling": 3223,
+      "coupled": {
+        "coupling_detected": true,
+        "factored_model_exact_when_uncoupled": true,
+        "subfamily_size": 24,
+        "tv_coupled": 0.875,
+        "tv_uncoupled": 0.0
+      },
+      "growth": [
+        {
+          "active": 332,
+          "episode": 0,
+          "records": 1
+        },
+        {
+          "active": 702,
+          "episode": 1,
+          "records": 2
+        },
+        {
+          "active": 1031,
+          "episode": 2,
+          "records": 3
+        },
+        {
+          "active": 1362,
+          "episode": 3,
+          "records": 4
+        },
+        {
+          "active": 1690,
+          "episode": 4,
+          "records": 5
+        },
+        {
+          "active": 2018,
+          "episode": 5,
+          "records": 6
+        },
+        {
+          "active": 2349,
+          "episode": 6,
+          "records": 7
+        },
+        {
+          "active": 2677,
+          "episode": 7,
+          "records": 8
+        },
+        {
+          "active": 2965,
+          "episode": 8,
+          "records": 9
+        },
+        {
+          "active": 3253,
+          "episode": 9,
+          "records": 10
+        },
+        {
+          "active": 3543,
+          "episode": 10,
+          "records": 11
+        },
+        {
+          "active": 3831,
+          "episode": 11,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 12,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 13,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 14,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 15,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 16,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 17,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 18,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 19,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 20,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 21,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 22,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 23,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 24,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 25,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 26,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 27,
+          "records": 12
+        },
+        {
+          "active": 3833,
+          "episode": 28,
+          "records": 12
+        }
+      ],
+      "orders": {
+        "dependency": 0.984375,
+        "grouped": 0.984375,
+        "random": 0.9947916666666666,
+        "reverse": 0.984375,
+        "reverse_recurrence": 0.25
+      },
+      "preflight": [
+        {
+          "archive_bytes": 132,
+          "bytes_per_identity": 248,
+          "identities": 1,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 1,
+          "semantic_active_bytes": 248,
+          "total_bytes": 380,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "bytes_per_identity": 290,
+          "identities": 1,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 2,
+          "semantic_active_bytes": 290,
+          "total_bytes": 554,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 332,
+          "identities": 1,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 332,
+          "total_bytes": 860,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 331,
+          "identities": 1,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 331,
+          "total_bytes": 1387,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2124,
+          "bytes_per_identity": 334,
+          "identities": 1,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 334,
+          "total_bytes": 2458,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4268,
+          "bytes_per_identity": 334,
+          "identities": 1,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 334,
+          "total_bytes": 4602,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "bytes_per_identity": 245,
+          "identities": 2,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 2,
+          "semantic_active_bytes": 491,
+          "total_bytes": 755,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 267,
+          "identities": 2,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 535,
+          "total_bytes": 1063,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 309,
+          "identities": 2,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 5,
+          "semantic_active_bytes": 619,
+          "total_bytes": 1675,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 329,
+          "identities": 2,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 6,
+          "semantic_active_bytes": 659,
+          "total_bytes": 2771,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4248,
+          "bytes_per_identity": 333,
+          "identities": 2,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 6,
+          "semantic_active_bytes": 666,
+          "total_bytes": 4914,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8536,
+          "bytes_per_identity": 333,
+          "identities": 2,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 6,
+          "semantic_active_bytes": 667,
+          "total_bytes": 9203,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 246,
+          "identities": 4,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 4,
+          "semantic_active_bytes": 986,
+          "total_bytes": 1514,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 288,
+          "identities": 4,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 8,
+          "semantic_active_bytes": 1154,
+          "total_bytes": 2210,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 330,
+          "identities": 4,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1322,
+          "total_bytes": 3434,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "bytes_per_identity": 329,
+          "identities": 4,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1317,
+          "total_bytes": 5541,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8496,
+          "bytes_per_identity": 333,
+          "identities": 4,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1335,
+          "total_bytes": 9831,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 17072,
+          "bytes_per_identity": 332,
+          "identities": 4,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1331,
+          "total_bytes": 18403,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 246,
+          "identities": 8,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 8,
+          "semantic_active_bytes": 1970,
+          "total_bytes": 3026,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 288,
+          "identities": 8,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 16,
+          "semantic_active_bytes": 2309,
+          "total_bytes": 4421,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "bytes_per_identity": 335,
+          "identities": 8,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 25,
+          "semantic_active_bytes": 2684,
+          "total_bytes": 6908,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "bytes_per_identity": 330,
+          "identities": 8,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 24,
+          "semantic_active_bytes": 2642,
+          "total_bytes": 11090,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16992,
+          "bytes_per_identity": 333,
+          "identities": 8,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 24,
+          "semantic_active_bytes": 2666,
+          "total_bytes": 19658,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 34144,
+          "bytes_per_identity": 332,
+          "identities": 8,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 24,
+          "semantic_active_bytes": 2663,
+          "total_bytes": 36807,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2118,
+          "bytes_per_identity": 246,
+          "identities": 16,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 16,
+          "semantic_active_bytes": 3942,
+          "total_bytes": 6060,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4236,
+          "bytes_per_identity": 282,
+          "identities": 16,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 30,
+          "semantic_active_bytes": 4521,
+          "total_bytes": 8757,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 8472,
+          "bytes_per_identity": 324,
+          "identities": 16,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 46,
+          "semantic_active_bytes": 5194,
+          "total_bytes": 13666,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 16944,
+          "bytes_per_identity": 330,
+          "identities": 16,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 48,
+          "semantic_active_bytes": 5280,
+          "total_bytes": 22224,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 34080,
+          "bytes_per_identity": 332,
+          "identities": 16,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 48,
+          "semantic_active_bytes": 5320,
+          "total_bytes": 39400,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 68480,
+          "bytes_per_identity": 332,
+          "identities": 16,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 48,
+          "semantic_active_bytes": 5325,
+          "total_bytes": 73805,
+          "within_4KiB": false
+        }
+      ],
+      "restart": {
+        "audit_hash_identical": true,
+        "bytes": 3833,
+        "child_pid": 53778,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "ok": true,
+        "parent_pid": 53777,
+        "parent_pid_gone": true,
+        "post_restart_return_transfer": 1.0,
+        "post_restart_tasks": 48,
+        "records": 12,
+        "sufficient_statistic_identical": true
+      },
+      "schedule": {
+        "calibration_tasks": 57,
+        "distractors": 4,
+        "episodes": 29,
+        "gap_max": 13,
+        "gap_mean": 10.5,
+        "gap_min": 8,
+        "identities": 8,
+        "long_gap_returns": 8,
+        "meaning_overlap_cal_vs_transfer": 0,
+        "restart_before_episode": 13,
+        "returns": 16,
+        "transfer_tasks": 80,
+        "unknown_events": 1
+      },
+      "sufficient_statistic": {
+        "episodes_checked": 56,
+        "exact": true,
+        "mismatches": 0
+      },
+      "summary": {
+        "bigger_query_budget": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 0.2604166666666667,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.2552083333333333,
+          "D_retention": -0.00520833333333337,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.2708333333333333,
+            0.2708333333333333,
+            0.1875
+          ],
+          "queries_return": null,
+          "query_budget": 4,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2919.0
+        },
+        "main": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.984375,
+          "D_retention": -0.015625,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            0.9583333333333334,
+            1.0,
+            0.9791666666666666
+          ],
+          "queries_return": 0.015625,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2934.5
+        },
+        "main_no_quarantine": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.9739583333333334,
+          "C_delayed": 0.875,
+          "D_retention": -0.125,
+          "active_bytes": 3698.25,
+          "evicted": 0.0,
+          "interference_tv": 0.125,
+          "per_seed_C": [
+            0.8958333333333334,
+            0.8541666666666666,
+            0.8958333333333334,
+            0.8541666666666666
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.125,
+          "truncated": 0.0,
+          "units": 2804.0
+        },
+        "most_recent": {
+          "A_first_pre": 0.23958333333333334,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.8177083333333334,
+          "C_delayed": 0.296875,
+          "D_retention": -0.703125,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.3541666666666667,
+            0.2708333333333333,
+            0.2708333333333333
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2850.25
+        },
+        "none": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 0.96875,
+          "B_immediate": 0.2604166666666667,
+          "C_at_budget": 0.8645833333333334,
+          "C_delayed": 0.2552083333333333,
+          "D_retention": -0.00520833333333337,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.2708333333333333,
+            0.2708333333333333,
+            0.1875
+          ],
+          "queries_return": 0.8854166666666666,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 3223.5
+        },
+        "oracle": {
+          "A_first_pre": 1.0,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 1.0,
+          "D_retention": 0.0,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2736.0
+        },
+        "random_record": {
+          "A_first_pre": 0.20833333333333334,
+          "B_at_budget": 0.9583333333333334,
+          "B_immediate": 0.5625,
+          "C_at_budget": 0.7604166666666667,
+          "C_delayed": 0.2604166666666667,
+          "D_retention": -0.3020833333333333,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.25,
+            0.3125,
+            0.125,
+            0.3541666666666667
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2887.0
+        },
+        "raw_replay": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.984375,
+          "C_delayed": 0.8802083333333334,
+          "D_retention": -0.11979166666666663,
+          "active_bytes": 3107.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.9375,
+            0.8333333333333334,
+            0.8958333333333334,
+            0.8541666666666666
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 8517.5
+        },
+        "raw_replay@equal_compute": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 0.9166666666666666,
+          "C_at_budget": 0.8645833333333334,
+          "C_delayed": 0.2552083333333333,
+          "D_retention": -0.6614583333333333,
+          "active_bytes": 3107.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.2708333333333333,
+            0.2708333333333333,
+            0.1875
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 22.0,
+          "units": 4633.5
+        },
+        "shuffled_ids": {
+          "A_first_pre": 0.25,
+          "B_at_budget": 0.8645833333333334,
+          "B_immediate": 0.33333333333333337,
+          "C_at_budget": 0.7864583333333334,
+          "C_delayed": 0.2916666666666667,
+          "D_retention": -0.041666666666666685,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.375,
+            0.22916666666666666,
+            0.2708333333333333
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2899.0
+        },
+        "unlimited": {
+          "A_first_pre": 0.2604166666666667,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.984375,
+          "D_retention": -0.015625,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            0.9583333333333334,
+            1.0,
+            0.9791666666666666
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2788.25
+        },
+        "within_episode": {
+          "A_first_pre": 0.23958333333333334,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.8645833333333334,
+          "C_delayed": 0.2552083333333333,
+          "D_retention": -0.7447916666666667,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2916666666666667,
+            0.2708333333333333,
+            0.2708333333333333,
+            0.1875
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2843.25
+        },
+        "wrong_similar": {
+          "A_first_pre": 0.3645833333333333,
+          "B_at_budget": 0.7916666666666666,
+          "B_immediate": 0.40625,
+          "C_at_budget": 0.828125,
+          "C_delayed": 0.390625,
+          "D_retention": -0.015625,
+          "active_bytes": 3784.5,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.5,
+            0.3541666666666667,
+            0.2708333333333333,
+            0.4375
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2879.5
+        }
+      },
+      "validation": {
+        "main": {
+          "B_immediate": 0.9722222222222223,
+          "C_delayed": 1.0
+        },
+        "none": {
+          "B_immediate": 0.3194444444444445,
+          "C_delayed": 0.3541666666666667
+        },
+        "oracle": {
+          "B_immediate": 1.0,
+          "C_delayed": 1.0
+        },
+        "raw_replay@equal_compute": {
+          "B_immediate": 0.8333333333333334,
+          "C_delayed": 0.3541666666666667
+        },
+        "within_episode": {
+          "B_immediate": 0.9722222222222223,
+          "C_delayed": 0.3541666666666667
+        }
+      }
+    },
+    "shared": {
+      "ceiling": 3136,
+      "coupled": {
+        "coupling_detected": true,
+        "factored_model_exact_when_uncoupled": true,
+        "subfamily_size": 24,
+        "tv_coupled": 0.875,
+        "tv_uncoupled": 0.0
+      },
+      "growth": [
+        {
+          "active": 371,
+          "episode": 0,
+          "records": 1
+        },
+        {
+          "active": 698,
+          "episode": 1,
+          "records": 2
+        },
+        {
+          "active": 1025,
+          "episode": 2,
+          "records": 3
+        },
+        {
+          "active": 1353,
+          "episode": 3,
+          "records": 4
+        },
+        {
+          "active": 1681,
+          "episode": 4,
+          "records": 5
+        },
+        {
+          "active": 2008,
+          "episode": 5,
+          "records": 6
+        },
+        {
+          "active": 2336,
+          "episode": 6,
+          "records": 7
+        },
+        {
+          "active": 2662,
+          "episode": 7,
+          "records": 8
+        },
+        {
+          "active": 2948,
+          "episode": 8,
+          "records": 9
+        },
+        {
+          "active": 3236,
+          "episode": 9,
+          "records": 10
+        },
+        {
+          "active": 3523,
+          "episode": 10,
+          "records": 11
+        },
+        {
+          "active": 3810,
+          "episode": 11,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 12,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 13,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 14,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 15,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 16,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 17,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 18,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 19,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 20,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 21,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 22,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 23,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 24,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 25,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 26,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 27,
+          "records": 12
+        },
+        {
+          "active": 3812,
+          "episode": 28,
+          "records": 12
+        }
+      ],
+      "orders": {
+        "dependency": 0.9893617021276596,
+        "grouped": 0.9893617021276596,
+        "random": 1.0,
+        "reverse": 1.0,
+        "reverse_recurrence": 0.3045790934320074
+      },
+      "preflight": [
+        {
+          "archive_bytes": 132,
+          "bytes_per_identity": 248,
+          "identities": 1,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 1,
+          "semantic_active_bytes": 248,
+          "total_bytes": 380,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "bytes_per_identity": 289,
+          "identities": 1,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 2,
+          "semantic_active_bytes": 289,
+          "total_bytes": 553,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 328,
+          "identities": 1,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 328,
+          "total_bytes": 856,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 328,
+          "identities": 1,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 328,
+          "total_bytes": 1384,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2124,
+          "bytes_per_identity": 332,
+          "identities": 1,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 332,
+          "total_bytes": 2456,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4268,
+          "bytes_per_identity": 331,
+          "identities": 1,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 3,
+          "semantic_active_bytes": 331,
+          "total_bytes": 4599,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "bytes_per_identity": 247,
+          "identities": 2,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 2,
+          "semantic_active_bytes": 494,
+          "total_bytes": 758,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 287,
+          "identities": 2,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 4,
+          "semantic_active_bytes": 574,
+          "total_bytes": 1102,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 308,
+          "identities": 2,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 5,
+          "semantic_active_bytes": 616,
+          "total_bytes": 1672,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 369,
+          "identities": 2,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 8,
+          "semantic_active_bytes": 739,
+          "total_bytes": 2851,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4248,
+          "bytes_per_identity": 332,
+          "identities": 2,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 6,
+          "semantic_active_bytes": 664,
+          "total_bytes": 4912,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8536,
+          "bytes_per_identity": 330,
+          "identities": 2,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 6,
+          "semantic_active_bytes": 661,
+          "total_bytes": 9197,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "bytes_per_identity": 247,
+          "identities": 4,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 4,
+          "semantic_active_bytes": 988,
+          "total_bytes": 1516,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 287,
+          "identities": 4,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 8,
+          "semantic_active_bytes": 1148,
+          "total_bytes": 2204,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 327,
+          "identities": 4,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1311,
+          "total_bytes": 3423,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "bytes_per_identity": 326,
+          "identities": 4,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1307,
+          "total_bytes": 5531,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8496,
+          "bytes_per_identity": 331,
+          "identities": 4,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1324,
+          "total_bytes": 9820,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 17072,
+          "bytes_per_identity": 330,
+          "identities": 4,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 12,
+          "semantic_active_bytes": 1323,
+          "total_bytes": 18395,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "bytes_per_identity": 246,
+          "identities": 8,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 8,
+          "semantic_active_bytes": 1975,
+          "total_bytes": 3031,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "bytes_per_identity": 287,
+          "identities": 8,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 16,
+          "semantic_active_bytes": 2301,
+          "total_bytes": 4413,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "bytes_per_identity": 332,
+          "identities": 8,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 25,
+          "semantic_active_bytes": 2662,
+          "total_bytes": 6886,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "bytes_per_identity": 338,
+          "identities": 8,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 26,
+          "semantic_active_bytes": 2706,
+          "total_bytes": 11154,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16992,
+          "bytes_per_identity": 330,
+          "identities": 8,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 24,
+          "semantic_active_bytes": 2645,
+          "total_bytes": 19637,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 34144,
+          "bytes_per_identity": 330,
+          "identities": 8,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 24,
+          "semantic_active_bytes": 2645,
+          "total_bytes": 36789,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2118,
+          "bytes_per_identity": 246,
+          "identities": 16,
+          "obs_per_identity": 1,
+          "provenance_refs_in_active": 16,
+          "semantic_active_bytes": 3948,
+          "total_bytes": 6066,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4236,
+          "bytes_per_identity": 284,
+          "identities": 16,
+          "obs_per_identity": 2,
+          "provenance_refs_in_active": 31,
+          "semantic_active_bytes": 4550,
+          "total_bytes": 8786,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 8472,
+          "bytes_per_identity": 333,
+          "identities": 16,
+          "obs_per_identity": 4,
+          "provenance_refs_in_active": 50,
+          "semantic_active_bytes": 5329,
+          "total_bytes": 13801,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 16944,
+          "bytes_per_identity": 330,
+          "identities": 16,
+          "obs_per_identity": 8,
+          "provenance_refs_in_active": 49,
+          "semantic_active_bytes": 5284,
+          "total_bytes": 22228,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 34080,
+          "bytes_per_identity": 330,
+          "identities": 16,
+          "obs_per_identity": 16,
+          "provenance_refs_in_active": 48,
+          "semantic_active_bytes": 5287,
+          "total_bytes": 39367,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 68480,
+          "bytes_per_identity": 330,
+          "identities": 16,
+          "obs_per_identity": 32,
+          "provenance_refs_in_active": 48,
+          "semantic_active_bytes": 5295,
+          "total_bytes": 73775,
+          "within_4KiB": false
+        }
+      ],
+      "restart": {
+        "audit_hash_identical": true,
+        "bytes": 3812,
+        "child_pid": 53760,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "ok": true,
+        "parent_pid": 53759,
+        "parent_pid_gone": true,
+        "post_restart_return_transfer": 1.0,
+        "post_restart_tasks": 47,
+        "records": 12,
+        "sufficient_statistic_identical": true
+      },
+      "schedule": {
+        "calibration_tasks": 57,
+        "distractors": 4,
+        "episodes": 29,
+        "gap_max": 13,
+        "gap_mean": 10.5,
+        "gap_min": 8,
+        "identities": 8,
+        "long_gap_returns": 8,
+        "meaning_overlap_cal_vs_transfer": 0,
+        "restart_before_episode": 13,
+        "returns": 16,
+        "transfer_tasks": 77,
+        "unknown_events": 1
+      },
+      "sufficient_statistic": {
+        "episodes_checked": 56,
+        "exact": true,
+        "mismatches": 0
+      },
+      "summary": {
+        "bigger_query_budget": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 0.34737318840579706,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.29937557816836263,
+          "D_retention": -0.04799761023743443,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2765957446808511,
+            0.3191489361702128,
+            0.2826086956521739,
+            0.3191489361702128
+          ],
+          "queries_return": null,
+          "query_budget": 4,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2855.25
+        },
+        "main": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.9893617021276596,
+          "D_retention": -0.010638297872340385,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            1.0,
+            1.0,
+            0.9574468085106383
+          ],
+          "queries_return": 0.010638297872340425,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2887.5
+        },
+        "main_no_quarantine": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.9840425531914894,
+          "C_delayed": 0.903677150786309,
+          "D_retention": -0.09632284921369105,
+          "active_bytes": 3710.0,
+          "evicted": 0.0,
+          "interference_tv": 0.125,
+          "per_seed_C": [
+            0.9148936170212766,
+            0.9361702127659575,
+            0.8913043478260869,
+            0.8723404255319149
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.125,
+          "truncated": 0.0,
+          "units": 2759.0
+        },
+        "most_recent": {
+          "A_first_pre": 0.2957427536231884,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.8396160962072156,
+          "C_delayed": 0.39061054579093435,
+          "D_retention": -0.6093894542090657,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.3191489361702128,
+            0.3829787234042553,
+            0.43478260869565216,
+            0.425531914893617
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2794.0
+        },
+        "none": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 0.9011445981554678,
+          "B_immediate": 0.34737318840579706,
+          "C_at_budget": 0.9250693802035153,
+          "C_delayed": 0.29937557816836263,
+          "D_retention": -0.04799761023743443,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2765957446808511,
+            0.3191489361702128,
+            0.2826086956521739,
+            0.3191489361702128
+          ],
+          "queries_return": 0.775555041628122,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 3136.75
+        },
+        "oracle": {
+          "A_first_pre": 1.0,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 1.0,
+          "D_retention": 0.0,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2695.5
+        },
+        "random_record": {
+          "A_first_pre": 0.27202733860342554,
+          "B_at_budget": 0.902050395256917,
+          "B_immediate": 0.5835391963109354,
+          "C_at_budget": 0.7702358926919519,
+          "C_delayed": 0.3258556891766882,
+          "D_retention": -0.2576835071342472,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2553191489361702,
+            0.3829787234042553,
+            0.2608695652173913,
+            0.40425531914893614
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2831.5
+        },
+        "raw_replay": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.9946808510638298,
+          "C_delayed": 0.8984736355226641,
+          "D_retention": -0.10152636447733587,
+          "active_bytes": 3063.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.9148936170212766,
+            0.9148936170212766,
+            0.9130434782608695,
+            0.851063829787234
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 8459.25
+        },
+        "raw_replay@equal_compute": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 0.8670125164690382,
+          "C_at_budget": 0.9250693802035153,
+          "C_delayed": 0.29937557816836263,
+          "D_retention": -0.5676369383006756,
+          "active_bytes": 3063.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2765957446808511,
+            0.3191489361702128,
+            0.2826086956521739,
+            0.3191489361702128
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 22.5,
+          "units": 4481.25
+        },
+        "shuffled_ids": {
+          "A_first_pre": 0.3160820158102767,
+          "B_at_budget": 0.822957839262187,
+          "B_immediate": 0.3936923583662714,
+          "C_at_budget": 0.8286308973172988,
+          "C_delayed": 0.3315217391304348,
+          "D_retention": -0.06217061923583661,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2765957446808511,
+            0.3829787234042553,
+            0.32608695652173914,
+            0.3404255319148936
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2843.5
+        },
+        "unlimited": {
+          "A_first_pre": 0.34737318840579706,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 1.0,
+          "C_delayed": 0.9893617021276596,
+          "D_retention": -0.010638297872340385,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            1.0,
+            1.0,
+            1.0,
+            0.9574468085106383
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2747.0
+        },
+        "within_episode": {
+          "A_first_pre": 0.2957427536231884,
+          "B_at_budget": 1.0,
+          "B_immediate": 1.0,
+          "C_at_budget": 0.9250693802035153,
+          "C_delayed": 0.29937557816836263,
+          "D_retention": -0.7006244218316373,
+          "active_bytes": 2.0,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.2765957446808511,
+            0.3191489361702128,
+            0.2826086956521739,
+            0.3191489361702128
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2793.75
+        },
+        "wrong_similar": {
+          "A_first_pre": 0.5386610671936759,
+          "B_at_budget": 0.8778820816864294,
+          "B_immediate": 0.5356966403162056,
+          "C_at_budget": 0.9035615171137835,
+          "C_delayed": 0.5777058279370952,
+          "D_retention": 0.042009187620889676,
+          "active_bytes": 3812.75,
+          "evicted": 0.0,
+          "interference_tv": 0.0,
+          "per_seed_C": [
+            0.5957446808510638,
+            0.5957446808510638,
+            0.6086956521739131,
+            0.5106382978723404
+          ],
+          "queries_return": null,
+          "query_budget": 1,
+          "true_convention_lost": 0.0,
+          "truncated": 0.0,
+          "units": 2799.25
+        }
+      },
+      "validation": {
+        "main": {
+          "B_immediate": 0.9861111111111112,
+          "C_delayed": 0.9927536231884058
+        },
+        "none": {
+          "B_immediate": 0.21557971014492752,
+          "C_delayed": 0.3526056120875733
+        },
+        "oracle": {
+          "B_immediate": 1.0,
+          "C_delayed": 1.0
+        },
+        "raw_replay@equal_compute": {
+          "B_immediate": 0.8291062801932366,
+          "C_delayed": 0.3526056120875733
+        },
+        "within_episode": {
+          "B_immediate": 0.9861111111111112,
+          "C_delayed": 0.3526056120875733
+        }
+      }
+    }
+  },
+  "final_manifest_written": false,
+  "final_stream_seed_sampled": false,
+  "gates": {
+    "S0": true,
+    "S1": true,
+    "S10": true,
+    "S11": true,
+    "S12": true,
+    "S2": true,
+    "S3": true,
+    "S4": true,
+    "S5": true,
+    "S6": true,
+    "S7": true,
+    "S8": true,
+    "S9": true
+  },
+  "identity_audit": {
+    "honest": {
+      "I_feature_convention_bits": 0.087471,
+      "I_label_convention_bits_exact": 0.0,
+      "buckets": 8,
+      "depends_on_convention": false,
+      "distinct_probe_rankings": 26,
+      "probe_vectors": 26,
+      "samples": 320,
+      "seeds_tested": 40,
+      "seeds_where_output_changed": 0,
+      "shuffle_floor_bits": 0.141321,
+      "zero": true
+    },
+    "plant_index": {
+      "I_feature_convention_bits": 0.123679,
+      "I_label_convention_bits_exact": null,
+      "buckets": 8,
+      "depends_on_convention": true,
+      "distinct_probe_rankings": 26,
+      "probe_vectors": 26,
+      "samples": 320,
+      "seeds_tested": 40,
+      "seeds_where_output_changed": 40,
+      "shuffle_floor_bits": 0.095473,
+      "zero": false
+    },
+    "plant_order": {
+      "I_feature_convention_bits": 0.084514,
+      "I_label_convention_bits_exact": null,
+      "buckets": 8,
+      "depends_on_convention": true,
+      "distinct_probe_rankings": 26,
+      "probe_vectors": 26,
+      "samples": 320,
+      "seeds_tested": 40,
+      "seeds_where_output_changed": 40,
+      "shuffle_floor_bits": 0.1094,
+      "zero": false
+    },
+    "plant_token": {
+      "I_feature_convention_bits": 0.104966,
+      "I_label_convention_bits_exact": null,
+      "buckets": 8,
+      "depends_on_convention": true,
+      "distinct_probe_rankings": 26,
+      "probe_vectors": 26,
+      "samples": 320,
+      "seeds_tested": 40,
+      "seeds_where_output_changed": 40,
+      "shuffle_floor_bits": 0.101188,
+      "zero": false
+    }
+  },
+  "phase": "X65A-S",
+  "prerequisite_ok": true,
+  "runtime_s": 21.73,
+  "x64h_regression": {
+    "oracle": 1.0,
+    "persist": 0.8875,
+    "static": 0.24166666666666667
+  }
+}
