@@ -266,3 +266,119 @@ def test_token_decoding_round_trips(shared):
     for u in range(shared.A ** 3):
         assert F._tokens(u, 3, shared.A) == [
             u // shared.A ** 2, (u // shared.A) % shared.A, u % shared.A]
+
+
+# ---------------------------------------------------- X64H-0C additions
+
+def test_zero_meaning_leakage_does_not_imply_zero_convention_information(
+        shared, disjoint):
+    """X64H-0B said `0.0 bits leaked`. That was about SUPPORT. The two
+    quantities are different and only one of them is zero."""
+    from x64h import audit0c as A
+    for fam in (shared, disjoint):
+        i = A.information_audit(fam)
+        assert abs(i["I_Z_U"]) < 1e-12
+        assert i["I_Phi_U"] > 0.1
+        assert i["one_utterance_task_meaning_accuracy"] == pytest.approx(
+            i["chance_task_meaning_accuracy"], abs=1e-12)
+        assert (i["one_utterance_convention_accuracy"]
+                > i["chance_convention_accuracy"])
+
+
+def test_full_support_does_not_imply_uniform_posterior(shared):
+    """Every convention keeps non-zero mass after one utterance AND the
+    posterior is measurably non-uniform. Both at once."""
+    from x64h import audit0c as A
+    i = A.information_audit(shared)
+    assert i["support_over_Phi_after_U_min"] == shared.n
+    assert i["one_utterance_convention_accuracy"] > 1.0 / shared.n
+
+
+def test_selection_weights_match_the_generator(shared, beh):
+    """The correctly specified likelihood against a brute-force reference
+    written the slow obvious way."""
+    from x64h import audit0c as A
+    ep = EP.build_episode(shared, beh, EP.Config(), 400)
+    t = ep.tasks[ep.tr_idx[0]]
+    L = list(t.live)
+    W = A.selection_weights(shared, L, t.u, t.pool)
+    for i in (0, 7, 1234, shared.n - 1):
+        for a, z in enumerate(L):
+            good = []
+            for pat in t.pool:
+                uu = shared.realise(i, z, pat)
+                surv = [k for k in L
+                        if any(shared.realise(i, k, q) == uu for q in t.pool)]
+                if surv == [z]:
+                    good.append(uu)
+            want = (good.count(t.u) / len(good)) if good else 0.0
+            assert W[i, a] == pytest.approx(want, abs=1e-12)
+
+
+def test_the_true_convention_can_always_generate_an_accepted_task(
+        shared, beh):
+    """Selection acceptance is not vacuous: the generator only emits tasks
+    the true convention could have produced, so the aware likelihood never
+    assigns the truth zero probability."""
+    from x64h import audit0c as A
+    ep = EP.build_episode(shared, beh, EP.Config(), 402)
+    for i in ep.tr_idx:
+        t = ep.tasks[i]
+        W = A.selection_weights(shared, list(t.live), t.u, t.pool)
+        assert W[ep.phi, list(t.live).index(t.z)] > 0
+
+
+def test_the_correct_likelihood_does_not_only_hurt(shared, beh):
+    """X64H-0B asserted misspecification `can only cost the treatment arms`.
+    Measured, the correct likelihood HELPS it."""
+    cfg = EP.Config()
+    acc = {}
+    for lk in ("naive", "aware"):
+        tot = []
+        for s in (400, 401, 402, 403):
+            ep = EP.build_episode(shared, beh, cfg, s)
+            tr = EP.run_arm(shared, beh, ep, "persist", cfg, s,
+                            likelihood=lk)["transfer"]
+            tot.append(sum(tr) / len(tr))
+        acc[lk] = sum(tot) / len(tot)
+    assert acc["aware"] > acc["naive"]
+
+
+def test_the_changed_episode_is_reselected_not_merely_rerealised(
+        shared, beh):
+    """A random re-realisation would have probability zero under the correct
+    likelihood, so the diagnostic would measure the splice."""
+    from x64h import audit0c as A
+    cfg = EP.Config()
+    ep = EP.change_episode(shared, beh, cfg, 400)
+    after = [i for i in ep.tr_idx if i >= ep.boundary]
+    ok = 0
+    for i in after:
+        t = ep.tasks[i]
+        W = A.selection_weights(shared, list(t.live), t.u, t.pool)
+        ok += W[ep.phi_alt, list(t.live).index(t.z)] > 0
+    assert ok == len(after)
+
+
+def test_unconditional_episodes_keep_the_acceptance_flag(shared, beh):
+    ep = EP.build_episode(shared, beh, EP.Config(select=False), 400)
+    flags = [t.accepted for t in ep.tasks if t.kind == "transfer"]
+    assert 0.0 < sum(flags) / len(flags) < 1.0
+    sel = EP.build_episode(shared, beh, EP.Config(select=True), 400)
+    assert all(t.accepted for t in sel.tasks if t.kind == "transfer")
+
+
+def test_paired_bootstrap_is_paired(shared):
+    from x64h import audit0c as A
+    a = [0.9, 0.8, 1.0, 0.95, 0.85, 0.9, 1.0, 0.9]
+    b = [0.3, 0.2, 0.4, 0.35, 0.25, 0.3, 0.4, 0.3]
+    bs = A.paired_bootstrap(a, b, reps=2000)
+    assert bs["lo"] > 0 and bs["excludes_zero"]
+    assert A.paired_bootstrap(a, a, reps=2000)["delta"] == 0.0
+
+
+def test_auroc_matches_a_known_case():
+    from x64h import audit0c as A
+    assert A.auroc([1.0, 1.0], [0.0, 0.0]) == pytest.approx(1.0)
+    assert A.auroc([0.0, 0.0], [1.0, 1.0]) == pytest.approx(0.0)
+    assert A.auroc([1.0, 0.0], [1.0, 0.0]) == pytest.approx(0.5)

@@ -62,6 +62,8 @@ class Task:
     u: int                          # the utterance code
     pool: tuple                     # the exposure pool it was drawn from
     tie: tuple                      # a task-local order for argmax ties
+    accepted: bool = True           # would the SELECTED generator have kept
+                                    # it? False only in unconditional mode
 
 
 @dataclass
@@ -79,6 +81,7 @@ class Episode:
     oracle_unselected: list = field(default_factory=list)
     coverage: dict = field(default_factory=dict)
     boundary: int = 0
+    unselectable_after_change: int = 0
 
 
 @dataclass(frozen=True)
@@ -94,12 +97,17 @@ class Config:
     schedule: str = "interleaved"             # interleaved | front
     retries: int = 24
     queries: int = 0
+    select: bool = True          # False = UNCONDITIONAL: accept whatever
+                                 # exposure is drawn, no oracle-identifiability
+                                 # filter. Measures coverage, not mechanism.
+    theta_commit: float = 0.99
 
     def label(self) -> str:
         return (f"{self.overlap}/cal{self.n_cal}/tr{self.n_transfer}/"
                 f"dc{self.demos_cal_cap}/dt{self.demos_transfer_cap}/"
                 f"amb{self.ambiguity[0]}-{self.ambiguity[1]}/"
-                f"exp{self.exposure_mix}/ord{self.order_p}/{self.schedule}")
+                f"exp{self.exposure_mix}/ord{self.order_p}/{self.schedule}"
+                + ("" if self.select else "/UNCONDITIONAL"))
 
 
 # ------------------------------------------------------- demonstrations
@@ -237,6 +245,15 @@ def build_episode(fam, beh, cfg: Config, seed: int) -> Episode:
             surv0 = [k for k in live
                      if any(fam.realise(phi, k, q) == u0 for q in pool)]
             unselected.append(surv0 == [j])
+            if not cfg.select:
+                # UNCONDITIONAL: take the exposure that was drawn, whatever
+                # it leaves open. `accepted` records what the selected
+                # generator would have done, so the two distributions can be
+                # compared on the same episodes.
+                tie = tuple(rng.sample(range(m), m))
+                made = Task("transfer", j, d, live, u0, pool, tie,
+                            accepted=bool(surv0 == [j]))
+                break
             if not good:
                 rejected += 1
                 reject_oracle += 1
@@ -279,6 +296,42 @@ def build_episode(fam, beh, cfg: Config, seed: int) -> Episode:
     for a, b in zip(cal_pos, shifted):
         ep.u_alt[a] = fam.realise(phi_alt, tasks[a].z, ("O", "F", "S"))
         ep.u_wrong[a] = fam.realise(phi, tasks[b].z, ("O", "F", "S"))
+    return ep
+
+
+def change_episode(fam, beh, cfg, seed):
+    """The convention changes at the declared boundary. The post-boundary
+    utterances are RE-SELECTED under the new convention by the same teacher
+    procedure, not merely re-realised with a random pattern.
+
+    That distinction matters: under the correctly specified likelihood a
+    randomly realised utterance has probability zero, so a naive splice
+    would rule out the new convention and the diagnostic would measure the
+    splice rather than the learner. Tasks the new convention cannot select
+    at all are kept with a random exposure and counted."""
+    ep = build_episode(fam, beh, cfg, seed)
+    rng = random.Random(seed + 313131)
+    tasks = list(ep.tasks)
+    unselectable = 0
+    for pos in range(ep.boundary, len(tasks)):
+        t_ = tasks[pos]
+        pool = t_.pool if t_.kind == "transfer" else FAM.CAL_POOL
+        good = []
+        for pat in pool:
+            u = fam.realise(ep.phi_alt, t_.z, pat)
+            surv = [k for k in t_.live
+                    if any(fam.realise(ep.phi_alt, k, q) == u for q in pool)]
+            if surv == [t_.z]:
+                good.append(u)
+        if good:
+            u = good[rng.randrange(len(good))]
+        else:
+            unselectable += 1
+            u = fam.realise(ep.phi_alt, t_.z, pool[rng.randrange(len(pool))])
+        tasks[pos] = Task(t_.kind, t_.z, t_.demos, t_.live, u, pool, t_.tie,
+                          accepted=t_.accepted)
+    ep.tasks = tasks
+    ep.unselectable_after_change = unselectable
     return ep
 
 
@@ -367,6 +420,30 @@ ARMS = ("oracle", "persist", "static", "reset", "shuffled", "phi_change",
         "wrong_pairing", "repeat_task", "default", "demos_only",
         "query_random", "query_infogain", "selection_aware")
 
+ALL_FORMS = None
+
+
+def _infer_by(likelihood, fam, p, u, pool, live, tie):
+    """`naive` is the uniform-pool likelihood X64H-0B used. `aware` is the
+    generator's own -- the teacher picks the exposure so the true convention
+    identifies the task, and rejects candidates where none does."""
+    from . import audit0c as A
+    if likelihood == "aware":
+        return A.infer_selection_aware(fam, p, u, pool, live, tie)
+    if likelihood == "selection_only":
+        return A.infer_selection_only(fam, u, pool, live, tie)
+    return infer(fam, p, u, pool, live, tie)
+
+
+def conflict_of(fam, p_phi, u, pool, live, tie):
+    """X64E's conflict, carried forward: one minus the posterior mass the
+    LANGUAGE puts on the behaviours the demonstrations allow. Always
+    computed with the naive decoding over ALL forms -- under the
+    selection-aware likelihood the mass on D is 1 by construction, which
+    would make the statistic vacuous."""
+    b, _c, _best = infer(fam, p_phi, u, pool, tuple(range(fam.m)), tie)
+    return float(1.0 - sum(b[j] for j in live))
+
 
 def _uniform(fam):
     return np.full(fam.n, 1.0 / fam.n)
@@ -378,14 +455,15 @@ def _delta(fam, i):
     return v
 
 
-def _query(fam, beh, arm, task, p_phi, rng, budget):
+def _query(fam, beh, arm, task, p_phi, rng, budget, likelihood="naive"):
     """A behavioural question: name an input, receive its output. `random`
     picks uniformly among questions that split the posterior; `infogain`
     maximises the exact answer entropy under the current joint. Same pool,
     same budget, same answer channel."""
     live = list(task.live)
     asked = set(task.demos)
-    b, conv, best = infer(fam, p_phi, task.u, task.pool, live, task.tie)
+    b, conv, best = _infer_by(likelihood, fam, p_phi, task.u, task.pool,
+                              live, task.tie)
     for _ in range(budget):
         cand = [k for k in range(len(UNIVERSE)) if k not in asked]
         splits = []
@@ -405,11 +483,13 @@ def _query(fam, beh, arm, task, p_phi, rng, budget):
         asked.add(k)
         y = beh[task.z][k]
         live = [j for j in live if beh[j][k] == y]
-        b, conv, best = infer(fam, p_phi, task.u, task.pool, live, task.tie)
+        b, conv, best = _infer_by(likelihood, fam, p_phi, task.u, task.pool,
+                                  live, task.tie)
     return b, conv, best, len(asked) - len(task.demos)
 
 
-def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
+def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int,
+            likelihood: str = "naive") -> dict:
     rng = random.Random(seed * 7919 + hash(arm) % 100003)
     if arm == "oracle":
         p = _delta(fam, ep.phi)
@@ -418,10 +498,10 @@ def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
     else:
         p = _uniform(fam)
 
-    phi_after = (ep.phi_alt if arm == "phi_change" else ep.phi)
     cal_correct, tr_correct, tr_pos = [], [], []
     ent, mass, ncl, queries = [], [], [], []
     prior_H, norm_err = [], 0.0
+    conflict, abstain, unresolved, accepted_flag = [], [], [], []
     trace = []
     cls = fam.class_of()
     true_cls = int(cls[ep.phi])
@@ -436,11 +516,6 @@ def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
                 u = ep.u_alt.get(pos, u)
             elif arm == "wrong_pairing":
                 u = ep.u_wrong.get(pos, u)
-            elif arm == "phi_change" and pos >= ep.boundary:
-                u = fam.realise(phi_after, t.z, t.pool[0])
-        else:
-            if arm == "phi_change" and pos >= ep.boundary:
-                u = fam.realise(phi_after, t.z, t.pool[rng.randrange(len(t.pool))])
 
         use = p
         if arm in ("static", "demos_only"):
@@ -485,9 +560,11 @@ def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
             best = next(j for j in t.tie if j in set(t.live))
             nq = 0
         elif arm in ("query_random", "query_infogain") and t.kind == "transfer":
-            b, conv, best, nq = _query(fam, beh, arm, t, use, rng, cfg.queries)
+            b, conv, best, nq = _query(fam, beh, arm, t, use, rng, cfg.queries,
+                                       likelihood)
         else:
-            b, conv, best = infer(fam, use, u, t.pool, t.live, t.tie)
+            b, conv, best = _infer_by(likelihood, fam, use, u, t.pool,
+                                      t.live, t.tie)
             nq = 0
 
         ok = (best == t.z)
@@ -498,9 +575,15 @@ def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
             tr_pos.append(pos)
             ncl.append(len(t.live))
             queries.append(nq)
+            conflict.append(conflict_of(fam, use, u, t.pool, t.live, t.tie))
+            top = float(b.max()) if b.size else 0.0
+            abstain.append(top < cfg.theta_commit)
+            unresolved.append(int((b >= top - 1e-12).sum()) > 1)
+            accepted_flag.append(bool(t.accepted))
 
         if arm in ("persist", "shuffled", "phi_change", "wrong_pairing",
-                   "repeat_task", "reset", "query_random", "query_infogain"):
+                   "repeat_task", "reset", "query_random", "query_infogain") \
+                and arm != "selection_only":
             if arm == "reset" and t.kind == "transfer":
                 pass
             else:
@@ -516,7 +599,10 @@ def run_arm(fam, beh, ep: Episode, arm: str, cfg: Config, seed: int) -> dict:
     return {"arm": arm, "cal": cal_correct, "transfer": tr_correct,
             "transfer_pos": tr_pos, "entropy": ent, "mass": mass,
             "classes": ncl, "queries": queries, "trace": trace,
-            "prior_H": prior_H, "max_normalisation_error": norm_err}
+            "prior_H": prior_H, "max_normalisation_error": norm_err,
+            "conflict": conflict, "abstain": abstain,
+            "unresolved": unresolved, "accepted": accepted_flag,
+            "likelihood": likelihood}
 
 
 def first_task_indexed(fam, ep: Episode) -> dict:
