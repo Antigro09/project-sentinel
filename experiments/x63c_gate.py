@@ -231,10 +231,29 @@ def main() -> int:
         return B.seq("PUSH", "ADV", "PUSH", "ADV", "PUSH", "ADV",
                      ("LOOP", ("IF", ("TOP", c), B.seq("EMIT", "ADV"), "POP")))
 
-    live = sum(1 for c in alpha for ti, tp in enumerate(DTAPES)
-               if out_of(capped, probe(c), tp) != out_of(real_run, probe(c), tp))
-    print(f"       calibration: {len(alpha)*len(DTAPES)} depth-sensitive "
-          f"probes, {live} distinguish a capped stack")
+    # A LARGER PROBE FAMILY. Two distinguishing probes out of ten prove the
+    # test is not vacuous; they do not say how sensitive it is. This sweeps
+    # push depth, the branch symbol and the loop body, and reports a
+    # detection RATE rather than an existence claim.
+    def probe_n(c, depth, body):
+        pre = []
+        for _ in range(depth):
+            pre += ["PUSH", "ADV"]
+        return B.seq(*pre, ("LOOP", ("IF", ("TOP", c), body, "POP")))
+
+    total = live = 0
+    for c in alpha:
+        for depth in (2, 3, 4, 5):
+            for body in (B.seq("EMIT", "ADV"), B.seq("EMIT", "POP"),
+                         B.seq("POP", "EMIT", "ADV")):
+                for tp in DTAPES:
+                    pr = probe_n(c, depth, body)
+                    total += 1
+                    live += out_of(capped, pr, tp) != out_of(real_run, pr, tp)
+    print(f"       calibration: {total} depth-sensitive probes over push"
+          f"-depth 2-5, {len(alpha)} branch symbols and 3 loop bodies")
+    print(f"       detection rate {live/max(1,total):.2f} ({live} "
+          f"distinguish a capped stack)")
 
     progs = P.sample_programs(400, rng, A.ACTS, dpreds)
     mismatch, explained = [], 0

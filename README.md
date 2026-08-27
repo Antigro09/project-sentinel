@@ -1500,3 +1500,74 @@ DVC initialization additionally needs the repository owner's approval. Their
 *properties* are implemented with the standard library: the fully resolved
 config is serialized into every artifact, each run writes a structured
 record, and JSON is the authoritative output.
+
+## X64H-0: overlapping codebooks fix the leak, and 10/12 validity gates pass
+
+H1 failed at `789161e` because conventions drew phrases from **disjoint**
+pools, so the vocabulary in an utterance identified the convention. The
+replacement shares one surface alphabet across all conventions and hides
+role-specific permutations:
+
+```
+roles       O (operator), F (filter), S (scope)
+codewords   W_O = 2 words;  W = 4 words SHARED by F and S
+convention  phi = (pi_O, pi_F, pi_S, order bit)  ->  1152 codebooks
+exposure    two of three roles, and which two is NOT announced
+```
+
+**The leak is gone.** Every codeword is used by every convention, all
+utterances are the same length, and a planted unique-token convention is
+caught. One utterance now leaves 576 of 1152 conventions live instead of 1.
+
+### Adaptation, on withholding tasks only
+
+| | 1 | 5 | 9 | 13 | 17 | 21 |
+|---|---|---|---|---|---|---|
+| oracle | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 0.92 |
+| **persist** | 0.50 | 0.58 | 0.83 | 0.75 | 1.00 | 0.92 |
+| static | 0.58 | 0.50 | 0.75 | 0.58 | 0.83 | 0.67 |
+| shuffled | 0.58 | 0.58 | 0.67 | 0.58 | 0.83 | 0.58 |
+| **H(φ) bits** | **7.71** | 3.34 | 0.95 | 0.57 | 0.16 | **0.17** |
+| **true-class mass** | **0.01** | 0.13 | 0.59 | 0.73 | 0.91 | **0.92** |
+| classes/task | 6.25 | 3.67 | 4.83 | 3.08 | 3.33 | 4.42 |
+
+**10 of 12 validity gates pass.** V2 (static 0.667, gap +0.294), V3
+(R = 0.50, late 0.81), V4 (entropy 7.71 → 0.17 bits, true-class mass
+0.01 → 0.92), V5–V9, V11, V12 all hold. Every control behaves: reset 0.712,
+shuffled 0.689, convention-changes-every-task 0.682, against persist 0.909.
+
+**V1 and V10 fail, for one shared reason.** The oracle reaches only 0.960
+and the persistent arm 0.909 late, both short of their thresholds, because
+a two-of-three-role exposure plus deliberately withholding demonstrations
+does not determine the task often enough *even with the convention known*.
+The oracle ceiling caps everything beneath it.
+
+### The structural obstruction the sweep found
+
+Ambiguity and learnability are **coupled through the same channel**.
+Learning the codebook requires the demonstrations to reveal what codewords
+mean; withholding that is exactly what makes the memoryless task ambiguous.
+A uniform teacher gives one or the other:
+
+| teacher | classes before language | oracle | recovery R |
+|---|---|---|---|
+| α = 0 (reveals freely) | 1.70 | 0.997 | 0.84 |
+| α > 0 (withholds) | 4.25 | 0.965 | **0.14** |
+
+A **mixed schedule** — every third task teaches, the rest withhold —
+partially decouples them and takes recovery from 0.14 to 0.50 with late-half
+0.81. It does not lift the oracle ceiling.
+
+### Bugs found
+
+`late()` divided by `h` while slicing `c[h:]`, which is longer when the
+count is odd — it reported an accuracy of **1.067** and inflated an earlier
+run to 11/12. Penalizing only the first demonstration was tried and
+rejected: it lifted the oracle 0.960 → 0.972, still short, and cost V10
+(ambiguity 4.15 → 1.82).
+
+Also strengthened, as asked: the X63C capped-stack differential calibration
+now sweeps push-depth 2–5 × 5 branch symbols × 3 loop bodies and reports a
+**detection rate of 0.28 over 120 probes**, rather than "2 of 10 exist".
+
+**No final manifest written. No final seed sampled.**
