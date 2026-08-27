@@ -1571,3 +1571,157 @@ now sweeps push-depth 2–5 × 5 branch symbols × 3 loop bodies and reports a
 **detection rate of 0.28 over 120 probes**, rather than "2 of 10 exist".
 
 **No final manifest written. No final seed sampled.**
+
+## X64H-0B: calibration grounds the convention, transfer requires it — 13/13
+
+X64H-0 failed V1 and V10 because one demonstration schedule had to do two
+incompatible jobs: keep the task ambiguous *and* teach the codebook. X64H-0B
+gives the two jobs to two disjoint task sets inside one episode.
+
+```
+CALIBRATION   demonstrations identify the meaning on their own; the
+              utterance exposes all three roles.  The learner grounds
+              (meaning, utterance) — no oracle label, the demos ARE the
+              grounding — and the convention posterior sharpens.
+TRANSFER      the meaning is unseen, demonstrations leave 2–8 behaviours
+              open, the utterance exposes fewer roles.  Only a learned
+              convention closes the gap.  Primary accuracy is scored here.
+```
+
+### The accounting correction (V0)
+
+X64H-0 reported **1152 codebooks**. That was `full_family(fix_op=True)` —
+π_O pinned to the identity. A design restriction, not an observational
+quotient, and reporting it as a family size was an error.
+
+| | raw assignments | executable | observational classes | quotient |
+|---|---|---|---|---|
+| disjoint operator alphabet | 2304 = 2·24·24·2 | 2304 | 2304 | none |
+| shared alphabet | 13824 = 12·24·24·2 | 13824 | 13824 | none |
+
+Pinning π_O keeps 1152 and excludes 1152, of which **0** duplicate a kept
+convention — so there is no two-to-one symmetry to quotient by. Parameters →
+observations is injective in both families. `H₀ = log₂(13824) = 13.754888`
+bits and `P_true_class(0) = 1/13824`.
+
+### The property that makes the testbed valid
+
+For every utterance `u`, every pool, and both alphabets:
+
+```
+sum over phi of  p(u | phi, z)     is CONSTANT in z   (spread 0.0, exactly)
+```
+
+The family is closed under relabelling codewords role by role, so `φ ↦ φ∘σ`
+is a bijection carrying the conventions that realise `u` from `z` onto those
+that realise it from `z'`. **Under a uniform convention prior an utterance
+says nothing at all about the meaning.** Every point of transfer advantage is
+therefore attributable to the convention posterior, not to the surface form.
+Calibration arm: a deliberately unclosed sub-family gives spread 26.0, so the
+audit is not vacuous.
+
+### Calibration as a separating family (V7)
+
+Exhaustive search: **no set of two grounded meanings separates the family**
+(two grounded meanings expose two filter values, leaving π_F ambiguous
+between the two unassigned words), and **three suffice** — e.g.
+`keep(letters @ whole)`, `keep(symbols seen before @ before hash)`,
+`remove(the first symbol @ after hash)`. 100% of the balanced covering
+designs the generator draws separate, and 100% cover every O/F/S value.
+
+### Indexed posterior
+
+| | H(φ) bits | true-class mass |
+|---|---|---|
+| prior | 13.755 | 7.23e-05 |
+| after first utterance | 12.755 | 1.45e-04 |
+| after first demonstrations | 7.755 | 4.63e-03 |
+| after task 4 | 3.945 | 0.055 |
+| after task 8 | 0.000 | 1.000 |
+
+The posterior falls below 1 bit after **2.50 calibration tasks** (7.08 tasks
+overall) in 12/12 episodes — consistent with the minimal separating size of 3.
+
+### Arms, transfer tasks only
+
+Calibration accuracy is 1.000 for every arm by construction and is reported
+separately, never folded into the headline.
+
+| arm | dev | dev late | val | val late |
+|---|---|---|---|---|
+| oracle | 1.000 | 1.000 | 1.000 | 1.000 |
+| **persist** | **0.902** | **1.000** | **0.894** | **1.000** |
+| static (family-aware) | 0.290 | 0.329 | 0.218 | 0.234 |
+| reset before each transfer | 0.290 | 0.329 | 0.218 | 0.234 |
+| shuffled history | 0.285 | 0.308 | 0.331 | 0.297 |
+| wrong grounded pairings | 0.241 | 0.287 | 0.212 | 0.250 |
+| convention changes mid-episode | 0.721 | 0.646 | 0.725 | 0.672 |
+| repeated-task control | 0.919 | 1.000 | 0.903 | 1.000 |
+| default convention | 0.259 | 0.234 | 0.259 | 0.219 |
+| demonstrations only | 0.290 | 0.329 | 0.218 | 0.234 |
+| random query, budget 1 | 0.994 | 1.000 | 0.976 | 1.000 |
+| information-gain query, budget 1 | 1.000 | 1.000 | 0.992 | 1.000 |
+
+`G = A_oracle − A_static` is **+0.710** (dev) and **+0.782** (val).
+Whole-episode gap recovery `R = 0.862` / `0.865`; late-window gap recovery
+`1.000` on both. An **untouched third split** (seeds 700–711, run once):
+oracle 1.000, static 0.302, persist 0.876, R = 0.822, late 1.000, all four
+corruption controls at 0.27–0.31 except the mid-episode change at 0.625.
+
+### Two alphabets, and what each costs
+
+| | shared (13824) | disjoint operator (2304) |
+|---|---|---|
+| bits leaked by one utterance | **0.000** | 1.000 (order artifact) |
+| fraction of family left | 1.000 | 0.500 |
+| tasks discarded to build the ceiling | 20.1/episode | **0.2/episode** |
+| oracle under *unselected* exposure | 0.244 | 0.577 |
+| selection rule is worth | +0.046 | +0.031 |
+| convention posterior is worth | +0.612 | +0.672 |
+
+Both pass every gate. The shared alphabet has zero one-utterance leakage but
+needs heavy exposure selection; the disjoint one needs almost none but leaks
+the order bit by position.
+
+### Disclosure: the oracle ceiling is constructed
+
+The generator accepts a transfer task only if the true convention makes it
+identifiable, so V1 = 1.000 is **built, not found** — with an unselected
+exposure the oracle would identify 0.244 of tasks. The demonstrations are
+chosen without reference to the convention; the only convention-dependent
+choice is which of three two-role patterns is spoken.
+
+That choice is itself a channel, so it gets an adversarial arm.
+**`selection_aware`** models the generator's own selection rule but never
+learns the convention: it scores **0.336** against chance-level static 0.290
+and persistent 0.902. The selection rule is worth **+0.046**; the convention
+posterior is worth **+0.612**. The learner's observation model is uniform
+over the pool while the teacher's choice is not, so the model is
+*misspecified against the generator* — which can only cost the treatment arms.
+
+### Bugs found
+
+- **The covering design lost its covering.** `_covering_calibration` built
+  ⌈n/4⌉ blocks, shuffled all of them together, then truncated to `n_cal` —
+  which drops values. Transfer meanings then contained atoms calibration had
+  never grounded. Fixed by keeping the first block whole.
+- **The planted-token audit was vacuous.** The planted private codeword was
+  written with id `A` into an alphabet of width `A`, so it aliased an
+  ordinary pair and the audit that must catch it passed the honest family and
+  the planted one alike. Fixed by widening the alphabet in the plant.
+- **The shuffled control inherited a correct bit.** `phi_alt` was drawn from
+  the same order-bit group as `phi`, so "a genuinely different convention"
+  shared the order bit. Now drawn from the whole family.
+
+### Gates
+
+**13 of 13 pass on development and validation.** V0 accounting, V1 transfer
+oracle ≥ 0.98 (constructed), V2 static < 0.95 with G = +0.710, V3 R ≥ 0.50 at
+0.862, V4 entropy 13.75 → 0.00 bits with max |Σp − 1| = 3.3e-16, V5 every
+corruption removes the gain, V6 new meanings not repeats, V7 covering and
+separating, V8 zero one-utterance leakage with the planted token caught,
+V9 ambiguity 4.48 in [2, 8], V10 late transfer 1.000, V11 information gain
+needs 1.279 questions against random's 1.699, V12 the mid-episode change is
+detected. Thresholds are X64H-0's, unchanged.
+
+**No final manifest written. No final convention seed sampled.**
