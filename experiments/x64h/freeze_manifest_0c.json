@@ -1,0 +1,237 @@
+{
+  "commit_at_write": "dcee6d3750aebb58f275e90e64e489355ecef55c",
+  "components": {
+    "alphabet_families": "3e9ad51788f16c9d8f7d87b3cc110d144a5a2d152cd880948ffd0b7fb5119c89",
+    "bootstrap": "9b6265f6f215139ed81455ae2c717f0d1b7ed698bb97875a13397fb1cb824c7d",
+    "calibration_transfer_schedule": "a4f39dd6abc63ec0eec9e8adb9e760c425967684c50516aacba9bf77194df093",
+    "conflict_model": "a4f39dd6abc63ec0eec9e8adb9e760c425967684c50516aacba9bf77194df093",
+    "evaluator": "68a26c5b1e4c21ae2391120e16e0e51b91ecb1eb75470ec921ad490c6f36307a",
+    "exact_inference": "9be8d2ddfdab678d2941612e7540eb677dcd221abb3e9d05a2f23cfa93614591",
+    "gates": "d1cd7eff324129154d5d8b7bf66cfe09ec025f71a06a34a94a0ddbeb67a0b02b",
+    "open_world_other": "82da684be1fb9c23a13a9e539d1794abea3aaf6298b87ac742267c0b5150f634",
+    "persistence": "a192dce09d6515ec1ee122d624f064b87e7e85ce433b940426944547450413c3",
+    "query_policy": "a760394d441e2191655b9d92f51ef77940b4e10bc25116b95bd4a565034d05d8",
+    "structural": "d4eba9abef751f853083f08975580f54885a719238f4c497032b3c68f8353a06",
+    "teacher_selection_likelihood": "9b6265f6f215139ed81455ae2c717f0d1b7ed698bb97875a13397fb1cb824c7d"
+  },
+  "created": "2026-08-27T09:10:05",
+  "digest": "4baa8e2a7ce170a69038698f4bfd36c437ec10b5aea4de09f9c64b2f0e5d8c2d",
+  "note": "X64H-0C pre-freeze gates 10/10",
+  "python": "3.12.14",
+  "structural": {
+    "arms": [
+      [
+        "oracle",
+        "naive"
+      ],
+      [
+        "oracle",
+        "aware"
+      ],
+      [
+        "static",
+        "naive"
+      ],
+      [
+        "static",
+        "aware"
+      ],
+      [
+        "persist",
+        "naive"
+      ],
+      [
+        "persist",
+        "aware"
+      ],
+      [
+        "selection_only",
+        "selection_only"
+      ],
+      [
+        "reset",
+        "aware"
+      ],
+      [
+        "shuffled",
+        "aware"
+      ],
+      [
+        "wrong_pairing",
+        "aware"
+      ],
+      [
+        "phi_change",
+        "aware"
+      ],
+      [
+        "repeat_task",
+        "aware"
+      ],
+      [
+        "default",
+        "aware"
+      ],
+      [
+        "demos_only",
+        "aware"
+      ],
+      [
+        "query_random",
+        "aware"
+      ],
+      [
+        "query_infogain",
+        "aware"
+      ]
+    ],
+    "bootstrap": {
+      "resamples": 10000,
+      "seed": 20260827,
+      "unit": "episode"
+    },
+    "config": {
+      "ambiguity": [
+        2,
+        8
+      ],
+      "demos_cal_cap": 6,
+      "demos_transfer_cap": 4,
+      "exposure_mix": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "n_cal": 6,
+      "n_transfer": 16,
+      "order_p": 0.5,
+      "overlap": "shared",
+      "queries": 1,
+      "retries": 24,
+      "schedule": "interleaved",
+      "select": true,
+      "theta_commit": 0.99
+    },
+    "families": {
+      "disjoint_op": {
+        "alphabet_size": 6,
+        "canonical_representatives": 2304,
+        "class_size_histogram": {
+          "1": 2304
+        },
+        "minimal_separating_k": 3,
+        "observational_equivalence_classes": 2304,
+        "overlap": "disjoint_op",
+        "quotient": "none: parameters -> observations is injective",
+        "raw_factorisation": "2 * 24 * 24 * 2",
+        "raw_parameter_assignments": 2304,
+        "signature_sha": "5ddfbe4cd5997934d069317104b9a3c8cdb3cc8399635d3b72d047c839e9cc00",
+        "unique_executable_conventions": 2304
+      },
+      "shared": {
+        "alphabet_size": 4,
+        "canonical_representatives": 13824,
+        "class_size_histogram": {
+          "1": 13824
+        },
+        "minimal_separating_k": 3,
+        "observational_equivalence_classes": 13824,
+        "overlap": "shared",
+        "quotient": "none: parameters -> observations is injective",
+        "raw_factorisation": "12 * 24 * 24 * 2",
+        "raw_parameter_assignments": 13824,
+        "signature_sha": "6fdfa13b6623f5dcfbf6cc57f3ae052bbef89f2df46330d31434aa3a8108be2c",
+        "unique_executable_conventions": 13824
+      }
+    },
+    "implementation_slice_digest": "69254f8a6376414eb463751150984dbce9b3d67f580e2d6d34b9bb14d72b8e4a",
+    "likelihoods": [
+      "naive",
+      "aware",
+      "selection_only"
+    ],
+    "other_model": {
+      "out_alphabet": 8,
+      "prior_in": 0.94,
+      "prior_unknown_meaning": 0.02,
+      "prior_unknown_program": 0.02,
+      "prior_unknown_realization": 0.02,
+      "vocab": 20
+    },
+    "prior": "uniform over the convention family; p(z | D) uniform over demo-consistent behaviours",
+    "semantic": {
+      "filters": [
+        "letters",
+        "symbols seen before",
+        "the first symbol",
+        "the last symbol"
+      ],
+      "ops": [
+        "keep",
+        "remove"
+      ],
+      "scopes": [
+        "whole",
+        "before hash",
+        "after hash",
+        "outside brackets"
+      ],
+      "universe": [
+        "a#b#a",
+        "(ab)a",
+        "abab",
+        "((a))",
+        "ab#()",
+        "(ab)ba",
+        "a#(b)",
+        "b#ba",
+        "(aa)(",
+        "aabb",
+        "#ab",
+        "(a)b",
+        "ba#",
+        "(bb)a",
+        "ab(a)",
+        ")ab(",
+        "a",
+        "b",
+        "#",
+        "(",
+        ")",
+        "aa",
+        "ab",
+        "a#",
+        "(a",
+        "a)",
+        "((",
+        "))",
+        "a#b",
+        "(ab",
+        "ab)",
+        "b#a",
+        "(a)",
+        "a()",
+        "()a",
+        "#a#",
+        "aba",
+        "bab",
+        "(ab)(ba)",
+        "ab#ab",
+        "((ab))",
+        "a#b#c",
+        "(ac)a",
+        "cab",
+        "(ca)c",
+        "cc#c"
+      ]
+    },
+    "thresholds": {
+      "R": 0.5,
+      "late": 0.95,
+      "margin": 0.02,
+      "oracle": 0.98,
+      "static": 0.95,
+      "theta_commit": 0.99
+    }
+  }
+}
