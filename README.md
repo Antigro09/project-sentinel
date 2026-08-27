@@ -2104,3 +2104,112 @@ both alphabet strata, with the frozen X64H mechanism re-run live first
 (persist 0.887 vs static 0.242). 30 new tests.
 
 **No final X65A manifest. No final stream seed sampled.**
+
+## X65A-S1: the pre-latent-identity audit — 6/7, and it stops here
+
+X65A-S was a positive development result. This audit asks whether it was a
+**memory** result or a **privileged-information** result, and whether the
+comparison to raw replay was fair. Six of seven gates pass. **S1.7 fails, so
+X65A-L was not started.**
+
+### S1.1 — unlimited replay reconstructs the semantic posterior exactly
+
+An unbounded diagnostic keeping every episode, demonstration, clarification
+and public outcome, with no byte, retrieval or compute cap, re-derived the
+posterior using the **same grounding algorithm including quarantine**:
+
+| | shared | disjoint |
+|---|---|---|
+| development streams | 100 | 100 |
+| task-level comparisons | 7 788 | 8 000 |
+| max total variation | **0.0** | **0.0** |
+| predictive / decision / surviving-set mismatches | 0 / 0 / 0 | 0 / 0 / 0 |
+
+Also exact across a genuine process restart. **Nothing is in semantic memory
+that the raw episodes do not contain** — the earlier 0.898-vs-0.989 gap was
+the budgeted replay arm lacking quarantine, not lacking information. The
+check is non-vacuous: a replay arm without quarantine diverges.
+
+**A privileged-information bug was fixed to get here.** The semantic arm read
+`task.z` — the generator's true meaning index — instead of deriving the
+meaning from the demonstrations. It happened to coincide in 399/399
+calibration tasks, but it was information no raw episode contains. The arm
+now derives the meaning from public evidence only.
+
+### S1.2 — paired stream-level 95% intervals (7 streams per stratum)
+
+| contrast | shared | disjoint |
+|---|---|---|
+| main − none [q=0] | +0.669 (+0.641, +0.697) | +0.693 (+0.637, +0.741) |
+| main − none [q=1] | +0.095 (+0.076, +0.120) | +0.137 (+0.107, +0.161) |
+| main − within-episode [q=0] | +0.669 (+0.641, +0.697) | +0.693 (+0.637, +0.741) |
+| main − budgeted raw replay [q=0] | +0.669 (+0.641, +0.697) | +0.693 (+0.637, +0.741) |
+| **main − unlimited replay [q=0]** | **+0.000 (0, 0)** | **+0.000 (0, 0)** |
+| query reduction [q=1] | +0.669 (+0.641, +0.697) | +0.693 (+0.637, +0.741) |
+| retention D | −0.003 (−0.018, +0.009) | +0.003 (−0.018, +0.024) |
+
+### Query-efficiency curve — the central metric
+
+accuracy / mean questions:
+
+| arm | q=0 | q=1 | q=2 | q=3 | q=4 |
+|---|---|---|---|---|---|
+| no memory | 0.255/0.00 | 0.865/0.74 | 0.995/0.88 | 1.000/0.89 | 1.000/0.89 |
+| within-episode | 0.255/0.00 | 0.865/0.74 | 0.995/0.88 | 1.000/0.89 | 1.000/0.89 |
+| raw replay | 0.880/0.00 | 0.984/0.12 | 1.000/0.14 | 1.000/0.14 | 1.000/0.14 |
+| **main** | **0.984/0.00** | 1.000/0.02 | 1.000/0.02 | 1.000/0.02 | 1.000/0.02 |
+| oracle | 1.000/0.00 | 1.000/0.00 | 1.000/0.00 | 1.000/0.00 | 1.000/0.00 |
+
+**Questions needed to reach 0.95 accuracy: main 0, raw replay 1, no memory 2,
+within-episode 2, oracle 0.**
+
+### S1.3 — resources, and the "42×" retracted
+
+One compute unit is exactly one posterior evaluation, task-likelihood
+evaluation, clarification question, trusted execution of one form on one
+tape, replayed episode, serialization, or archive read.
+
+| ceiling | replay C(q=0) | replay units | main C(q=0) | main units |
+|---|---|---|---|---|
+| 1 000 | 0.255 | 3 237 | 0.984 | 2 538 |
+| 3 000 | 0.255 | 4 041 | 0.984 | 2 538 |
+| 4 500 | 0.255 | 4 911 | 0.984 | 2 538 |
+| 9 000 | 0.880 | 8 224 | 0.984 | 2 538 |
+
+Main dominates on both axes. **The development "42×" figure is retracted**:
+it was measured before grounding was charged to every arm, so it compared
+replay's grounding *plus* re-derivation against main's reads alone. Charged
+identically, the honest ratio is **3.24×**.
+
+### S1.7 — FAILS. Quarantine is a reduction, not a guarantee
+
+A family-sized stress test — 8 independent out-of-family events per stream,
+56 per stratum — instead of X65A-S's single event:
+
+| | quarantine | no quarantine |
+|---|---|---|
+| records corrupted | **0.14/8 (1.8%)** | 8.00/8 (100%) |
+| admitted on **determined** records | **0/50** | 50/50 |
+| admitted on **under-determined** records | **1/6** | 6/6 |
+| later resolved | 7.86 | 0.00 |
+
+Paired interval on corruption, without minus with: **+7.86 (+7.57, +8.00)**.
+
+**Mechanism.** Quarantine fires only when an event contradicts *every*
+surviving convention. While a record is still under-determined, an alien
+observation consistent with a surviving non-true convention is admitted and
+can eliminate the truth. X65A-S's "0% contamination" was an artifact of a
+single event that happened to land on a fully determined record.
+
+The gate was preregistered at `records_corrupted == 0` and I have not
+relaxed it after seeing the data. **6/7 → stop. X65A-L not started.**
+
+### Cardinality, reconciled
+
+X65A-0 declared a K = 64 pilot table. **X65A-S does not use it.** The
+identity-local latent state is the frozen X64H convention itself, so
+**13 824 states (shared) / 2 304 (disjoint) are evaluated per task per
+identity** — the K ≤ 256 budget from the X65A-0 addendum does not describe
+this phase, and carrying that table forward without saying so was an error.
+The hypothetical fully enumerated global product over 8 identities is
+13824⁸ ≈ 10³²; it is never enumerated and never claimed.

@@ -123,6 +123,18 @@ class Arm:
 
     # ------------------------------------------------------------ writing
 
+    def derive_meaning(self, task):
+        """What the DEMONSTRATIONS identify, using only public evidence:
+        the input tapes and the outputs observed on them. Reading the
+        generator's `task.z` instead would give the semantic arm information
+        no raw episode contains, and the unlimited-replay equivalence
+        diagnostic would be comparing two different observers."""
+        live = list(range(self.fam.m))
+        for d in task.demos:
+            y = self.beh[task.z][d]
+            live = [j for j in live if self.beh[j][d] == y]
+        return live[0] if len(live) == 1 else None
+
     def observe_episode(self, app, task_index: int) -> None:
         obs = []
         for t in app.cal:
@@ -135,11 +147,14 @@ class Arm:
             for d in t.demos:
                 self.ledger.interpreter_execs += live_n
                 live_n = max(1, live_n // 2)
+            z = self.derive_meaning(t)
+            if z is None:
+                continue          # the demonstrations did not identify it
             k = EV.ExternalEvidenceKey(
                 "teacher", f"ep{app.index}", len(obs),
-                EV.observation_hash((t.z, t.u)), app.label)
+                EV.observation_hash((z, t.u)), app.label)
             bid, _new = self.evidence.absorb(k)
-            obs.append(SM.GroundedObservation(t.z, t.u, bid))
+            obs.append(SM.GroundedObservation(z, t.u, bid))
         self.episode_grounded = tuple(obs)
         if self.name in ("none", "oracle", "bigger_query_budget",
                          "within_episode"):

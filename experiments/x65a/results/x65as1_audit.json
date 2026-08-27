@@ -1,0 +1,1482 @@
+{
+  "cardinality": [
+    {
+      "cardinality": 13824,
+      "component": "X64H convention (shared)",
+      "kind": "exact enumeration",
+      "per_task": true,
+      "serialized": false,
+      "sufficient_statistic": "grounded (z,u) pairs"
+    },
+    {
+      "cardinality": 2304,
+      "component": "X64H convention (disjoint_op)",
+      "kind": "exact enumeration",
+      "per_task": true,
+      "serialized": false,
+      "sufficient_statistic": "grounded (z,u) pairs"
+    },
+    {
+      "cardinality": 32,
+      "component": "task meaning z (marginalised)",
+      "kind": "exact, inside the likelihood",
+      "per_task": true,
+      "serialized": false,
+      "sufficient_statistic": "n/a"
+    },
+    {
+      "cardinality": 3,
+      "component": "exposure pattern (nuisance)",
+      "kind": "exact, inside the likelihood",
+      "per_task": true,
+      "serialized": false,
+      "sufficient_statistic": "n/a"
+    },
+    {
+      "cardinality": 64,
+      "component": "X65A-0 pilot table (UNUSED here)",
+      "kind": "declared, not evaluated",
+      "per_task": false,
+      "serialized": false,
+      "sufficient_statistic": "n/a"
+    }
+  ],
+  "families": {
+    "disjoint_op": {
+      "capacity": [
+        {
+          "archive_bytes": 132,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.011,
+          "semantic_bytes": 248,
+          "serialize_ms": 0.017,
+          "total_bytes": 380,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.003,
+          "semantic_bytes": 290,
+          "serialize_ms": 0.01,
+          "total_bytes": 554,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.003,
+          "semantic_bytes": 333,
+          "serialize_ms": 0.011,
+          "total_bytes": 861,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.003,
+          "semantic_bytes": 374,
+          "serialize_ms": 0.012,
+          "total_bytes": 1430,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.002,
+          "semantic_bytes": 335,
+          "serialize_ms": 0.01,
+          "total_bytes": 2447,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.002,
+          "semantic_bytes": 336,
+          "serialize_ms": 0.014,
+          "total_bytes": 4560,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.003,
+          "semantic_bytes": 495,
+          "serialize_ms": 0.013,
+          "total_bytes": 759,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.003,
+          "semantic_bytes": 577,
+          "serialize_ms": 0.016,
+          "total_bytes": 1105,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.003,
+          "semantic_bytes": 660,
+          "serialize_ms": 0.019,
+          "total_bytes": 1716,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.003,
+          "semantic_bytes": 703,
+          "serialize_ms": 0.02,
+          "total_bytes": 2815,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.003,
+          "semantic_bytes": 670,
+          "serialize_ms": 0.018,
+          "total_bytes": 4894,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.003,
+          "semantic_bytes": 670,
+          "serialize_ms": 0.018,
+          "total_bytes": 9118,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.004,
+          "semantic_bytes": 989,
+          "serialize_ms": 0.025,
+          "total_bytes": 1517,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1154,
+          "serialize_ms": 0.031,
+          "total_bytes": 2210,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1360,
+          "serialize_ms": 0.038,
+          "total_bytes": 3472,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.01,
+          "semantic_bytes": 1360,
+          "serialize_ms": 0.045,
+          "total_bytes": 5584,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.007,
+          "semantic_bytes": 1333,
+          "serialize_ms": 0.035,
+          "total_bytes": 9781,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1339,
+          "serialize_ms": 0.035,
+          "total_bytes": 18235,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.008,
+          "semantic_bytes": 1974,
+          "serialize_ms": 0.046,
+          "total_bytes": 3030,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.008,
+          "semantic_bytes": 2309,
+          "serialize_ms": 0.057,
+          "total_bytes": 4421,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.008,
+          "semantic_bytes": 2676,
+          "serialize_ms": 0.066,
+          "total_bytes": 6900,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.009,
+          "semantic_bytes": 2681,
+          "serialize_ms": 0.072,
+          "total_bytes": 11129,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.014,
+          "semantic_bytes": 2663,
+          "serialize_ms": 0.069,
+          "total_bytes": 19559,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 33792,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.014,
+          "semantic_bytes": 2670,
+          "serialize_ms": 0.069,
+          "total_bytes": 36462,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.02,
+          "semantic_bytes": 3942,
+          "serialize_ms": 0.091,
+          "total_bytes": 6054,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.015,
+          "semantic_bytes": 4608,
+          "serialize_ms": 0.11,
+          "total_bytes": 8832,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.016,
+          "semantic_bytes": 5323,
+          "serialize_ms": 0.131,
+          "total_bytes": 13771,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.017,
+          "semantic_bytes": 5323,
+          "serialize_ms": 0.131,
+          "total_bytes": 22219,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 33792,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.023,
+          "semantic_bytes": 5328,
+          "serialize_ms": 0.143,
+          "total_bytes": 39120,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 67584,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.024,
+          "semantic_bytes": 5340,
+          "serialize_ms": 0.141,
+          "total_bytes": 72924,
+          "within_4KiB": false
+        }
+      ],
+      "differential": {
+        "comparisons": 8000,
+        "decision_mismatches": 0,
+        "equivalent": true,
+        "max_total_variation": 0.0,
+        "predictive_mismatches": 0,
+        "streams": 100,
+        "surviving_set_mismatches": 0
+      },
+      "intervals": {
+        "main - budgeted raw replay [q=0]": {
+          "delta": 0.693452380952381,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.7410714285714286,
+          "lo": 0.636904761904762
+        },
+        "main - none [q=0]": {
+          "delta": 0.693452380952381,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.7410714285714286,
+          "lo": 0.636904761904762
+        },
+        "main - none [q=1]": {
+          "delta": 0.13690476190476192,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.16071428571428573,
+          "lo": 0.10714285714285714
+        },
+        "main - unlimited replay [q=0]": {
+          "delta": 0.0,
+          "episodes": 7,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0
+        },
+        "main - within_episode [q=0]": {
+          "delta": 0.693452380952381,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.7410714285714286,
+          "lo": 0.636904761904762
+        },
+        "main - within_episode [q=1]": {
+          "delta": 0.13690476190476192,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.16071428571428573,
+          "lo": 0.10714285714285714
+        },
+        "query reduction [q=1]": {
+          "delta": 0.693452380952381,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.7410714285714286,
+          "lo": 0.6369047619047619
+        },
+        "retention D": {
+          "delta": 0.0029761904761904656,
+          "episodes": 7,
+          "excludes_zero": false,
+          "hi": 0.023809523809523787,
+          "lo": -0.017857142857142842
+        }
+      },
+      "pareto": [
+        {
+          "active_bytes": 3107.5,
+          "arm": "raw_replay",
+          "ceiling": 1000,
+          "delayed_return_accuracy": 0.2552083333333333,
+          "interpreter_execs": 2799.75,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 299.0,
+          "units_consumed": 3236.75,
+          "wall_s": 0.005883260280825198
+        },
+        {
+          "active_bytes": 3784.5,
+          "arm": "main",
+          "ceiling": 1000,
+          "delayed_return_accuracy": 0.984375,
+          "interpreter_execs": 2400.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2538.0,
+          "wall_s": 0.00455285474890843
+        },
+        {
+          "active_bytes": 3107.5,
+          "arm": "raw_replay",
+          "ceiling": 2000,
+          "delayed_return_accuracy": 0.2552083333333333,
+          "interpreter_execs": 3199.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 299.0,
+          "units_consumed": 3636.0,
+          "wall_s": 0.0033187707886099815
+        },
+        {
+          "active_bytes": 3784.5,
+          "arm": "main",
+          "ceiling": 2000,
+          "delayed_return_accuracy": 0.984375,
+          "interpreter_execs": 2400.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2538.0,
+          "wall_s": 0.0044765727943740785
+        },
+        {
+          "active_bytes": 3107.5,
+          "arm": "raw_replay",
+          "ceiling": 3000,
+          "delayed_return_accuracy": 0.2552083333333333,
+          "interpreter_execs": 3604.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 299.0,
+          "units_consumed": 4041.0,
+          "wall_s": 0.003400968562345952
+        },
+        {
+          "active_bytes": 3784.5,
+          "arm": "main",
+          "ceiling": 3000,
+          "delayed_return_accuracy": 0.984375,
+          "interpreter_execs": 2400.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2538.0,
+          "wall_s": 0.00446813547750935
+        },
+        {
+          "active_bytes": 3107.5,
+          "arm": "raw_replay",
+          "ceiling": 4500,
+          "delayed_return_accuracy": 0.2552083333333333,
+          "interpreter_execs": 4473.75,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 299.0,
+          "units_consumed": 4910.75,
+          "wall_s": 0.003461635555140674
+        },
+        {
+          "active_bytes": 3784.5,
+          "arm": "main",
+          "ceiling": 4500,
+          "delayed_return_accuracy": 0.984375,
+          "interpreter_execs": 2400.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2538.0,
+          "wall_s": 0.0044908750569447875
+        },
+        {
+          "active_bytes": 3107.5,
+          "arm": "raw_replay",
+          "ceiling": 9000,
+          "delayed_return_accuracy": 0.8802083333333334,
+          "interpreter_execs": 7787.25,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 299.0,
+          "units_consumed": 8224.25,
+          "wall_s": 0.0036690414999611676
+        },
+        {
+          "active_bytes": 3784.5,
+          "arm": "main",
+          "ceiling": 9000,
+          "delayed_return_accuracy": 0.984375,
+          "interpreter_execs": 2400.0,
+          "posterior_evals": 48.0,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2538.0,
+          "wall_s": 0.004534843727014959
+        }
+      ],
+      "quarantine": {
+        "no_quarantine": {
+          "admitted_on_determined": 49,
+          "admitted_on_underdetermined": 7,
+          "corruption_rate": 1.0,
+          "events_on_determined_records": 49,
+          "events_on_underdetermined_records": 7,
+          "events_per_stream": 8,
+          "falsely_admitted": 8.0,
+          "later_resolved": 0.0,
+          "per_stream_corruption": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "quarantined": 0.0,
+          "records_corrupted": 8.0,
+          "streams": 7
+        },
+        "quarantine": {
+          "admitted_on_determined": 0,
+          "admitted_on_underdetermined": 0,
+          "corruption_rate": 0.0,
+          "events_on_determined_records": 49,
+          "events_on_underdetermined_records": 7,
+          "events_per_stream": 8,
+          "falsely_admitted": 0.0,
+          "later_resolved": 8.0,
+          "per_stream_corruption": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "quarantined": 8.0,
+          "records_corrupted": 0.0,
+          "streams": 7
+        }
+      },
+      "quarantine_interval": {
+        "delta": 8.0,
+        "episodes": 7,
+        "excludes_zero": true,
+        "hi": 8.0,
+        "lo": 8.0
+      },
+      "queries_to_target": {
+        "main": 0,
+        "none": 2,
+        "oracle": 0,
+        "raw_replay": 1,
+        "within_episode": 2
+      },
+      "query_curve": {
+        "main": {
+          "0": {
+            "accuracy": 0.984375,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 1.0,
+            "mean_queries": 0.015625
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.015625
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.015625
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.015625
+          }
+        },
+        "none": {
+          "0": {
+            "accuracy": 0.2552083333333333,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.8645833333333334,
+            "mean_queries": 0.7447916666666666
+          },
+          "2": {
+            "accuracy": 0.9947916666666666,
+            "mean_queries": 0.8802083333333334
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.8854166666666666
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.8854166666666666
+          }
+        },
+        "oracle": {
+          "0": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          }
+        },
+        "raw_replay": {
+          "0": {
+            "accuracy": 0.8802083333333334,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.984375,
+            "mean_queries": 0.11979166666666667
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.13541666666666666
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.13541666666666666
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.13541666666666666
+          }
+        },
+        "within_episode": {
+          "0": {
+            "accuracy": 0.2552083333333333,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.8645833333333334,
+            "mean_queries": 0.7447916666666666
+          },
+          "2": {
+            "accuracy": 0.9947916666666666,
+            "mean_queries": 0.8802083333333334
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.8854166666666666
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.8854166666666666
+          }
+        }
+      },
+      "restart": {
+        "audit_hash_identical": true,
+        "bytes": 3833,
+        "child_pid": 76182,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "ok": true,
+        "parent_pid": 76181,
+        "parent_pid_gone": true,
+        "post_restart_return_transfer": 1.0,
+        "post_restart_tasks": 48,
+        "records": 12,
+        "sufficient_statistic_identical": true
+      }
+    },
+    "shared": {
+      "capacity": [
+        {
+          "archive_bytes": 132,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.012,
+          "semantic_bytes": 248,
+          "serialize_ms": 0.02,
+          "total_bytes": 380,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.004,
+          "semantic_bytes": 289,
+          "serialize_ms": 0.012,
+          "total_bytes": 553,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.003,
+          "semantic_bytes": 330,
+          "serialize_ms": 0.011,
+          "total_bytes": 858,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.003,
+          "semantic_bytes": 370,
+          "serialize_ms": 0.012,
+          "total_bytes": 1426,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.002,
+          "semantic_bytes": 332,
+          "serialize_ms": 0.01,
+          "total_bytes": 2444,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 1,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.002,
+          "semantic_bytes": 332,
+          "serialize_ms": 0.01,
+          "total_bytes": 4556,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 264,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.003,
+          "semantic_bytes": 495,
+          "serialize_ms": 0.015,
+          "total_bytes": 759,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.003,
+          "semantic_bytes": 576,
+          "serialize_ms": 0.017,
+          "total_bytes": 1104,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.003,
+          "semantic_bytes": 697,
+          "serialize_ms": 0.026,
+          "total_bytes": 1753,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.003,
+          "semantic_bytes": 696,
+          "serialize_ms": 0.02,
+          "total_bytes": 2808,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.003,
+          "semantic_bytes": 663,
+          "serialize_ms": 0.02,
+          "total_bytes": 4887,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 2,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.008,
+          "semantic_bytes": 663,
+          "serialize_ms": 0.023,
+          "total_bytes": 9111,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 528,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.006,
+          "semantic_bytes": 989,
+          "serialize_ms": 0.026,
+          "total_bytes": 1517,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1148,
+          "serialize_ms": 0.032,
+          "total_bytes": 2204,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1395,
+          "serialize_ms": 0.038,
+          "total_bytes": 3507,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1352,
+          "serialize_ms": 0.036,
+          "total_bytes": 5576,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.005,
+          "semantic_bytes": 1325,
+          "serialize_ms": 0.035,
+          "total_bytes": 9773,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 4,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.011,
+          "semantic_bytes": 1325,
+          "serialize_ms": 0.038,
+          "total_bytes": 18221,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 1056,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.022,
+          "semantic_bytes": 1973,
+          "serialize_ms": 0.049,
+          "total_bytes": 3029,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.013,
+          "semantic_bytes": 2297,
+          "serialize_ms": 0.057,
+          "total_bytes": 4409,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.01,
+          "semantic_bytes": 2787,
+          "serialize_ms": 0.082,
+          "total_bytes": 7011,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.009,
+          "semantic_bytes": 2663,
+          "serialize_ms": 0.067,
+          "total_bytes": 11111,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.015,
+          "semantic_bytes": 2649,
+          "serialize_ms": 0.071,
+          "total_bytes": 19545,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 33792,
+          "identities": 8,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.015,
+          "semantic_bytes": 2648,
+          "serialize_ms": 0.069,
+          "total_bytes": 36440,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 2112,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 1,
+          "reload_ms": 0.017,
+          "semantic_bytes": 3943,
+          "serialize_ms": 0.096,
+          "total_bytes": 6055,
+          "within_4KiB": true
+        },
+        {
+          "archive_bytes": 4224,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 2,
+          "reload_ms": 0.016,
+          "semantic_bytes": 4592,
+          "serialize_ms": 0.115,
+          "total_bytes": 8816,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 8448,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 4,
+          "reload_ms": 0.016,
+          "semantic_bytes": 5403,
+          "serialize_ms": 0.132,
+          "total_bytes": 13851,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 16896,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 8,
+          "reload_ms": 0.022,
+          "semantic_bytes": 5283,
+          "serialize_ms": 0.134,
+          "total_bytes": 22179,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 33792,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 16,
+          "reload_ms": 0.019,
+          "semantic_bytes": 5297,
+          "serialize_ms": 0.146,
+          "total_bytes": 39089,
+          "within_4KiB": false
+        },
+        {
+          "archive_bytes": 67584,
+          "identities": 16,
+          "index_bytes": 0,
+          "obs": 32,
+          "reload_ms": 0.019,
+          "semantic_bytes": 5296,
+          "serialize_ms": 0.13,
+          "total_bytes": 72880,
+          "within_4KiB": false
+        }
+      ],
+      "differential": {
+        "comparisons": 7788,
+        "decision_mismatches": 0,
+        "equivalent": true,
+        "max_total_variation": 0.0,
+        "predictive_mismatches": 0,
+        "streams": 100,
+        "surviving_set_mismatches": 0
+      },
+      "intervals": {
+        "main - budgeted raw replay [q=0]": {
+          "delta": 0.6686269327342408,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.69737015990485,
+          "lo": 0.6408087749438351
+        },
+        "main - none [q=0]": {
+          "delta": 0.6686269327342408,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.69737015990485,
+          "lo": 0.6408087749438351
+        },
+        "main - none [q=1]": {
+          "delta": 0.09521606977666183,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.11973040835205497,
+          "lo": 0.07598784194528874
+        },
+        "main - unlimited replay [q=0]": {
+          "delta": 0.0,
+          "episodes": 7,
+          "excludes_zero": false,
+          "hi": 0.0,
+          "lo": 0.0
+        },
+        "main - within_episode [q=0]": {
+          "delta": 0.6686269327342408,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.69737015990485,
+          "lo": 0.6408087749438351
+        },
+        "main - within_episode [q=1]": {
+          "delta": 0.09521606977666183,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.11973040835205497,
+          "lo": 0.07598784194528874
+        },
+        "query reduction [q=1]": {
+          "delta": 0.6686269327342408,
+          "episodes": 7,
+          "excludes_zero": true,
+          "hi": 0.69737015990485,
+          "lo": 0.6408087749438351
+        },
+        "retention D": {
+          "delta": -0.0032322364653539454,
+          "episodes": 7,
+          "excludes_zero": false,
+          "hi": 0.008540372670807444,
+          "lo": -0.01823708206686928
+        }
+      },
+      "pareto": [
+        {
+          "active_bytes": 3063.75,
+          "arm": "raw_replay",
+          "ceiling": 1000,
+          "delayed_return_accuracy": 0.29937557816836263,
+          "interpreter_execs": 2771.25,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 299.0,
+          "units_consumed": 3205.75,
+          "wall_s": 0.0177299584611319
+        },
+        {
+          "active_bytes": 3812.75,
+          "arm": "main",
+          "ceiling": 1000,
+          "delayed_return_accuracy": 0.9893617021276596,
+          "interpreter_execs": 2372.0,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2507.5,
+          "wall_s": 0.011864937550853938
+        },
+        {
+          "active_bytes": 3063.75,
+          "arm": "raw_replay",
+          "ceiling": 2000,
+          "delayed_return_accuracy": 0.29937557816836263,
+          "interpreter_execs": 3170.75,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 299.0,
+          "units_consumed": 3605.25,
+          "wall_s": 0.00982757331803441
+        },
+        {
+          "active_bytes": 3812.75,
+          "arm": "main",
+          "ceiling": 2000,
+          "delayed_return_accuracy": 0.9893617021276596,
+          "interpreter_execs": 2372.0,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2507.5,
+          "wall_s": 0.011823843757156283
+        },
+        {
+          "active_bytes": 3063.75,
+          "arm": "raw_replay",
+          "ceiling": 3000,
+          "delayed_return_accuracy": 0.29937557816836263,
+          "interpreter_execs": 3673.5,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 299.0,
+          "units_consumed": 4108.0,
+          "wall_s": 0.009917718765791506
+        },
+        {
+          "active_bytes": 3812.75,
+          "arm": "main",
+          "ceiling": 3000,
+          "delayed_return_accuracy": 0.9893617021276596,
+          "interpreter_execs": 2372.0,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2507.5,
+          "wall_s": 0.011766062234528363
+        },
+        {
+          "active_bytes": 3063.75,
+          "arm": "raw_replay",
+          "ceiling": 4500,
+          "delayed_return_accuracy": 0.29937557816836263,
+          "interpreter_execs": 4440.5,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 299.0,
+          "units_consumed": 4875.0,
+          "wall_s": 0.009983854251913726
+        },
+        {
+          "active_bytes": 3812.75,
+          "arm": "main",
+          "ceiling": 4500,
+          "delayed_return_accuracy": 0.9893617021276596,
+          "interpreter_execs": 2372.0,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2507.5,
+          "wall_s": 0.011772156285587698
+        },
+        {
+          "active_bytes": 3063.75,
+          "arm": "raw_replay",
+          "ceiling": 9000,
+          "delayed_return_accuracy": 0.8984736355226641,
+          "interpreter_execs": 7744.5,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 299.0,
+          "units_consumed": 8179.0,
+          "wall_s": 0.010290603968314826
+        },
+        {
+          "active_bytes": 3812.75,
+          "arm": "main",
+          "ceiling": 9000,
+          "delayed_return_accuracy": 0.9893617021276596,
+          "interpreter_execs": 2372.0,
+          "posterior_evals": 46.75,
+          "replayed_episodes": 0.0,
+          "units_consumed": 2507.5,
+          "wall_s": 0.011708333273418248
+        }
+      ],
+      "quarantine": {
+        "no_quarantine": {
+          "admitted_on_determined": 50,
+          "admitted_on_underdetermined": 6,
+          "corruption_rate": 1.0,
+          "events_on_determined_records": 50,
+          "events_on_underdetermined_records": 6,
+          "events_per_stream": 8,
+          "falsely_admitted": 8.0,
+          "later_resolved": 0.0,
+          "per_stream_corruption": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "quarantined": 0.0,
+          "records_corrupted": 8.0,
+          "streams": 7
+        },
+        "quarantine": {
+          "admitted_on_determined": 0,
+          "admitted_on_underdetermined": 1,
+          "corruption_rate": 0.017857142857142856,
+          "events_on_determined_records": 50,
+          "events_on_underdetermined_records": 6,
+          "events_per_stream": 8,
+          "falsely_admitted": 0.14285714285714285,
+          "later_resolved": 7.857142857142857,
+          "per_stream_corruption": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "quarantined": 7.857142857142857,
+          "records_corrupted": 0.14285714285714285,
+          "streams": 7
+        }
+      },
+      "quarantine_interval": {
+        "delta": 7.857142857142857,
+        "episodes": 7,
+        "excludes_zero": true,
+        "hi": 8.0,
+        "lo": 7.571428571428571
+      },
+      "queries_to_target": {
+        "main": 0,
+        "none": 2,
+        "oracle": 0,
+        "raw_replay": 1,
+        "within_episode": 2
+      },
+      "query_curve": {
+        "main": {
+          "0": {
+            "accuracy": 0.9893048128342246,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0106951871657754
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0106951871657754
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0106951871657754
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0106951871657754
+          }
+        },
+        "none": {
+          "0": {
+            "accuracy": 0.2994652406417112,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.9251336898395722,
+            "mean_queries": 0.7005347593582888
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          }
+        },
+        "oracle": {
+          "0": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.0
+          }
+        },
+        "raw_replay": {
+          "0": {
+            "accuracy": 0.8983957219251337,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.9946524064171123,
+            "mean_queries": 0.10160427807486631
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.10695187165775401
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.10695187165775401
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.10695187165775401
+          }
+        },
+        "within_episode": {
+          "0": {
+            "accuracy": 0.2994652406417112,
+            "mean_queries": 0.0
+          },
+          "1": {
+            "accuracy": 0.9251336898395722,
+            "mean_queries": 0.7005347593582888
+          },
+          "2": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          },
+          "3": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          },
+          "4": {
+            "accuracy": 1.0,
+            "mean_queries": 0.7754010695187166
+          }
+        }
+      },
+      "restart": {
+        "audit_hash_identical": true,
+        "bytes": 3812,
+        "child_pid": 76158,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "ok": true,
+        "parent_pid": 76154,
+        "parent_pid_gone": true,
+        "post_restart_return_transfer": 1.0,
+        "post_restart_tasks": 47,
+        "records": 12,
+        "sufficient_statistic_identical": true
+      }
+    }
+  },
+  "final_manifest_written": false,
+  "final_stream_seed_sampled": false,
+  "gates": {
+    "S1.1": true,
+    "S1.2": true,
+    "S1.3": true,
+    "S1.4": true,
+    "S1.5": true,
+    "S1.6": true,
+    "S1.7": false
+  },
+  "phase": "X65A-S1",
+  "provenance": {
+    "branch": "phase-1-verifier",
+    "dev_seeds": [
+      400,
+      401,
+      402,
+      403
+    ],
+    "differential_seeds": "1000-1099",
+    "distractors_per_stream": 4,
+    "head": "fb2a77c5ba6af6ed78ff449838d3cf46b97276eb",
+    "identities_per_stream": 8,
+    "retention_margin": -0.05,
+    "return_tasks_per_stream": 48,
+    "streams_per_stratum_dev": 4,
+    "streams_per_stratum_val": 3,
+    "tracked_clean": false,
+    "untracked": 80,
+    "val_seeds": [
+      500,
+      501,
+      502
+    ],
+    "x65a_s_commit": "fb2a77c5ba6af6ed78ff449838d3cf46b97276eb"
+  },
+  "runtime_s": 19.79
+}
