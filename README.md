@@ -1839,3 +1839,127 @@ the seal and never previously run. The supported claim is exactly:
 Not natural-language understanding. The convention family, slot inventories,
 executor and exposure patterns are all authored, the oracle ceiling on the
 selected distribution is constructed, and open-world detection is at 0.417.
+
+## X65A-0: the foundation phase — 12/12
+
+X64H having closed, X65A begins. The addendum stages it in six phases and
+allows development to stop after any failed one, so this is **X65A-0 only**:
+schemas, canonical serialization, taint, leakage checks, exact posterior
+microcases, and genuine restart. **No transfer, retention, revision,
+retrieval or consolidation result exists, and none is claimed.**
+
+### The X64H prerequisite, fail-closed
+
+21 checks, run before anything else, and re-derived rather than trusted:
+
+| | |
+|---|---|
+| final result commit | `74701e335d69a73ab39307a98d1a41c916bce693` |
+| freeze-manifest commit | `db263b1834dccf3acd7a64af728ff3e84cb9977c` |
+| freeze digest (recomputed live) | `e39153b7369a9fc8c9e14546181097ee81a0f27450b2804b2a23fbcfbef7178b` |
+| manifest sha256 | `9d8c940e65a7fbdb5fbfc7f2790e3ea61c24c9c0894536ba4f92dcd4d43d9258` |
+| seed bundle sha256 | `4589e1b95b3eab45ba8af5d712feaa11106f8992dc77a1768aeca99aaf52da16` |
+| final result sha256 | `8d71c381a24d473d2369155ea95c4672de8b95a635c8afe00cb6c6a11dff8f29` |
+| strata | `shared` (12 seeds), `disjoint_op` (12 seeds), both closed 6/6 |
+
+Seeds are re-derived from the digest, the manifest's committed status is
+re-checked against git, and the per-stratum effect intervals are read back
+(`lo` = 0.603 and 0.557). **4/4 planted breaks are caught** — a prerequisite
+that cannot fail is not a prerequisite.
+
+### Latent cardinality, declared before the posterior
+
+| factor | card | origin |
+|---|---|---|
+| phi_0, phi_1 | 2, 2 | frozen X64H convention bits |
+| sigma_0, sigma_1 | 2, 2 | reusable semantic atoms |
+| context | 2 | boundary / convention switch |
+| source_reliability | 2 | reliable \| unreliable |
+
+**K = 64**, budget 256. Fault (4-valued) and task composition are nuisance
+variables marginalized *inside* the likelihood, so they never inflate K. The
+four verified primitives are **not** latent factors — they are deterministic
+over a declared domain. Modelling validity uncertainty for two of them costs
+exactly the remaining budget (64 → 256); a third would be 512 and is refused.
+The joint really is one enumerated list of K states.
+
+### Four graphs, and the boundary between them
+
+`ProvenanceGraph`, `ProgramDependencyGraph`, `ProbabilisticFactorGraph` and
+an `ORACLE_ONLY` `EvaluatorDependencyDAG`. Three illegitimate operations are
+refused: constructing a factor graph from provenance, serializing the
+evaluator DAG through the agent writer, and creating an edge from surface
+similarity. Independence has **three** states, not two — `DEPENDENT`,
+`DECLARED_INDEPENDENT`, `UNKNOWN` — and only the second licenses a locality
+claim.
+
+### Evidence may be counted once
+
+Enforced by construction, not by care at call sites: only base observations
+carry a likelihood factor, and each id is absorbed once.
+
+```
+posterior(E) == posterior(E + deterministic_summary(E))          ok
+12 descendants of one evidence item do not multiply it           ok
+consolidation preserves the posterior predictive exactly         ok
+a repeated base factor is absorbed once                          ok
+zero normalizer -> MISSING_REPRESENTATION, posterior unchanged   ok
+```
+
+The dedup rule is shown non-vacuous: a factor carrying a *new* id is counted
+twice and moves 4/5 to 16/17, which is the failure the invariant excludes.
+
+### Exact microcases, re-derived
+
+Everything in `Fraction`; no floats anywhere in the posterior path. Each case
+is recomputed through the repository's own implementation and compared to the
+theory package's published rationals — **all match**:
+
+- Theorem 1: 16 histories → 8 states, collision `[0,0,0,0]`/`[0,0,0,1]`
+  separated by index 3.
+- Theorem 2: 32 histories → 6 count classes, equal posteriors within each.
+- MAP accuracy at reliability 4/5: `1/2, 4/5, 4/5, 112/125, 112/125,
+  2944/3125, 2944/3125, 15104/15625, 15104/15625`.
+- Theorem 3: `4/5 → 4/13 → 76/85`, unrelated factor exactly `9/10` throughout.
+- Theorem 5: general utility neither monotone nor submodular; independent
+  weighted coverage both.
+- Theorem 6: macro 216 ≤ 1000 < raw 1 679 616.
+
+### Active memory versus audit archive
+
+| tasks | active | archive | total |
+|---|---|---|---|
+| 8 | 755 B | 441 B | 1 196 B |
+| 32 | 3 032 B | 1 805 B | 4 837 B |
+| 128 | 12 173 B | 7 333 B | 19 506 B |
+
+Slopes: active 95.15 B/task, archive **57.43 B/task**. The archive slope is
+positive by construction — Theorem 4A, one nonempty record per task — so
+**no bounded-total-memory claim is available to this design.** Only active
+growth, or a total slope below raw replay, can ever be claimed here, and
+neither is measured yet.
+
+### Quarantine
+
+X64H's open-world detector declared `UNKNOWN_MEANING` on only **0.417** of
+out-of-space tasks. So an unresolved observation cannot enter active memory
+as belief: `QUARANTINED` is the default and only an explicit confirming
+observation promotes it.
+
+### Genuine restart
+
+A separate parent process writes state and dies (PID verified gone); a child
+with a **5-variable scrubbed environment** loads it and receives its next
+input externally. Posterior `{0: 1/5, 1: 4/5}` and the serialized hash are
+preserved exactly; the forbidden value planted in the parent's environment
+and runtime cache appears in none of the child's bytes, environment or
+globals. The contaminated fixture **is** caught.
+
+### Gates
+
+**12 of 12 X65A-0 phase gates pass.** These are `P0.x`, deliberately not
+`A1–A13` — those need components that do not exist yet. 62 new tests.
+
+**No stream seed sampled. No X65A manifest written.** Formal evidence: eight
+finite supporting lemmas were mechanically checked in the theory package;
+VDFM itself is not formally verified.

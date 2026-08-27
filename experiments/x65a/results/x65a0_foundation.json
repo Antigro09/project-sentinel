@@ -1,0 +1,457 @@
+{
+  "evidence_invariants": {
+    "consolidation_preserves_predictive": true,
+    "descendants_do_not_multiply": true,
+    "repeated_base_factor_absorbed_once": true,
+    "summary_is_free": true,
+    "zero_normalizer_is_open_world": true
+  },
+  "gates": {
+    "P0.1": true,
+    "P0.10": true,
+    "P0.11": true,
+    "P0.12": true,
+    "P0.2": true,
+    "P0.3": true,
+    "P0.4": true,
+    "P0.5": true,
+    "P0.6": true,
+    "P0.7": true,
+    "P0.8": true,
+    "P0.9": true
+  },
+  "graphs": {
+    "independence_states": [
+      "DEPENDENT",
+      "DECLARED_INDEPENDENT",
+      "UNKNOWN"
+    ],
+    "refusals": {
+      "edge_from_surface_similarity": "an edge in provenance may be created only from ['observed_ev",
+      "evaluator_dag_serialization": "the evaluator dependency DAG is ORACLE_ONLY and may not be s",
+      "independence_from_provenance": "probabilistic independence may not be inferred from provenan"
+    }
+  },
+  "growth": {
+    "active_slope_bytes_per_task": 95.15,
+    "archive_slope_bytes_per_task": 57.43333333333333,
+    "bounded_total_claim_available": false,
+    "curve": [
+      {
+        "active_budget": 4096,
+        "active_bytes": 755,
+        "active_within_budget": true,
+        "archive_bytes": 441,
+        "archive_is_retrievable": false,
+        "tasks": 8,
+        "total_bytes": 1196
+      },
+      {
+        "active_budget": 4096,
+        "active_bytes": 1512,
+        "active_within_budget": true,
+        "archive_bytes": 893,
+        "archive_is_retrievable": false,
+        "tasks": 16,
+        "total_bytes": 2405
+      },
+      {
+        "active_budget": 4096,
+        "active_bytes": 3032,
+        "active_within_budget": true,
+        "archive_bytes": 1805,
+        "archive_is_retrievable": false,
+        "tasks": 32,
+        "total_bytes": 4837
+      },
+      {
+        "active_budget": 4096,
+        "active_bytes": 6072,
+        "active_within_budget": false,
+        "archive_bytes": 3629,
+        "archive_is_retrievable": false,
+        "tasks": 64,
+        "total_bytes": 9701
+      },
+      {
+        "active_budget": 4096,
+        "active_bytes": 12173,
+        "active_within_budget": false,
+        "archive_bytes": 7333,
+        "archive_is_retrievable": false,
+        "tasks": 128,
+        "total_bytes": 19506
+      }
+    ]
+  },
+  "latent": {
+    "false": {
+      "K": 64,
+      "K_max": 256,
+      "digest": "latent:954486f4fedad59f7e98bb40a2c44962",
+      "factors": [
+        {
+          "cardinality": 2,
+          "name": "phi_0",
+          "note": "frozen X64H convention bit; the final posterior p(phi|H) enters as ONE semantic factor, not as the memory system",
+          "origin": "x64h"
+        },
+        {
+          "cardinality": 2,
+          "name": "phi_1",
+          "note": "second frozen X64H convention bit",
+          "origin": "x64h"
+        },
+        {
+          "cardinality": 2,
+          "name": "sigma_0",
+          "note": "reusable semantic atom",
+          "origin": "semantic"
+        },
+        {
+          "cardinality": 2,
+          "name": "sigma_1",
+          "note": "reusable semantic atom",
+          "origin": "semantic"
+        },
+        {
+          "cardinality": 2,
+          "name": "context",
+          "note": "context boundary / explicit convention switch",
+          "origin": "context"
+        },
+        {
+          "cardinality": 2,
+          "name": "source_reliability",
+          "note": "reliable | unreliable source; confounded with claim truth without repeated sources or differing contexts",
+          "origin": "reliability"
+        }
+      ],
+      "headroom_factor": 4,
+      "nuisance_marginalised_in_likelihood": {
+        "composition": 3,
+        "fault": 4
+      },
+      "procedure_validity_modelled": false,
+      "within_budget": true
+    },
+    "true": {
+      "K": 256,
+      "K_max": 256,
+      "digest": "latent:d4c7ec505de857eadabb79486bf34d53",
+      "factors": [
+        {
+          "cardinality": 2,
+          "name": "phi_0",
+          "note": "frozen X64H convention bit; the final posterior p(phi|H) enters as ONE semantic factor, not as the memory system",
+          "origin": "x64h"
+        },
+        {
+          "cardinality": 2,
+          "name": "phi_1",
+          "note": "second frozen X64H convention bit",
+          "origin": "x64h"
+        },
+        {
+          "cardinality": 2,
+          "name": "sigma_0",
+          "note": "reusable semantic atom",
+          "origin": "semantic"
+        },
+        {
+          "cardinality": 2,
+          "name": "sigma_1",
+          "note": "reusable semantic atom",
+          "origin": "semantic"
+        },
+        {
+          "cardinality": 2,
+          "name": "context",
+          "note": "context boundary / explicit convention switch",
+          "origin": "context"
+        },
+        {
+          "cardinality": 2,
+          "name": "source_reliability",
+          "note": "reliable | unreliable source; confounded with claim truth without repeated sources or differing contexts",
+          "origin": "reliability"
+        },
+        {
+          "cardinality": 2,
+          "name": "pi_0_valid",
+          "note": "modelled uncertainty over a procedure's validity; OFF by default",
+          "origin": "procedural"
+        },
+        {
+          "cardinality": 2,
+          "name": "pi_1_valid",
+          "note": "as above",
+          "origin": "procedural"
+        }
+      ],
+      "headroom_factor": 1,
+      "nuisance_marginalised_in_likelihood": {
+        "composition": 3,
+        "fault": 4
+      },
+      "procedure_validity_modelled": true,
+      "within_budget": true
+    }
+  },
+  "leakage": {
+    "clean": {
+      "checked_bytes": 1622,
+      "clean": true,
+      "note": "absence of a literal target does not establish statistical independence of a future answer from memory",
+      "violations": []
+    },
+    "future_dated": [
+      "entry acquired_at 0 >= current task 0",
+      "entry acquired_at 4 >= current task 0"
+    ],
+    "planted": [
+      "forbidden canary value"
+    ],
+    "verbatim": [
+      "current target logical form present verbatim"
+    ]
+  },
+  "manifest_written": false,
+  "microcases": {
+    "all_match_published": true,
+    "bounded_memory": {
+      "collision": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "history_count": 16,
+      "injective": false,
+      "memory_state_count": 8,
+      "separating_index_query": 3
+    },
+    "compounding": {
+      "branching_factor": 6,
+      "budget": 1000,
+      "claim_scope": "capability under a fixed search budget, not increased computability or expressivity",
+      "larger_budget_reaches_raw": true,
+      "macro_candidates": 216,
+      "macro_length": 3,
+      "macro_reachable": true,
+      "matches_published": true,
+      "raw_candidates": 1679616,
+      "raw_length": 8,
+      "raw_reachable": false
+    },
+    "retrieval": {
+      "coverage_matches_published": true,
+      "coverage_monotone": true,
+      "coverage_submodular": true,
+      "coverage_utilities": {
+        "empty": 0,
+        "lexical": 3,
+        "lexical,ordering": 5,
+        "lexical,ordering,procedure": 11,
+        "lexical,procedure": 9,
+        "ordering": 2,
+        "ordering,procedure": 8,
+        "procedure": 6
+      },
+      "general_monotone": false,
+      "general_submodular": false,
+      "marginal_after_left": "1",
+      "marginal_at_empty": "0"
+    },
+    "revision": {
+      "after_counterevidence": "4/13",
+      "after_later_support": "76/85",
+      "matches_published": true,
+      "ordering_holds": true,
+      "prior": "4/5",
+      "unrelated_after": "9/10",
+      "unrelated_before": "9/10"
+    },
+    "semantic_transfer": {
+      "expected_map_accuracy": [
+        "1/2",
+        "4/5",
+        "4/5",
+        "112/125",
+        "112/125",
+        "2944/3125",
+        "2944/3125",
+        "15104/15625",
+        "15104/15625"
+      ],
+      "matches_published": true,
+      "reliability": "4/5",
+      "reset_accuracy": "1/2"
+    },
+    "sufficiency": {
+      "all_equal_within_class": true,
+      "classes": {
+        "ones=0,zeros=5": [
+          "1024/1025",
+          "1/1025"
+        ],
+        "ones=1,zeros=4": [
+          "64/65",
+          "1/65"
+        ],
+        "ones=2,zeros=3": [
+          "4/5",
+          "1/5"
+        ],
+        "ones=3,zeros=2": [
+          "1/5",
+          "4/5"
+        ],
+        "ones=4,zeros=1": [
+          "1/65",
+          "64/65"
+        ],
+        "ones=5,zeros=0": [
+          "1/1025",
+          "1024/1025"
+        ]
+      },
+      "history_count": 32,
+      "matches_published": true,
+      "statistic_count": 6
+    }
+  },
+  "phase": "X65A-0",
+  "prerequisite": {
+    "all_gates_passed": {
+      "detail": "{}",
+      "pass": true
+    },
+    "both_strata_present": {
+      "detail": "['disjoint_op', 'shared']",
+      "pass": true
+    },
+    "closure_complete": {
+      "detail": "6 conditions",
+      "pass": true
+    },
+    "effect_in_disjoint_op": {
+      "detail": "lo 0.5572916666666666",
+      "pass": true
+    },
+    "effect_in_shared": {
+      "detail": "lo 0.6028769841269841",
+      "pass": true
+    },
+    "final_digest_matches": {
+      "detail": "",
+      "pass": true
+    },
+    "final_result_commit": {
+      "detail": "74701e335d69",
+      "pass": true
+    },
+    "final_result_present": {
+      "detail": "experiments/x64h/results/x64h_final.json",
+      "pass": true
+    },
+    "final_result_sha": {
+      "detail": "8d71c381a24d473d",
+      "pass": true
+    },
+    "freeze_digest_pinned": {
+      "detail": "e39153b7369a9fc8",
+      "pass": true
+    },
+    "freeze_digest_recomputes": {
+      "detail": "live e39153b7369a9fc8 vs manifest e39153b7369a9fc8",
+      "pass": true
+    },
+    "freeze_manifest_commit": {
+      "detail": "db263b1834dc",
+      "pass": true
+    },
+    "freeze_valid": {
+      "detail": "committed",
+      "pass": true
+    },
+    "manifest_intact_at_run": {
+      "detail": "",
+      "pass": true
+    },
+    "manifest_present": {
+      "detail": "experiments/x64h/freeze_manifest_0c.json",
+      "pass": true
+    },
+    "manifest_sha": {
+      "detail": "9d8c940e65a7fbdb",
+      "pass": true
+    },
+    "seed_digest_matches": {
+      "detail": "e39153b7369a9fc8",
+      "pass": true
+    },
+    "seeds_derived_from_digest": {
+      "detail": "",
+      "pass": true
+    },
+    "seeds_per_stratum": {
+      "detail": "{'disjoint_op': 12, 'shared': 12}",
+      "pass": true
+    },
+    "seeds_present": {
+      "detail": "experiments/x64h/final_seeds_0c.json",
+      "pass": true
+    },
+    "seeds_sha": {
+      "detail": "4589e1b95b3eab45",
+      "pass": true
+    }
+  },
+  "prerequisite_calibration": {
+    "final_result_commit": true,
+    "freeze_digest": true,
+    "manifest_sha256": true,
+    "seeds_sha256": true
+  },
+  "restart": {
+    "child": {
+      "archive_chain": "86cf93491f2edf679ca9ef955ff7cae197651dae7ebeeb1bb3cc53370fb32850",
+      "env_size": 5,
+      "forbidden_in_bytes": false,
+      "forbidden_in_env": false,
+      "forbidden_in_globals": false,
+      "next_observation_received": 1,
+      "pid": 42307,
+      "posterior": {
+        "0": "1/5",
+        "1": "4/5"
+      },
+      "random_state_inherited": false,
+      "sha256": "aee08d17db02f686b8cc9074cc0cf683d7401b010e76952a9a06aae912f243bd"
+    },
+    "contaminated_fixture_detected": true,
+    "distinct_process": true,
+    "forbidden_channel_closed": true,
+    "hash_preserved": true,
+    "ok": true,
+    "parent_pid_gone": true,
+    "posterior_exactly_preserved": true
+  },
+  "runtime_s": 37.25,
+  "stream_seeds_sampled": false,
+  "taint": {
+    "float_refused": true,
+    "forbidden_key_rejected": true,
+    "oracle_taint_rejected": true,
+    "quarantined_cannot_become_belief": true
+  }
+}
