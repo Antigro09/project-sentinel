@@ -70,3 +70,18 @@ def test_at_least_four_seeds_per_family():
     d = json.loads(FZ.SEEDS.read_text())
     assert set(d["seeds"]) == {"shared", "disjoint_op"}
     assert all(len(v) >= 4 for v in d["seeds"].values())
+
+
+def test_the_digest_survives_a_new_commit(tmp_path):
+    """Regression for a bug the seal itself caught: `structural()` embedded
+    `protocol.freeze_digest()`, which appends `git rev-parse HEAD`. The
+    manifest was committed, HEAD moved, and the seal broke on a tree whose
+    files were byte-identical. Nothing commit-dependent may enter the hash."""
+    import subprocess
+    blob = json.dumps(FZ.structural(BASE, ARMS_0C), sort_keys=True,
+                      default=str)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                          text=True).stdout.strip()
+    assert head and head not in blob
+    for k, v in FZ.component_digests(BASE, ARMS_0C).items():
+        assert head not in v

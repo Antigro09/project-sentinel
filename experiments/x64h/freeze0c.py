@@ -31,6 +31,7 @@ from pathlib import Path
 from . import audit0c as A
 from . import episode as EP
 from . import family as F
+from . import decision as DE
 from . import posterior as PO
 from . import protocol as PR
 from . import semantic as S
@@ -87,7 +88,15 @@ def structural(cfg: EP.Config, arms) -> dict:
         "bootstrap": {"resamples": 10000, "unit": "episode", "seed": 20260827},
         "thresholds": {"oracle": 0.98, "static": 0.95, "R": 0.50,
                        "late": 0.95, "margin": 0.02, "theta_commit": 0.99},
-        "implementation_slice_digest": PR.freeze_digest(),
+        # the implementation slice's resolved config WITHOUT its commit
+        # field. `protocol.freeze_digest` appends `git rev-parse HEAD`, and
+        # embedding that here reintroduced the very self-invalidation this
+        # module exists to avoid: committing the manifest moved HEAD, the
+        # structural digest moved with it, and the seal broke on a tree
+        # whose files were byte-identical.
+        "implementation_slice_config": _sha(json.dumps(
+            PR.resolved_config(PO.Config(), DE.Costs(), DE.Gates(), 6, 16),
+            sort_keys=True, default=str).encode()),
     }
 
 

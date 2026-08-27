@@ -1,5 +1,5 @@
 {
-  "commit_at_write": "dcee6d3750aebb58f275e90e64e489355ecef55c",
+  "commit_at_write": "ddcad29bff47a920d03d35447dd426f9e504e5cb",
   "components": {
     "alphabet_families": "3e9ad51788f16c9d8f7d87b3cc110d144a5a2d152cd880948ffd0b7fb5119c89",
     "bootstrap": "9b6265f6f215139ed81455ae2c717f0d1b7ed698bb97875a13397fb1cb824c7d",
@@ -11,12 +11,12 @@
     "open_world_other": "82da684be1fb9c23a13a9e539d1794abea3aaf6298b87ac742267c0b5150f634",
     "persistence": "a192dce09d6515ec1ee122d624f064b87e7e85ce433b940426944547450413c3",
     "query_policy": "a760394d441e2191655b9d92f51ef77940b4e10bc25116b95bd4a565034d05d8",
-    "structural": "d4eba9abef751f853083f08975580f54885a719238f4c497032b3c68f8353a06",
+    "structural": "3ec91fd384f605ecc608de8e92135776c63547e9e6139434453430c29ff5e92a",
     "teacher_selection_likelihood": "9b6265f6f215139ed81455ae2c717f0d1b7ed698bb97875a13397fb1cb824c7d"
   },
-  "created": "2026-08-27T09:10:05",
-  "digest": "4baa8e2a7ce170a69038698f4bfd36c437ec10b5aea4de09f9c64b2f0e5d8c2d",
-  "note": "X64H-0C pre-freeze gates 10/10",
+  "created": "2026-08-27T09:24:58",
+  "digest": "e39153b7369a9fc8c9e14546181097ee81a0f27450b2804b2a23fbcfbef7178b",
+  "note": "X64H-0C pre-freeze gates 10/10; digest is commit-independent",
   "python": "3.12.14",
   "structural": {
     "arms": [
@@ -144,7 +144,7 @@
         "unique_executable_conventions": 13824
       }
     },
-    "implementation_slice_digest": "69254f8a6376414eb463751150984dbce9b3d67f580e2d6d34b9bb14d72b8e4a",
+    "implementation_slice_config": "75314916cc07a0ade4abcac561a5a56ee0ee9ad978baecccff3cd19260181a0a",
     "likelihoods": [
       "naive",
       "aware",
