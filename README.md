@@ -1725,3 +1725,117 @@ needs 1.279 questions against random's 1.699, V12 the mid-episode change is
 detected. Thresholds are X64H-0's, unchanged.
 
 **No final manifest written. No final convention seed sampled.**
+
+## X64H-0C and the final hidden run: X64 closes at the controlled level
+
+### Three claims X64H-0B had not measured
+
+**"0.0 bits leaked."** That was the *support* of `p(φ|u)`, not its shape.
+Exact enumeration separates the two quantities:
+
+| | H(Φ) | H(Φ\|U) | **I(Φ;U)** | H(Z) | H(Z\|U) | **I(Z;U)** |
+|---|---|---|---|---|---|---|
+| shared | 13.7549 | 13.4049 | **0.3500** | 5.0000 | 5.0000 | **0.0000** |
+| disjoint | 11.1699 | 10.5033 | **0.6667** | 5.0000 | 5.0000 | **0.0000** |
+
+One utterance identifies a *meaning* at exactly chance (0.03125 = 1/32) and a
+*convention* at 1.67× chance in both families. Support stays at 13824/13824
+while the posterior is measurably non-uniform. V8 is renamed **"no
+task-meaning leakage from one utterance"** — which is what was ever true.
+
+Conditioned on demonstrations: `I(Z;U|D)` is **0.0000** unconditionally and
+**0.0091** (shared) / **0.0678** (disjoint) bits once you condition on the
+acceptance event. Selection is exactly where meaning information enters.
+
+**"Misspecification can only cost the treatment arms."** Withdrawn. The
+generator's own likelihood is now implemented and pinned against brute force:
+
+```
+p(u | φ, z, D, accepted) = [u ∈ good(φ,z,D)] / |good(φ,z,D)|
+good(φ,z,D) = the pool patterns whose utterance leaves exactly z
+```
+
+Measured on the audit split, the correct likelihood **helps** the treatment:
+0.899 → 0.932 (shared), 0.919 → 0.938 (disjoint). Misspecification was
+costing it. On the final hidden seeds the direction replicates but the
+interval does not exclude zero (+0.021 and +0.000) — so the honest statement
+is that the two likelihoods are **indistinguishable on the final data**, and
+the treatment is reported under the correct one regardless.
+
+**One distribution.** Selected and unconditional are now both reported.
+
+### Pre-freeze gates H0–H9: 10/10
+
+Including a convention-change diagnostic that does not claim detection it has
+not measured. At the declared boundary a **zero-likelihood contradiction**
+fires in 20/20 episodes (at exactly the boundary in 20/20 shared, 19/20
+disjoint). Old-class mass goes to 0.000 and new-class mass rises from zero to
+0.921: the posterior does not **mix**, it **relearns** after the contradiction
+wipes the old support. No arm declares a change or acts on one.
+
+### The freeze
+
+Twelve component digests over both families, the schedule, the teacher
+likelihood, exact inference, priors, arms, query policy, conflict model,
+open-world mechanism, evaluator, gates and bootstrap. Digest
+`e39153b7369a9fc8c9e14546181097ee81a0f27450b2804b2a23fbcfbef7178b`. Seeds are
+`sha256(digest : family : i)` — a function of the seal, not a choice.
+
+**The seal caught a bug in itself.** `structural()` embedded
+`protocol.freeze_digest()`, which appends `git rev-parse HEAD`; committing the
+manifest moved HEAD and the seal reported a broken component on a
+byte-identical tree. Caught at step 3, **before any seed was released**, so no
+quarantine was required. Mutating `family.py`, `audit0c.py` or `x64h_final.py`
+each independently blocks release.
+
+### Final hidden run — 12 new seeds per family, no edits
+
+| | shared (13824) | disjoint (2304) |
+|---|---|---|
+| oracle | 1.000 | 1.000 |
+| static, family-aware | 0.250 | 0.286 |
+| selection-only diagnostic | 0.261 | 0.271 |
+| **persistent (correct likelihood)** | **0.919** | **0.917** |
+| late-window persistent | 1.000 | 1.000 |
+| **R (selected)** | **0.892** | **0.883** |
+| reset / shuffled / wrong-pairing | 0.250 / 0.234 / 0.241 | 0.286 / 0.302 / 0.271 |
+| convention change at boundary | 0.770 | 0.844 |
+| adaptation regret | 1.250 tasks (0.089/task) | 1.333 (0.083/task) |
+| conflict AUROC / AUPRC | 0.797 / 0.906 | 0.820 / 0.923 |
+| acceptance rate | 0.450 | 0.990 |
+| **R (unconditional)** | **0.414** | **0.717** |
+
+Episode-level paired 95% intervals, resampled by episode:
+
+| | shared | disjoint |
+|---|---|---|
+| persist − static | +0.669 (+0.603, +0.731) | +0.630 (+0.557, +0.698) |
+| persist − reset | +0.669 (+0.603, +0.731) | +0.630 (+0.557, +0.698) |
+| persist − shuffled | +0.685 (+0.599, +0.758) | +0.615 (+0.531, +0.693) |
+| persist − wrong pairing | +0.678 (+0.625, +0.729) | +0.646 (+0.552, +0.729) |
+| aware − naive likelihood | +0.021 (−0.012, +0.057) | +0.000 (−0.021, +0.021) |
+| infogain − random questions | −0.502 (−0.582, −0.419) | −0.521 (−0.630, −0.411) |
+
+`H(φ)` falls 13.75 → 0.00 bits and true-class mass 0.000 → 1.000 within about
+six tasks. Convention state survives a **separate-process restart** exactly.
+
+**The weak result, stated plainly.** Out-of-space tasks — meanings outside the
+frozen 32-form space — are declared `UNKNOWN_MEANING` only **40/96 (0.417)** of
+the time in both families; the rest are answered silently. And on the shared
+alphabet the unconditional recovery is **0.414** against 0.892 selected, with
+an acceptance rate of 0.450: coverage is materially worse than mechanism. The
+disjoint alphabet, which needs almost no selection, holds up far better
+(0.990 acceptance, unconditional R 0.717).
+
+### What closed, and what did not
+
+All six closure conditions hold in both alphabet strata, on seeds released by
+the seal and never previously run. The supported claim is exactly:
+
+> Sentinel learns a hidden communication convention from grounded prior tasks
+> and reuses it to interpret later, new tasks in a controlled authored
+> semantic environment.
+
+Not natural-language understanding. The convention family, slot inventories,
+executor and exposure patterns are all authored, the oracle ceiling on the
+selected distribution is constructed, and open-world detection is at 0.417.
