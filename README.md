@@ -2213,3 +2213,115 @@ identity** — the K ≤ 256 budget from the X65A-0 addendum does not describe
 this phase, and carrying that table forward without saying so was an error.
 The hypothetical fully enumerated global product over 8 identities is
 13824⁸ ≈ 10³²; it is never enumerated and never claimed.
+
+## X65A-S2: provisional evidence and active model criticism — 12/12
+
+X65A-S1 stopped at S1.7: quarantine admitted an alien observation whenever
+it agreed with a surviving but false convention. **That is not a tuning
+problem**, and this phase starts by proving it.
+
+### The one-observation impossibility
+
+Two worlds present the learner with an identical `(posterior, event)`:
+
+```
+World A:  partner = phi_A;  the event is out-of-family, inconsistent with
+          phi_A, consistent with phi_B          ->  correct action: REJECT
+World B:  partner = phi_B;  the same event is valid evidence
+                                                ->  correct action: PROMOTE
+```
+
+Constructed explicitly (φ_A = 0, φ_B = 2, meaning 2, support {0, 2}). Every
+deterministic policy on `(q, e)` errs in **at least 1 of 2** worlds; every
+randomised policy has total error **exactly 1** (enumerated over the rational
+grid). **No better one-shot rule exists — resolution requires another
+observation.** So the fix is a *provisional tier plus an active challenge*,
+not a smarter threshold.
+
+### Two tiers and the cause model
+
+`ConfirmedState` is what the system will act on with no questions asked.
+`ProvisionalBranch` holds evidence that would change it. A branch may choose
+which question to ask; it may never write confirmed state or authorise a
+zero-query action.
+
+```
+p(C, phi | e, H)  ∝  p(C) · q_conf(phi|H) · p(e | phi, C)
+IN_FAMILY     : the frozen X64H indicator [u3[phi,z] == u]
+OUT_OF_FAMILY : |{phi' : u3[phi',z] = u}| / N
+```
+
+The OTHER likelihood is the marginal over the **frozen family** — fixed
+before validation, independent of the partner's convention, and not
+constructible from the exposed event, so it cannot become a sink. All
+rational: `p(OUT) = 1/10`, thresholds `9/10`, challenge budget 3.
+
+A **challenge** names a meaning and receives the utterance the partner would
+use for it — a semantic question, introduced here because X64H's behavioural
+probes cannot separate conventions that agree on the current task. Chosen by
+exact `I((C, Φ); A_q | H, e)`.
+
+### Detectability partition
+
+| challenge set | one-query | multi-query | indistinguishable |
+|---|---|---|---|
+| full (32 meanings) | **100%** | 0% | **0%** |
+| restricted (4) | ~70% | 0% | ~30% |
+
+**Class C is empty under the full set, provably**: conventions have distinct
+observational signatures, so a survivor agreeing on all 32 meanings *would
+be* the partner. **Class B is empty too** — measured across challenge-set
+sizes 2–32, no alien ever needed more than one question when any number
+sufficed.
+
+### Safety / plasticity Pareto — 600 cases per stratum
+
+| arm | alien corruption | legit promotion | alien rejection | questions | TV from oracle |
+|---|---|---|---|---|---|
+| always accept | 1.000 | 1.000 | 0.000 | 0.00 | 0.589 |
+| **old quarantine (S1 rule)** | **0.500** | 1.000 | 0.500 | 0.00 | 0.351 |
+| survivor majority | 0.000 | **0.673** | 1.000 | 0.00 | 0.338 |
+| MAP protection | 0.267 | 0.822 | 0.733 | 0.00 | 0.349 |
+| always quarantine | 0.000 | **0.000** | 1.000 | 0.00 | 0.338 |
+| cause mixture, no query | **0.500** | 1.000 | 0.500 | 0.00 | 0.351 |
+| provisional + random question | 0.060 | 1.000 | 0.940 | 1.28 | 0.233 |
+| provisional + in-family disagreement | 0.127 | 1.000 | 0.873 | 1.33 | 0.217 |
+| **MAIN** | **0.000** | **1.000** | **1.000** | **1.00** | **0.193** |
+| oracle cause | 0.000 | 1.000 | 1.000 | 0.00 | 0.258 |
+| no OTHER component | 1.000 | 1.000 | 0.000 | 0.00 | 0.589 |
+| confirmation bypass | 1.000 | 1.000 | 0.000 | 0.00 | 0.589 |
+
+Split by record class, the S1 failure is exact: **old quarantine corrupts
+0.000 of determined records and 1.000 of under-determined ones.** The cause
+model *without* a question reproduces it identically — which is what the
+impossibility result predicts. Main is the only arm at 0.000 corruption *and*
+1.000 promotion, and its TV from oracle (0.193) is the lowest of any arm
+because the challenge answers tighten the record too.
+
+Prior sensitivity: corruption 0.000 and promotion 1.000 across
+`p(OUT) ∈ {1/100, 1/20, 1/10, 3/10, 1/2}`.
+
+### MISSING_REPRESENTATION, restart, and the honest boundary
+
+On 60 **already-wrong** confirmed records (the only population where truthful
+answers can eliminate every in-family reading), main returns
+`MISSING_REPRESENTATION` at **0.967** and leaves the record untouched at
+**1.000**. Without this case class the gate would have been unreachable and
+would have tested nothing.
+
+Restart: parent PID dies, 5-variable child environment, **32 provisional
+branches preserved byte-identically** along with confirmed state and every
+outcome.
+
+**The disclosure.** Under a restricted 4-question challenge set, every
+promoted indistinguishable alien yields a record that is empirically adequate
+on all 4 legal questions and **wrong on 100% of the meanings outside them**.
+Adequacy inside a tested query universe is not knowledge of the partner, and
+this is the number that says so.
+
+### Gates
+
+**12 of 12 S2 gates pass** on development and validation in both strata.
+21 new tests.
+
+**No final X65A manifest. No final stream seed sampled.**
