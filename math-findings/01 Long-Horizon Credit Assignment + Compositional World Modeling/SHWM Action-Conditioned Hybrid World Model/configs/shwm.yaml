@@ -1,0 +1,45 @@
+seed: 6600
+development_seeds: [6600, 6601, 6602]
+
+representation:
+  dimensions: [256, 512, 1024]
+  primary_dimension: 512
+  sensitivity_dimensions: [256, 1024]
+  arms: [continuous, discrete, hybrid]
+
+scale0:
+  trainable_parameter_counts: [50000000, 200000000]
+  parameter_tolerance_fraction: 0.01
+  fixed_transition_count: 100000
+  transitions_per_environment: 50000
+  sequence_length: 32
+  sequences_per_batch: 32
+  optimizer_updates: 200
+  online_interactions_per_run: 0
+  rollout_horizons: [5, 10, 25]
+  planner_invocations_per_horizon: 100
+  candidate_sequences_per_invocation: 64
+  frozen_backbone_candidates: [qwen3_vl_4b, gemma3_4b]
+  primary_matrix_cells: 12
+  primary_matrix_runs: 36
+  dimension_control_runs: 12
+  total_training_workloads: 48
+
+resource_assumptions:
+  machine_unified_memory_gb: 128
+  peak_unified_memory_ceiling_gib: 112
+  artifact_storage_ceiling_gib: 200
+  per_run_timeout_hours: 2
+  total_matrix_timeout_hours: 72
+  cache_build_timeout_hours: 8
+  cache_bytes_per_coordinate: 2
+  adam_bytes_per_parameter_low: 12
+  adam_bytes_per_parameter_high: 16
+  trainable_parameter_budget: 200000000
+
+toy_checks:
+  one_step_error: 0.01
+  posterior_reliability: 0.9
+
+tracking:
+  experiment_name: sentinel-shwm-math-audit

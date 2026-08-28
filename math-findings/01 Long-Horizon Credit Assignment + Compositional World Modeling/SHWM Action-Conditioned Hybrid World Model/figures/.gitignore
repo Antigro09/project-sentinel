@@ -1,0 +1,6 @@
+# Generated PNG figures are intentionally committed after verification.
+/training-state-memory-lower-bound.png
+/latent-cache-footprint.png
+/planning-sequence-growth.png
+/rollout-error-stability-map.png
+/intervention-identifiability.png

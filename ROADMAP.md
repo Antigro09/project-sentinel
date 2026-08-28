@@ -1,6 +1,28 @@
-# Roadmap: X63 - X73
+# Roadmap: X63 - X73 plus the Phase-2 world-model track
 
 **Status: this is the plan of record.** Adopted 2026-08-25, after X62.
+
+**Phase-2 amendment adopted 2026-08-28.** The historical X63–X73 capability
+labels remain in force. A parallel architecture track now introduces learned,
+action-conditioned latent world models earlier, without treating model size as
+a milestone and without replacing the exact Sentinel reference.
+
+Canonical Phase-2 documents:
+
+- `SENTINEL-HYBRID-WORLD-MODEL-STRATEGY.md`;
+- `docs/phase-2-continuous-world-model/`;
+- `math-findings/01 Long-Horizon Credit Assignment + Compositional World Modeling/SHWM Action-Conditioned Hybrid World Model/`.
+
+Branch topology:
+
+```text
+phase-1-exact-reference          exact committed reference at 5205543
+phase-1-verifier                ongoing exact X64/X65 evidence line
+phase-2-continuous-world-model  learned latent architecture line
+```
+
+The Phase-2 branch started at the same committed reference. Unfinished files in
+the active Phase-1 checkout were not absorbed into the freeze or Phase 2.
 
 It supersedes the five-gap plan (`~/.claude/plans/alright-can-we-make-validated-toast.md`),
 which is reconciled at the bottom rather than discarded -- three of its five
@@ -26,6 +48,28 @@ One line:
 > transfer -> X68 uncertain reasoning -> X69 grounded causal models ->
 > X70 multimodality -> X71 long-horizon agency -> X72 controlled
 > self-improvement -> X73 integrated AGI evaluation.
+
+The architecture amendment adds a second dependency line:
+
+> SHWM Scale 0 pipeline -> Scale 1 representation contest -> Scale 2 world
+> model contribution -> Scale 3 verifier contribution -> Scale 4 causal audit
+> -> Scale 5 environment transfer -> rejoin X65A/X65B at Scale 6 continual
+> learning -> Scale 7 GUI/code/X66 -> Scale 8 parameter/data study.
+
+This is deliberate parallelism. Scales 0–5 may progress while the exact memory
+line is audited. Scale 6 cannot claim continual learning until X65A and the
+minimal X65B scoped-transfer contract pass. Scale 7 cannot claim real
+software-engineering transfer until both lines pass.
+
+Two unsupported premises are explicitly rejected:
+
+- there is no accepted 15B–70B theoretical lower bound for AGI in the bounded
+  primary-source audit;
+- there is no established requirement for a continuous 1,024-dimensional
+  latent.
+
+Parameters, data, horizon, and modality diversity remain independent variables.
+Continuous, discrete, and hybrid latents are matched experimental arms.
 
 The ordering is a **dependency** order, not a priority order. Each step
 supplies something the next one consumes.
@@ -265,7 +309,10 @@ be beaten. No self-generated controlled language can show induction beating
 authoring. That needs variation no static rule set can invert: noise, open
 vocabulary, inconsistent constructions, or real text.
 
-X65 is NOT started.
+X65A-L is complete at the frozen Phase-2 baseline commit `5205543`; X65A as a
+whole is not closed. X65A-P and the mandatory X65B-core scoped-transfer gate
+remain pending. None of those states may be inferred from uncommitted work in
+another checkout.
 
 Today the system searches for a program whose desired behaviour a human has
 already specified. A human-level system must infer:
@@ -332,13 +379,44 @@ LifelongAgentBench (arXiv 2505.11942) is built around sequential
 experience, transfer, and retention rather than isolated static tasks --
 useful as an external evaluation pattern at this stage.
 
-**Gate.** Later tasks become measurably easier because of earlier
-experience, earlier capabilities stay intact, and a false stored belief can
-be revised without rebuilding the system.
+**Gate.** Later unseen tasks become measurably easier because of reusable prior
+experience; earlier capabilities stay intact; false stored beliefs can be
+revised locally; context switches prevent stale reuse; active memory remains
+bounded; and all effects survive a clean restart. Exact replay and exact old
+answers do not count as transfer.
 
 Prior art in this repo, and the trap: `memory/curve.py` already caught a
 fake 13x speedup that cost accuracy 58% -> 29%. Any compounding claim is
 run against that check.
+
+### X65A — structured continual memory
+
+X65A is the exact finite reference for episodic, semantic, procedural, and
+negative/revision memory under provenance, byte/retrieval budgets, leakage
+checks, and real restart. It is not complete because a summary exists or a
+development gate is green. Any post-fork audit in the active Phase-1 checkout
+must be committed, run against the full suite, and receive an explicit phase
+verdict before it changes this roadmap.
+
+### X65B-core — context-scoped transfer before X66
+
+X65B-core is now a mandatory operational dependency. It need not begin with a
+full sheaf or category-theoretic implementation, but it must establish:
+
+- explicit validity context and dependency/provenance edges;
+- reuse on structurally related but nonidentical tasks;
+- no stored final target program or answer;
+- context-switch detection;
+- stale, poisoned, superficially similar, and shuffled-memory controls;
+- revision locality;
+- composition of prior verified components under a fixed resource budget;
+- restart persistence.
+
+The gate is scoped transfer without harmful reuse. A finite factor-graph or
+exact Bayesian mechanism is preferred over heavier mathematics if it passes.
+
+SHWM Scale 6 consumes the committed X65A/X65B contract. Embedding retrieval is
+not a substitute for this gate.
 
 ## X66 - Real software engineering
 
@@ -356,6 +434,20 @@ Order: generated small repositories, then unseen open-source repositories,
 then a contamination-controlled subset of realistic benchmarks. SWE-bench
 (arXiv 2310.06770) is 2,294 real GitHub issues across 12 Python projects --
 an eventual external gate, never the development environment.
+
+**Entry dependency.** X66 begins only after:
+
+- X65B-core demonstrates context-scoped reusable knowledge;
+- SHWM's learned model has earned its place in controlled environments;
+- observable verification reduces model exploitation;
+- intervention/mechanism-shift tests pass at the claimed scope;
+- Scale 6 shows that continuous high-dimensional memory retains, revises, and
+  restarts under budget.
+
+Scale 7 is the Phase-2 implementation point for X66. The same core memory,
+uncertainty, planner, verifier, and revision interfaces must be used. A
+separately trained repository-specific cognitive core is a specialist, not a
+cross-domain result.
 
 **Gate.** Solves held-out repository tasks with no hand-authored target
 programs and no per-repository code, and knowledge from one repository
@@ -434,6 +526,13 @@ Note the continuity: latent-state inference is the existing differentiator.
 `charge_period` is a counter appearing in no frame, inferred at 0.634
 against a 0.298 prior. Any change that costs `charge_period` accuracy is
 reverted regardless of what else it buys.
+
+**Phase-2 amendment.** SHWM Scales 0–5 start testing this architecture before
+the historical X69 capability label is closed. The distinction is important:
+building an action-conditioned predictor is an architecture experiment;
+closing X69 requires reusable latent entities/mechanisms, intervention and
+counterfactual transfer, representation-inadequacy detection, and matched
+correlational controls.
 
 ## X70 - Multimodal grounding
 
@@ -517,6 +616,111 @@ budgets.
 Passing ARC-like puzzles, coding tasks, or OS tasks **separately** is not
 sufficient. The evidence must show the same accumulated system learning and
 operating across all of them.
+
+## Phase-2 SHWM scale track
+
+This section is the operational architecture sequence. Detailed arms, metrics,
+and stop conditions are in
+`docs/phase-2-continuous-world-model/EXPERIMENT-GATES.md`.
+
+### Scale 0 — premise and throughput
+
+Add typed latent/belief/dynamics/event/uncertainty/verifier contracts, two
+frozen encoder adapters, content-addressed cache, transition/branch schema, two
+environment adapters, 50M/200M configurations, continuous/discrete/hybrid fake
+arms, restart, and resource accounting. Execute the singular 48-workload
+development contract in
+`docs/phase-2-continuous-world-model/SCALE-0-RUN-MATRIX.md`. No Phase-2 final
+seeds and no capability claim.
+
+Gate: every frozen cell and seed completes locally under one evaluator, exact
+tests remain intact, no leakage occurs, all matching tolerances hold, and the
+preregistered memory/storage/time ceilings are respected.
+
+### Scale 1 — representation contest
+
+Compare continuous, discrete, and hybrid state at equal trainable parameters,
+data, optimizer, interactions, planner calls, and cumulative compute. Measure
+one-step and multi-step prediction, action-effect discrimination, calibration,
+and control.
+
+Falsifier: representation changes prediction metrics but not planning,
+transfer, or calibration.
+
+### Scale 2 — learned world model earns its place
+
+Compare reactive frozen features, no-action sequence model, model-free control,
+Dreamer-style baseline, SHWM, and oracle simulator under equal real
+interactions.
+
+Gate: higher task success at equal interactions or fewer interactions to
+matched success, with a paired interval excluding zero. Prediction alone does
+not pass.
+
+### Scale 3 — exact verifier earns its place
+
+Compare world-model only, symbolic-only, hybrid without verifier, hybrid with
+observable verification, and verifier plus structured memory.
+
+Gate: verification reduces real rollout failures or improves calibration
+without erasing the planning gain. Universal abstention fails.
+
+### Scale 4 — intervention and causal audit
+
+Change correlations, mechanics, policies, irrelevant appearance, and forced
+actions. Keep insufficient action coverage separate from model inadequacy.
+
+Gate: better intervention outcomes than an equal-size passive/correlational
+predictor. Do not call ordinary next-state prediction causal understanding.
+
+### Scale 5 — held-out environment transfer
+
+Freeze the shared belief/dynamics core; permit only thin observation/action
+adapters and bounded adaptation.
+
+Gate: fewer interactions or optimization steps in a held-out environment, and
+resetting the shared core/memory removes the gain.
+
+### Scale 6 — continuous-scale continual learning
+
+Integrate only the committed X65A/X65B contract. Test recurring environments,
+mechanic changes, distractor gaps, stale/false memory, byte/retrieval budgets,
+and genuine process restart.
+
+Gate: forward transfer, retention, local revision, negative-transfer
+resistance, bounded active growth, and restart survive matched controls.
+
+### Scale 7 — computer and code domains
+
+Add sandboxed GUI/tool environments and then X66 repositories using the same
+core interfaces. OSWorld and SWE-bench remain later untouched gates.
+
+Gate: transferable improvement without a domain-specific cognitive core or
+harmful repository reuse.
+
+### Scale 8 — parameter/data/horizon study
+
+Only after Scales 2–5 pass, run at least three model sizes and three data sizes
+under fixed evaluation. Estimate capability as a function of parameters,
+transitions, and horizon. Scale the bottleneck identified by behavior, not the
+largest number that fits.
+
+## Post-world-model integrated path
+
+If the early SHWM scales pass, proceed in this dependency order:
+
+1. multimodal time-indexed belief state with modality ablations;
+2. causal/mechanism and counterfactual evaluation;
+3. grounded abstraction and few-shot concept formation;
+4. lifelong multimodal memory plus controlled slow adaptation;
+5. metacognitive act/ask/test/replan/abstain control;
+6. hierarchical long-horizon agency with authority and stopping;
+7. physical, digital, code, and social cross-domain transfer;
+8. sandboxed controlled self-improvement with frozen evaluation and rollback;
+9. frozen integrated human-level evaluation.
+
+Each item must earn its place by ablation. A successful world model does not
+mean that only scaling remains.
 
 ---
 

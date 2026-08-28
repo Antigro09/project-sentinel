@@ -1,0 +1,31 @@
+stages:
+  symbolic:
+    cmd: /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python shwm_symbolic_checks.py
+    deps:
+      - shwm_symbolic_checks.py
+    outs:
+      - results/symbolic-checks.json
+  exact:
+    cmd: /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python shwm_exact_checks.py
+    deps:
+      - shwm_exact_checks.py
+    outs:
+      - results/exact-checks.json
+  properties:
+    cmd: /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python shwm_property_checks.py
+    deps:
+      - shwm_property_checks.py
+    outs:
+      - results/property-checks.json
+  resources:
+    cmd: /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python shwm_resource_checks.py
+    deps:
+      - shwm_resource_checks.py
+      - configs/shwm.yaml
+    outs:
+      - results/resource-checks.json
+      - figures/training-state-memory-lower-bound.png
+      - figures/latent-cache-footprint.png
+      - figures/planning-sequence-growth.png
+      - figures/rollout-error-stability-map.png
+      - figures/intervention-identifiability.png

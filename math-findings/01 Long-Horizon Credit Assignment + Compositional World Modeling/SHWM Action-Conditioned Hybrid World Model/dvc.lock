@@ -1,0 +1,82 @@
+schema: '2.0'
+stages:
+  symbolic:
+    cmd:
+      /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python
+      shwm_symbolic_checks.py
+    deps:
+    - path: shwm_symbolic_checks.py
+      hash: md5
+      md5: 752d7f2f03fcc0953157bfb4d2ea3dd4
+      size: 4203
+    outs:
+    - path: results/symbolic-checks.json
+      hash: md5
+      md5: 7c5bdf85a0cb0a7bfd1401a57868d365
+      size: 1057
+  exact:
+    cmd:
+      /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python
+      shwm_exact_checks.py
+    deps:
+    - path: shwm_exact_checks.py
+      hash: md5
+      md5: c011e94ba685bab3497dc8430655882e
+      size: 5654
+    outs:
+    - path: results/exact-checks.json
+      hash: md5
+      md5: 74ae9eee313821d6232400653d2628b4
+      size: 2853
+  properties:
+    cmd:
+      /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python
+      shwm_property_checks.py
+    deps:
+    - path: shwm_property_checks.py
+      hash: md5
+      md5: fd0188c1e9ccb99ae14269d0ac670081
+      size: 3705
+    outs:
+    - path: results/property-checks.json
+      hash: md5
+      md5: 834413900809762507b956218e9042a9
+      size: 463
+  resources:
+    cmd:
+      /Users/anthonycavero/Documents/Startup/project-sentinel/.venv-math-research/bin/python
+      shwm_resource_checks.py
+    deps:
+    - path: configs/shwm.yaml
+      hash: md5
+      md5: f8236792b12db964dd2504b2bf67072e
+      size: 1238
+    - path: shwm_resource_checks.py
+      hash: md5
+      md5: 5c3ca2d398415969288f7bd87bd19907
+      size: 18414
+    outs:
+    - path: figures/intervention-identifiability.png
+      hash: md5
+      md5: e95d6a5d89ee1edc0aa17bfa99544157
+      size: 51446
+    - path: figures/latent-cache-footprint.png
+      hash: md5
+      md5: 65c0445fd44b59e5c737fcaeb8465769
+      size: 85971
+    - path: figures/planning-sequence-growth.png
+      hash: md5
+      md5: fbe087fb0d48e814ae80a62aa13c13b8
+      size: 83865
+    - path: figures/rollout-error-stability-map.png
+      hash: md5
+      md5: ffcc1c73213b6d0f76b3fb54badd966e
+      size: 49721
+    - path: figures/training-state-memory-lower-bound.png
+      hash: md5
+      md5: 477ca0900a6cf01722e642984d225404
+      size: 91234
+    - path: results/resource-checks.json
+      hash: md5
+      md5: ff964a9782142c39984c58496db62a4d
+      size: 3053
