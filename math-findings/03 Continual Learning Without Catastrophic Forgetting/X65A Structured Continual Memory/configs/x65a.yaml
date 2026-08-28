@@ -1,0 +1,12 @@
+seed: 6501
+latent_components: 4
+retrieval_budget: 2
+memory_budget_bytes: 4096
+branching_factor: 6
+raw_target_length: 8
+macro_target_length: 3
+search_budget: 1000
+observation_reliability: 0.8
+tracking:
+  experiment_name: sentinel-x65a-theory-checks
+

@@ -1,0 +1,273 @@
+{
+  "status": "MEASURED: exact finite enumeration and analytic probabilities",
+  "tool_versions": {
+    "numpy": "2.5.2",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.1"
+  },
+  "random_context_identifiability": [
+    {
+      "k": 4,
+      "m": 1,
+      "exact": 0.0,
+      "formula": 0.0
+    },
+    {
+      "k": 4,
+      "m": 2,
+      "exact": 0.09375,
+      "formula": 0.09375
+    },
+    {
+      "k": 4,
+      "m": 3,
+      "exact": 0.41015625,
+      "formula": 0.41015625
+    },
+    {
+      "k": 4,
+      "m": 4,
+      "exact": 0.66650390625,
+      "formula": 0.66650390625
+    }
+  ],
+  "constructive_minimum_contexts": {
+    "2": {
+      "contexts": [
+        2
+      ],
+      "m": 1,
+      "cardinality_lower_bound": 1
+    },
+    "3": {
+      "contexts": [
+        2,
+        4
+      ],
+      "m": 2,
+      "cardinality_lower_bound": 2
+    },
+    "4": {
+      "contexts": [
+        10,
+        12
+      ],
+      "m": 2,
+      "cardinality_lower_bound": 2
+    },
+    "5": {
+      "contexts": [
+        10,
+        12,
+        16
+      ],
+      "m": 3,
+      "cardinality_lower_bound": 3
+    },
+    "6": {
+      "contexts": [
+        42,
+        12,
+        48
+      ],
+      "m": 3,
+      "cardinality_lower_bound": 3
+    },
+    "7": {
+      "contexts": [
+        42,
+        76,
+        112
+      ],
+      "m": 3,
+      "cardinality_lower_bound": 3
+    },
+    "8": {
+      "contexts": [
+        170,
+        204,
+        240
+      ],
+      "m": 3,
+      "cardinality_lower_bound": 3
+    },
+    "9": {
+      "contexts": [
+        170,
+        204,
+        240,
+        256
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "10": {
+      "contexts": [
+        682,
+        204,
+        240,
+        768
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "11": {
+      "contexts": [
+        682,
+        1228,
+        240,
+        1792
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "12": {
+      "contexts": [
+        2730,
+        3276,
+        240,
+        3840
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "13": {
+      "contexts": [
+        2730,
+        3276,
+        4336,
+        7936
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "14": {
+      "contexts": [
+        10922,
+        3276,
+        12528,
+        16128
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "15": {
+      "contexts": [
+        10922,
+        19660,
+        28912,
+        32512
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    },
+    "16": {
+      "contexts": [
+        43690,
+        52428,
+        61680,
+        65280
+      ],
+      "m": 4,
+      "cardinality_lower_bound": 4
+    }
+  },
+  "nonidentifiable_counterexample": {
+    "contexts": [
+      3
+    ],
+    "duplicate_atoms": [
+      0,
+      1
+    ],
+    "identity_convention": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "swapped_convention": [
+      1,
+      0,
+      2,
+      3
+    ],
+    "same_surface_observations": [
+      3
+    ]
+  },
+  "active_query": {
+    "k": 4,
+    "hypotheses": 24,
+    "posterior_entropy_bits": 4.584962500721156,
+    "largest_answer_alphabet": 6,
+    "entropy_lower_bound_questions": 1.7737056144690833,
+    "optimal_expected_questions": 2.0,
+    "greedy_information_gain_expected_questions": 2.0,
+    "random_disagreement_expected_questions": 2.857142857142857
+  },
+  "bounded_noise": {
+    "k": 8,
+    "m": 3,
+    "bit_flip_probability": 0.1,
+    "target_failure_probability": 0.05,
+    "hoeffding_repetition_bound_odd": 21,
+    "rows": [
+      {
+        "repetitions": 1,
+        "exact_all_signature_success": 0.07976644307687256,
+        "hoeffding_success_lower_bound": 0.0
+      },
+      {
+        "repetitions": 3,
+        "exact_all_signature_success": 0.5058134323172232,
+        "hoeffding_success_lower_bound": 0.0
+      },
+      {
+        "repetitions": 5,
+        "exact_all_signature_success": 0.8135691658239378,
+        "hoeffding_success_lower_bound": 0.0
+      },
+      {
+        "repetitions": 7,
+        "exact_all_signature_success": 0.9365414790121802,
+        "hoeffding_success_lower_bound": 0.0
+      },
+      {
+        "repetitions": 9,
+        "exact_all_signature_success": 0.9788355671953236,
+        "hoeffding_success_lower_bound": 0.0
+      },
+      {
+        "repetitions": 11,
+        "exact_all_signature_success": 0.9929271358419348,
+        "hoeffding_success_lower_bound": 0.28961355597059235
+      },
+      {
+        "repetitions": 13,
+        "exact_all_signature_success": 0.9976198670462628,
+        "hoeffding_success_lower_bound": 0.6254186099204124
+      },
+      {
+        "repetitions": 15,
+        "exact_all_signature_success": 0.9991933146665677,
+        "hoeffding_success_lower_bound": 0.8024860708235194
+      },
+      {
+        "repetitions": 17,
+        "exact_all_signature_success": 0.9997248898086064,
+        "hoeffding_success_lower_bound": 0.8958524015022666
+      },
+      {
+        "repetitions": 19,
+        "exact_all_signature_success": 0.9999056870865636,
+        "hoeffding_success_lower_bound": 0.945083760329868
+      },
+      {
+        "repetitions": 21,
+        "exact_all_signature_success": 0.9999675269459647,
+        "hoeffding_success_lower_bound": 0.9710430828650071
+      }
+    ]
+  }
+}

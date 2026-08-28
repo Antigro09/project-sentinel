@@ -1,0 +1,509 @@
+### A. Problem Target
+
+**Outcome:** The surviving candidate is **Boundary Contract Dual Ledger (BCDL)**. It is mathematically coherent under restrictive assumptions, but its integrated novelty and AGI usefulness remain **UNKNOWN**.
+
+- **Capability gap:** Long-horizon systems conflate two questions:
+
+  1. Which intervention changed the outcome?
+  2. Which part of the world model contradicts verified evidence?
+
+  BPTT transports derivatives; return decomposition transports scalar reward. Neither inherently supplies a compositional semantic repair certificate.
+
+- **Formal task family:** A finite acyclic typed causal program with modules
+
+\[
+M_i=(I_i,O_i,R_i,\{K_i^\iota\}),
+\]
+
+where
+
+\[
+R_i\subseteq X_{I_i}\times X_{O_i},\qquad
+K_i^\iota:X_{I_i}\rightsquigarrow X_{O_i},
+\]
+
+and persistent state must be represented explicitly at module boundaries.
+
+Let \(A\) be an intervention variable, \(a\) an intervention, \(a_0\) a reference intervention, \(Y\) an outcome, \(u:Y\to[-U,U]\), and
+
+\[
+G\subseteq X_0\times X_H
+\]
+
+a verified end-to-end behavioral contract.
+
+The proposed mechanism maps conditionally to distribution-shift transfer, compositional reasoning, continual refinement, causal modeling, and macro-level planning.
+
+### B. New Mathematical Construct
+
+Two candidates were examined.
+
+**Candidate 1: Counterfactual Cutset Dividends — REJECTED.**
+
+Define
+
+\[
+V(S)=\mathbb E[u(Y)\mid do(a_S,a_{0,\bar S})]
+\]
+
+and Möbius interaction dividends
+
+\[
+\delta(T)=\sum_{S\subseteq T}(-1)^{|T|-|S|}V(S).
+\]
+
+This reduces directly to a Harsanyi/Shapley-family attribution. [Counterfactual Shapley Credit Assignment](https://arxiv.org/abs/2607.16999) already applies this construction to temporal causal credit. Recursive culprit sets also collide with model-based diagnosis. Renaming coalitions as “causal cutsets” would not create a new formalism.
+
+**Candidate 2: Boundary Contract Dual Ledger — RETAINED AS HYPOTHESIS.**
+
+BCDL maintains two noninterchangeable mathematical ledgers.
+
+**1. Causal-effect ledger**
+
+A boundary \(C\) is interventionally sufficient when an action-invariant downstream kernel \(Q_{C\to Y}\) satisfies
+
+\[
+P_a^Y=P_a^C Q_{C\to Y}
+\]
+
+for every admissible intervention.
+
+Define
+
+\[
+\zeta_C^{a:a_0}=P_a^C-P_{a_0}^C,\qquad
+v_C=Q_{C\to Y}u,
+\]
+
+and
+
+\[
+\mathcal L_C(C;a,a_0,u)
+ =(\zeta_C^{a:a_0},v_C),\qquad
+\kappa_C=\langle\zeta_C^{a:a_0},v_C\rangle.
+\]
+
+The stored object is the signed boundary measure \(\zeta_C\), not merely the scalar \(\kappa_C\).
+
+**2. Epistemic-revision ledger**
+
+For relations \(P:X\to B\), \(S:C\to Y\), and \(G:X\to Y\), define residuals
+
+\[
+(P\backslash G)(b,y)
+\iff
+\forall x\,[P(x,b)\Rightarrow G(x,y)],
+\]
+
+\[
+(G/S)(x,c)
+\iff
+\forall y\,[S(c,y)\Rightarrow G(x,y)].
+\]
+
+For module \(R_i:B\to C\), prefix \(P_i\), and suffix \(S_i\),
+
+\[
+A_i^\star=P_i\backslash(G/S_i)
+\]
+
+is its greatest globally safe local contract. Therefore
+
+\[
+D_i=R_i\setminus A_i^\star,\qquad
+R_i^{\mathrm{safe}}=R_i\cap A_i^\star.
+\]
+
+If \(E_i\subseteq R_i\) is protected positive evidence, revision is admissible only when
+
+\[
+E_i\cap D_i=\varnothing.
+\]
+
+An identified update is
+
+\[
+\mathcal H_i\leftarrow
+\{h\in\mathcal H_i:
+E_i\subseteq R(h)\subseteq A_i^\star\}.
+\]
+
+Intuition:
+
+- Causal influence is transported as an interventional boundary difference, not a derivative.
+- Utility covectors move backward while signed causal measures move forward.
+- World-model correction is a certified relational meet, not a gradient step.
+- Failed reward alone cannot revise the dynamics model.
+- Multiple valid diagnoses remain explicit until an intervention distinguishes them.
+- Typed macro-contracts permit substitution without exposing internal implementation.
+
+### C. Theoretical Results
+
+**Theorem 1 — Cut-invariant causal-credit conservation**
+
+**Status: PROVEN on paper; mechanical verification UNKNOWN.**
+
+Let \(C,D\) be successive sufficient cuts. Suppose action-invariant kernels \(K:C\rightsquigarrow D\) and \(Q:D\rightsquigarrow Y\) satisfy
+
+\[
+P_a^D=P_a^C K,\qquad P_a^Y=P_a^D Q.
+\]
+
+Define
+
+\[
+\zeta_D=\zeta_CK,\qquad v_D=Qu,\qquad v_C=Kv_D.
+\]
+
+Then
+
+\[
+\boxed{
+\langle\zeta_C,v_C\rangle
+=
+\langle\zeta_D,v_D\rangle
+=
+\mathbb E[u(Y)\mid do(A=a)]
+-
+\mathbb E[u(Y)\mid do(A=a_0)].
+}
+\]
+
+**Proof.**
+
+\[
+\begin{aligned}
+\langle\zeta_D,v_D\rangle
+&=\int_Dv_D(d)\int_CK(dd\mid c)\,\zeta_C(dc)\\
+&=\int_C\left[\int_Dv_D(d)K(dd\mid c)\right]\zeta_C(dc)\\
+&=\langle\zeta_C,Kv_D\rangle\\
+&=\langle\zeta_C,v_C\rangle.
+\end{aligned}
+\]
+
+The downstream factorization identifies this value with the intervention contrast. ∎
+
+This avoids computational gradient decay, but cannot prevent a genuinely mixing environment from erasing the causal effect itself.
+
+**Theorem 2 — Greatest-safe local revision**
+
+**Status: PROVEN on paper; mechanical verification UNKNOWN.**
+
+For every \(X':B\to C\),
+
+\[
+\boxed{
+P;X';S\subseteq G
+\iff
+X'\subseteq P\backslash(G/S).
+}
+\]
+
+Consequently,
+
+\[
+R^{\mathrm{safe}}
+=
+R\cap\bigl(P\backslash(G/S)\bigr)
+\]
+
+is the unique greatest safe subrelation of \(R\).
+
+**Proof.** Relational composition obeys
+
+\[
+P;X'\subseteq B'
+\iff X'\subseteq P\backslash B'
+\]
+
+and
+
+\[
+X';S\subseteq G
+\iff X'\subseteq G/S.
+\]
+
+Thus
+
+\[
+P;X';S\subseteq G
+\iff P;X'\subseteq G/S
+\iff X'\subseteq P\backslash(G/S).
+\]
+
+Intersecting this greatest admissible relation with \(R\) gives the greatest safe subrelation of \(R\). ∎
+
+Additional results:
+
+- **Substitution invariance:** same typed boundary relation and interventional kernels imply identical external ledger values.
+- **Approximation bound:**
+
+\[
+d_{\mathrm{TV}}(P_{\mathrm{out}},P'_{\mathrm{out}})
+\leq\min(1,n\varepsilon),
+\]
+
+with two-arm utility-credit error at most
+
+\[
+2U\min(1,n\varepsilon).
+\]
+
+- **Finite monotone refinement:** under stationary, noiseless, truth-preserving constraints, at most
+
+\[
+\sum_i |R_i^{(0)}|
+\]
+
+strict tuple deletions can occur.
+
+- **Conditional active-identification bound:** if each query leaves at most a \(\rho<1\) fraction of the current version space,
+
+\[
+N_{\text{queries}}
+\leq
+\left\lceil\frac{\log N}{\log(1/\rho)}\right\rceil.
+\]
+
+The weakest assumptions are interventional boundary sufficiency, correct positive evidence, single-module failure, acyclicity, and bounded interface width.
+
+### D. Formal Verification Plan
+
+Lean-first order:
+
+1. Left and right residual adjunctions.
+2. Greatest-safe local contract.
+3. Greatest-safe subrelation.
+4. Finite push/pull identity.
+5. Cut conservation.
+6. Total-variation hybrid bound.
+7. Finite-refinement termination.
+
+Representative Lean signatures:
+
+```lean
+theorem local_contract_adj
+    (P : Rel α β) (X : Rel β γ)
+    (S : Rel γ δ) (G : Rel α δ) :
+    Sub (comp (comp P X) S) G ↔
+      Sub X (lres P (rres G S))
+
+theorem safe_repair_greatest
+    (hXR : Sub X R)
+    (hSafe : Sub (comp (comp P X) S) G) :
+    Sub X (inter R (lres P (rres G S)))
+
+theorem finite_push_pull
+    {C D : Type*} [Fintype C] [Fintype D]
+    (ζ : C → ℝ) (K : C → D → ℝ) (v : D → ℝ) :
+    (∑ d, (∑ c, ζ c * K c d) * v d) =
+      ∑ c, ζ c * (∑ d, K c d * v d)
+```
+
+```mermaid
+flowchart TD
+    RC["Relation composition"] --> RA["Residual adjunctions"]
+    RA --> SR["Greatest safe repair"]
+    PP["Finite push/pull"] --> CC["Cut conservation"]
+    TV["TV contraction"] --> HB["Hybrid bound"]
+    SR --> FR["Finite refinement"]
+```
+
+Lean 4/Mathlib and Coq were unavailable in-session, so no result is labeled mechanically checked. Exact Lean and independent Coq artifacts are supplied.
+
+### E. Mechanism/Architecture Instantiation
+
+```text
+BCDL-CYCLE(contracts, contrast a:a0, utility u, verified evidence G)
+
+    update the balanced typed-contract cache
+
+    choose an interventionally sufficient boundary C
+    ζC ← P(C | do(a)) - P(C | do(a0))
+    vC ← pull u backward through the downstream contract
+    store causal entry (ζC, vC, <ζC,vC>)
+
+    if no verified model contradiction exists:
+        do not revise the dynamics model
+        return causal ledger
+
+    diagnoses ← ∅
+    for each candidate module i:
+        Pi ← cached prefix
+        Si ← cached suffix
+        Ai ← Pi \ (G / Si)
+        Di ← Ri \ Ai
+
+        if Ei ∩ Di = ∅:
+            diagnoses ← diagnoses ∪
+              {(i, Di, proof Pi;(Ri∩Ai);Si ⊆ G)}
+
+    if exactly one diagnosis is identified:
+        meet its version space with Ai
+        recompute only affected cache ancestors
+    else:
+        request the intervention that best separates diagnoses
+        leave the model unrevised
+```
+
+For horizon \(H\) and dense boundary carrier size \(q\):
+
+| Operation | Time | Memory |
+|---|---:|---:|
+| Initial balanced cache | \(O(Hq^3)\) | \(O(Hq^2)\) |
+| One local replacement | \(O(q^3\log H)\) | \(O(Hq^2)\) |
+| All module residuals | \(O(Hq^3)\) | \(O(Hq^2)\) |
+| Kernel credit transport | \(O(Hq^2)\) | \(O(q)\) streaming |
+
+For factor-graph width \(w\),
+
+\[
+T=O(Nq^{w+1}),\qquad M=O(Nq^w).
+\]
+
+Therefore only cache-update depth is logarithmic. General inference still suffers interface-width and treewidth explosion.
+
+BCDL is operationally distinct from attention, BPTT, and Bellman/reward redistribution. This is not a claim of computational non-simulability: transformers or augmented model-based RL systems could simulate finite BCDL instances.
+
+### F. Empirical Falsification Plan
+
+**MEASURED:** A deterministic 4,000-trial NumPy experiment used horizons
+
+\[
+H\in\{4,8,16,32,64\},
+\]
+
+positive-evidence coverage
+
+\[
+p\in\{0,.25,.5,.75,1\},
+\]
+
+boundary size \(q=6\), and one corrupted module per chain.
+
+Results:
+
+- At \(p=0\), unique localization was 0%; every module remained a candidate.
+- At \(H=64,p=.75\), unique localization was \(29/160=18.1\%\), exact 95% CI \([12.5\%,25.0\%]\), with 3.525 candidates on average.
+- At \(p=1\), localization was \(160/160\) for every horizon.
+- The true faulty module remained in the candidate set in every trial.
+
+This **disconfirms** the claim that residuation alone solves long-horizon identification. It computes exact safe repair alternatives, but does not determine which alternative is true.
+
+!:chatgpt-content-reference{index="1"}
+
+SymPy and exhaustive finite enumeration verified:
+
+- 4,096 associativity cases;
+- 4,096 left-residual adjunction cases;
+- 4,096 right-residual adjunction cases;
+- 65,536 greatest-contract cases;
+- \(T(d)=T(d-1)+c\Rightarrow T(d)=T_0+cd\);
+- exact cut-credit equality \(-1/140\) across rational kernels.
+
+Next falsifiers:
+
+- delayed nondifferentiable XOR;
+- boundary aliasing with hidden state;
+- macro substitution;
+- interacting two-module faults;
+- cross-domain contract reuse.
+
+Required plots:
+
+1. Diagnosis accuracy over \((H,p)\).
+2. Mean diagnosis-set size over \((H,p)\).
+3. Full recomposition \(H\) versus cached update \(\lceil\log_2H\rceil\).
+4. Cut-conservation residual versus horizon and width.
+5. TV substitution error against \(n\varepsilon\).
+6. Failure map over hidden-state aliasing and intervention coverage.
+
+Resource use:
+
+- **Executed:** SymPy, Python, NumPy, SciPy, NetworkX, Matplotlib, and Markdown reporting.
+- **Supplied but unexecuted:** Lean 4/Mathlib and Coq.
+- **Not applicable to the discrete mechanism:** JAX/PyTorch and Pyro/NumPyro.
+- **Future weighted repair:** CVXPy.
+- **Implementation-stage reproducibility:** Hydra configurations, MLflow/W&B tracking, DVC task versioning, and Jupyter/Quarto reports.
+- Exhaustive enumeration replaced Hypothesis because it covered the entire two-state relation domain.
+
+### G. Comparison to Existing Methods
+
+The novelty audit used arXiv plus Semantic Scholar and OpenAlex discovery. Google Scholar was access-blocked, and Papers With Code produced no useful mapping. Absence from these searches is not evidence of novelty.
+
+| Method | Credit object | Update semantics | Relation to BCDL |
+|---|---|---|---|
+| BPTT / [synthetic gradients](https://arxiv.org/abs/1608.05343) | Parameter derivative | Gradient update | BCDL has no parameter derivative or temporal reverse pass. |
+| [RUDDER](https://arxiv.org/abs/1806.07857) | Redistributed return | RL update | BCDL does not redistribute reward. |
+| [Counterfactual Shapley](https://arxiv.org/abs/2607.16999) | Coalition allocation | Policy/reward update | Direct collision with rejected Candidate 1. |
+| [Reiter diagnosis](https://cse.sc.edu/~mgv/csce580f11/gradPres/reiter-diagnosis.pdf) | Conflict sets | Consistency repair | Closest precursor to BCDL’s revision ledger. |
+| [Dijkstra predicate transformers](https://dl.acm.org/doi/10.1145/360933.360975) | Weakest precondition | Logical refinement | Residuation itself is not novel. |
+| [Open causal models](https://arxiv.org/abs/2304.07638) | Interventional kernel | Causal composition | Typed causal boundaries are prior art. |
+| [Predictive-state representations](https://papers.nips.cc/paper_files/paper/2001/hash/1e4d36177d71bbb3558e43af9577d70e-Abstract.html) | Action-conditioned predictions | State update | Learned BCDL boundaries may reduce to PSR sufficiency. |
+| **BCDL** | Signed intervention measure plus certified deletion | Identified version-space meet | Proposed integration; novelty remains **UNKNOWN**. |
+
+The proposed novelty delta is only this invariant:
+
+> Instrumental action credit and epistemic model correction must inhabit separate algebraic ledgers, even though both operate over the same typed causal contracts.
+
+The novelty claim is falsified if the complete mechanism reduces routinely to standard diagnosis plus open-causal composition or PSR sufficiency.
+
+### H. Failure Modes & Boundary Conditions
+
+Strongest objections:
+
+1. **Boundary discovery is unsolved.** A compact interventionally sufficient boundary may be as difficult to learn as the full world model.
+2. **Diagnosis is not identification.** The experiment showed rapidly increasing ambiguity with horizon.
+3. **Novelty may collapse to established mathematics.** Both ledgers have close individual precursors.
+4. **No absolute non-equivalence claim is defensible.** Universal architectures can simulate the mechanism.
+5. **Monotone deletion is brittle under noise and nonstationarity.**
+6. **Interacting actions lack a unique fair allocation.**
+7. **Interface-width explosion can dominate balanced depth.**
+8. **True causal influence can physically decay.**
+9. **Feedback systems require an equilibrium or trace semantics.**
+
+Adversarial cases include hidden bypass paths, observationally equivalent but interventionally different worlds, aliased boundary states, \(k\)-way fault synergy, unmodeled resource channels, and false verified constraints.
+
+Reject BCDL as a useful direction if:
+
+- sufficient boundary size grows essentially linearly with horizon;
+- active interventions do not reduce diagnosis sets faster than unstructured search;
+- typed contract reuse fails under domain shift;
+- dual-ledger separation gives no repair or retention advantage;
+- a formal reduction shows the full mechanism is merely renamed diagnosis and open-causal composition.
+
+### I. Iteration Step
+
+The weakest assumption is the existence of a fixed, compact, interventionally sufficient boundary with enough positive evidence to prevent false repair.
+
+The next variant is **Query-Preserving Boundary Refinement**:
+
+- When a required deletion intersects protected positive evidence, interpret the conflict as boundary aliasing.
+- Find the cheapest predicate separating the positive and negative witnesses.
+- Split the boundary state.
+- Recompute both ledgers.
+- Use interventions to distinguish remaining diagnoses.
+- Replace irreversible meets with provenance-weighted reversible revision under noise.
+
+Next theorem targets:
+
+1. Soundness of witness-separating splits.
+2. Finite termination when a sufficient finite predicate partition exists.
+3. Approximate partition minimality under an MDL objective.
+4. Active-query contraction guarantees.
+5. Reversible revision without forgetting unaffected contracts.
+
+Evidence ledger:
+
+- **PROVEN:** Two paper-level algebraic theorems under explicit assumptions.
+- **MEASURED:** Exact finite checks passed; the numerical study exposed severe identifiability failure.
+- **UNKNOWN:** Lean/Coq verification, integrated novelty, and compact-boundary learnability.
+- **HYPOTHESIS:** Dual ledgers improve compositional transfer and continual correction.
+- **SPECULATIVE:** Boundary refinement could become a general abstraction mechanism.
+- **NOT ESTABLISHED:** AGI, human-level reasoning, or superiority over existing systems.
+
+The standing protocol—excluding the Initial Task—is preserved in [:chatgpt-content-reference{index="0"}](sandbox:/workspace/scratch/88c793ec5332/Sentinel-Theoretical-Research-Protocol.md).
+
+Research package: :chatgpt-content-reference{index="3"}, :chatgpt-content-reference{index="4"}, :chatgpt-content-reference{index="5"}, :chatgpt-content-reference{index="6"}, :chatgpt-content-reference{index="7"}, and :chatgpt-content-reference{index="8"}.
+
+:chatgpt-content-reference{index="2"}

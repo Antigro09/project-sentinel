@@ -1,0 +1,76 @@
+{
+  "status": "MEASURED: targeted resource checks executed",
+  "hydra_config": {
+    "seed": 20260826,
+    "field_prime": 17,
+    "signature_probes": [
+      2,
+      4
+    ]
+  },
+  "scipy_assignment": {
+    "hidden_permutation": [
+      3,
+      1,
+      0,
+      4,
+      2,
+      6,
+      7,
+      5
+    ],
+    "recovered_permutation": [
+      3,
+      1,
+      0,
+      4,
+      2,
+      6,
+      7,
+      5
+    ],
+    "correct": true
+  },
+  "cvxpy_contract": {
+    "status": "optimal",
+    "fitted": [
+      0.29999999861538384,
+      0.40000000143113085
+    ],
+    "objective": 0.7000000000465147
+  },
+  "jax_unseen_composition": {
+    "word": [
+      0,
+      2,
+      1,
+      2,
+      0
+    ],
+    "output": 0.4528839886188507,
+    "gradient_l2": 3.481046199798584,
+    "gradient_finite": true
+  },
+  "numpyro_symbol_posterior": {
+    "probabilities": [
+      4.416325663883611e-33,
+      1.7497196779622575e-23,
+      1.1282654810429449e-08,
+      1.0,
+      0.0,
+      9.577880843360186e-23,
+      2.9911262787933693e-37,
+      2.0825797141486857e-13
+    ],
+    "normalized": true
+  },
+  "mlflow": {
+    "experiment": "sentinel-oci-math-cycle",
+    "run_id": "7bc5d6e46fec4b1787b11f09f2bd4804"
+  },
+  "versions": {
+    "jax": "0.11.1",
+    "cvxpy": "1.9.2",
+    "mlflow": "3.15.2"
+  }
+}

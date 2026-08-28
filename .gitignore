@@ -22,3 +22,6 @@ episodes/
 corpus/
 checkpoints/
 runs/
+
+# Local Claude worktrees
+.claude/worktrees/

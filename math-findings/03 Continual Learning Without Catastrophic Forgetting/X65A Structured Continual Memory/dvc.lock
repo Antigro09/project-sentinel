@@ -1,0 +1,78 @@
+schema: '2.0'
+stages:
+  symbolic:
+    cmd: python x65a_symbolic_checks.py
+    deps:
+    - path: x65a_symbolic_checks.py
+      hash: md5
+      md5: b563a488dfc42e18c12ee101641fe893
+      size: 3998
+    outs:
+    - path: results/symbolic-checks.json
+      hash: md5
+      md5: 255afb45e2e2dc156b449d1e4bb8a1d1
+      size: 858
+  exact:
+    cmd: python x65a_exact_checks.py
+    deps:
+    - path: x65a_exact_checks.py
+      hash: md5
+      md5: 135e0adf94e84240212429f80ebd2a2d
+      size: 25407
+    outs:
+    - path: figures/compounding-reachability-phase.png
+      hash: md5
+      md5: 4ba323ff8288ca5fbeb60a7fbd1a3642
+      size: 44467
+    - path: figures/memory-growth.png
+      hash: md5
+      md5: 33debc57f7b011d4a9a9c6c739dc2ef5
+      size: 72591
+    - path: figures/retrieval-counterexample.png
+      hash: md5
+      md5: e37fef86d2a576c4ad910dfa92d7c969
+      size: 38440
+    - path: figures/revision-dependency-region.png
+      hash: md5
+      md5: d0a98e292b57c2f5b859aa2e2befe621
+      size: 56390
+    - path: figures/semantic-transfer-curve.png
+      hash: md5
+      md5: 2d193b4d6a15e1730d81c3cbf24fbb02
+      size: 58812
+    - path: figures/stability-plasticity-frontier.png
+      hash: md5
+      md5: be4fbc6646529a0ae5265a7e4ee3528d
+      size: 103373
+    - path: results/exact-checks.json
+      hash: md5
+      md5: 5b53eeb0af4ffdb39d0b4fc50c950972
+      size: 8940
+  properties:
+    cmd: python x65a_property_checks.py
+    deps:
+    - path: x65a_property_checks.py
+      hash: md5
+      md5: 0190698fe05730f91ddd000d372f383b
+      size: 3916
+    outs:
+    - path: results/property-checks.json
+      hash: md5
+      md5: b681ca10c54a53eab8da1120fd8998ef
+      size: 347
+  resources:
+    cmd: python x65a_resource_checks.py
+    deps:
+    - path: configs/x65a.yaml
+      hash: md5
+      md5: bc34458fa7149e83476c62d7d7623fe9
+      size: 249
+    - path: x65a_resource_checks.py
+      hash: md5
+      md5: 514826ffc9ae92e38bea355723deb646
+      size: 5973
+    outs:
+    - path: results/resource-checks.json
+      hash: md5
+      md5: 764dc3d6a7eefbbbd319a9f82a6274a1
+      size: 1130

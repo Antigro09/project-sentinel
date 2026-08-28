@@ -1,0 +1,30 @@
+# Symbolic mathematics
+sympy
+
+# Numerical computing and optimization
+numpy
+scipy
+cvxpy
+jax
+optax
+numpyro
+
+# Graphs, visualization, and data handling
+networkx
+matplotlib
+seaborn
+plotly
+pandas
+
+# Reproducibility and experiment tracking
+jupyterlab
+ipykernel
+papermill
+hydra-core
+mlflow
+dvc
+
+# Testing and counterexample generation
+pytest
+hypothesis
+scikit-learn

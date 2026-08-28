@@ -1,0 +1,10 @@
+{
+  "status": "MEASURED: Hypothesis properties executed",
+  "affine_associativity_examples": 500,
+  "invalid_rewrite_counterexample": [
+    1,
+    1,
+    1
+  ],
+  "invalid_rewrite_defect": 0.23100000000000032
+}

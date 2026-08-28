@@ -1,0 +1,11 @@
+seed: 20260826
+field_prime: 17
+generator_count: 8
+signature_probes: [2, 4]
+probe_noise: 0.05
+contract:
+  left_sensitivity: 0.3
+  right_sensitivity: 0.4
+  local_error: 0.02
+tracking:
+  experiment_name: sentinel-oci-math-cycle

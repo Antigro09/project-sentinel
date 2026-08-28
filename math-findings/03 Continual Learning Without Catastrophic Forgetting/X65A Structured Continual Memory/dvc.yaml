@@ -1,0 +1,33 @@
+stages:
+  symbolic:
+    cmd: python x65a_symbolic_checks.py
+    deps:
+      - x65a_symbolic_checks.py
+    outs:
+      - results/symbolic-checks.json
+  exact:
+    cmd: python x65a_exact_checks.py
+    deps:
+      - x65a_exact_checks.py
+    outs:
+      - results/exact-checks.json
+      - figures/semantic-transfer-curve.png
+      - figures/memory-growth.png
+      - figures/stability-plasticity-frontier.png
+      - figures/retrieval-counterexample.png
+      - figures/revision-dependency-region.png
+      - figures/compounding-reachability-phase.png
+  properties:
+    cmd: python x65a_property_checks.py
+    deps:
+      - x65a_property_checks.py
+    outs:
+      - results/property-checks.json
+  resources:
+    cmd: python x65a_resource_checks.py
+    deps:
+      - x65a_resource_checks.py
+      - configs/x65a.yaml
+    outs:
+      - results/resource-checks.json
+

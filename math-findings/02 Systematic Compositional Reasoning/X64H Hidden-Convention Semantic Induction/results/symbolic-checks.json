@@ -1,0 +1,11 @@
+{
+  "status": "MEASURED: symbolic identities executed successfully",
+  "conflict_posterior": "(-c1*mass*rho1 + c1*rho1)/(c0*mass*rho0 - c1*mass*rho1 + c1*rho1)",
+  "posterior_odds": "(-c1*mass*rho1 + c1*rho1)/(c0*mass*rho0)",
+  "bayes_odds_identity": true,
+  "x64e_exact_under_balanced_effective_constants": true,
+  "calibrated_conditional_error_given_match": "-delta*epsilon + delta + epsilon",
+  "calibrated_total_error": "delta*epsilon*gamma - delta*epsilon - delta*gamma + delta - epsilon*gamma + epsilon + gamma",
+  "acting_vs_asking_threshold": "p_best >= -ask_cost/loss_wrong + 1",
+  "sympy_version": "1.14.0"
+}
