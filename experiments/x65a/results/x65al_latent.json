@@ -1,0 +1,1213 @@
+{
+  "branch": "phase-1-verifier",
+  "commit": "98bca52cef4cb3877358cee03b7ae12374e3c319",
+  "families": {
+    "disjoint_op": {
+      "arms": {
+        "bigger_query_memoryless": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 3.7,
+          "recall_at_4": 0.0,
+          "units": 4.7,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.21428571428571427
+        },
+        "exact_all_record": {
+          "bytes_retrieved": 333.0,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9880952380952381,
+          "literal_identity": 0.8452380952380952,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 7.4,
+          "out_of_family_safe": 1.0,
+          "queries": 2.55,
+          "recall_at_4": 1.0,
+          "units": 3.55,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 1.0
+        },
+        "joint_infogain": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9285714285714286,
+          "literal_identity": 0.7857142857142857,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9523809523809523
+        },
+        "main": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9285714285714286,
+          "literal_identity": 0.7857142857142857,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9523809523809523
+        },
+        "map_destructive": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9285714285714286,
+          "literal_identity": 0.7857142857142857,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 1.0,
+          "zero_query_accuracy": 0.9523809523809523
+        },
+        "most_recent": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.10714285714285714,
+          "literal_identity": 0.10714285714285714,
+          "new_forced_assimilation": 0.3333333333333333,
+          "new_identity_recall": 0.5555555555555556,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.10714285714285714,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.2976190476190476
+        },
+        "no_confirmation": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9285714285714286,
+          "literal_identity": 0.7857142857142857,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9523809523809523
+        },
+        "no_memory": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.21428571428571427
+        },
+        "no_new_forced": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.35714285714285715,
+          "literal_identity": 0.3333333333333333,
+          "new_forced_assimilation": 0.7777777777777778,
+          "new_identity_recall": 0.0,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.8571428571428571,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 0.6547619047619048
+        },
+        "no_new_identity": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.35714285714285715,
+          "literal_identity": 0.3333333333333333,
+          "new_forced_assimilation": 0.05555555555555555,
+          "new_identity_recall": 0.7222222222222222,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.8571428571428571,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.6547619047619048
+        },
+        "no_out_of_family": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.35714285714285715,
+          "literal_identity": 0.3333333333333333,
+          "new_forced_assimilation": 0.1111111111111111,
+          "new_identity_recall": 0.8888888888888888,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.8571428571428571,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.6309523809523809
+        },
+        "no_provisional": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9285714285714286,
+          "literal_identity": 0.7857142857142857,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9523809523809523
+        },
+        "oracle_convention": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 1.0,
+          "new_identity_recall": 0.0,
+          "nodes": 0.925,
+          "out_of_family_safe": 0.5,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 1.0
+        },
+        "oracle_identity": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9880952380952381
+        },
+        "random_clarification": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.9166666666666666,
+          "literal_identity": 0.7738095238095238,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8333333333333334,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4583333333333335,
+          "recall_at_4": 0.8571428571428571,
+          "units": 3.4583333333333335,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9404761904761905
+        },
+        "random_record": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.15476190476190477,
+          "literal_identity": 0.09523809523809523,
+          "new_forced_assimilation": 0.3888888888888889,
+          "new_identity_recall": 0.5,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.09523809523809523,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.36904761904761907
+        },
+        "shuffled": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.13095238095238096,
+          "literal_identity": 0.10714285714285714,
+          "new_forced_assimilation": 0.5,
+          "new_identity_recall": 0.3888888888888889,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.10714285714285714,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.34523809523809523
+        },
+        "stable_id_oracle": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 1.0,
+          "new_identity_recall": 0.0,
+          "nodes": 0.925,
+          "out_of_family_safe": 0.5,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 0.9880952380952381
+        },
+        "surface_nearest": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.2857142857142857,
+          "literal_identity": 0.14285714285714285,
+          "new_forced_assimilation": 0.3888888888888889,
+          "new_identity_recall": 0.5,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.14285714285714285,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.5
+        },
+        "unlimited_retrieval": {
+          "bytes_retrieved": 333.0,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.5833333333333334,
+          "literal_identity": 0.4166666666666667,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 7.4,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.6666666666666666
+        },
+        "wrong_similar": {
+          "bytes_retrieved": 170.05833333333334,
+          "bytes_scanned": 333.0,
+          "equivalence_retrieval": 0.2857142857142857,
+          "literal_identity": 0.14285714285714285,
+          "new_forced_assimilation": 0.3888888888888889,
+          "new_identity_recall": 0.5,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.14285714285714285,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.5
+        }
+      },
+      "ceiling": [
+        {
+          "N": 2,
+          "accuracy": 0.625,
+          "bytes_scanned": 67,
+          "convention_state_evals": 221184,
+          "identity_likelihood_evals": 96,
+          "wall_s": 0.016,
+          "within_512": true
+        },
+        {
+          "N": 4,
+          "accuracy": 0.5833333333333334,
+          "bytes_scanned": 160,
+          "convention_state_evals": 331776,
+          "identity_likelihood_evals": 144,
+          "wall_s": 0.002,
+          "within_512": true
+        },
+        {
+          "N": 8,
+          "accuracy": 0.7083333333333334,
+          "bytes_scanned": 360,
+          "convention_state_evals": 552960,
+          "identity_likelihood_evals": 240,
+          "wall_s": 0.003,
+          "within_512": true
+        },
+        {
+          "N": 16,
+          "accuracy": 0.7083333333333334,
+          "bytes_scanned": 720,
+          "convention_state_evals": 995328,
+          "identity_likelihood_evals": 432,
+          "wall_s": 0.005,
+          "within_512": false
+        }
+      ],
+      "full": {
+        "bytes_retrieved": 170.05833333333334,
+        "bytes_scanned": 333.0,
+        "equivalence_retrieval": 0.9285714285714286,
+        "literal_identity": 0.7857142857142857,
+        "new_forced_assimilation": 0.0,
+        "new_identity_recall": 0.8333333333333334,
+        "nodes": 3.7,
+        "out_of_family_safe": 1.0,
+        "queries": 2.4583333333333335,
+        "recall_at_4": 0.8571428571428571,
+        "units": 3.4583333333333335,
+        "writes_under_ambiguity": 0.0,
+        "zero_query_accuracy": 0.9523809523809523
+      },
+      "identities": [
+        [
+          0,
+          "same_convention",
+          2
+        ],
+        [
+          1,
+          "same_convention",
+          1
+        ],
+        [
+          2,
+          "one_mapping_apart",
+          1
+        ],
+        [
+          3,
+          "one_mapping_apart",
+          2
+        ],
+        [
+          4,
+          "order_apart",
+          1
+        ],
+        [
+          5,
+          "order_apart",
+          1
+        ],
+        [
+          6,
+          "independent",
+          2
+        ],
+        [
+          7,
+          "independent",
+          1
+        ]
+      ],
+      "probe_kinds": {
+        "ambiguous": 6,
+        "misleading": 6,
+        "new": 18,
+        "out_of_family": 9,
+        "returning": 72,
+        "unknown_meaning": 9
+      },
+      "query_curve": {
+        "main": {
+          "0": [
+            0.6309523809523809,
+            0.0
+          ],
+          "1": [
+            0.9523809523809523,
+            0.8416666666666667
+          ],
+          "2": [
+            0.9523809523809523,
+            1.65
+          ],
+          "3": [
+            0.9523809523809523,
+            2.4583333333333335
+          ]
+        },
+        "no_memory": {
+          "0": [
+            0.21428571428571427,
+            0.0
+          ],
+          "1": [
+            0.21428571428571427,
+            0.0
+          ],
+          "2": [
+            0.21428571428571427,
+            0.0
+          ],
+          "3": [
+            0.21428571428571427,
+            0.0
+          ]
+        },
+        "random_record": {
+          "0": [
+            0.36904761904761907,
+            0.0
+          ],
+          "1": [
+            0.36904761904761907,
+            0.0
+          ],
+          "2": [
+            0.36904761904761907,
+            0.0
+          ],
+          "3": [
+            0.36904761904761907,
+            0.0
+          ]
+        },
+        "stable_id_oracle": {
+          "0": [
+            0.9880952380952381,
+            0.0
+          ],
+          "1": [
+            0.9880952380952381,
+            0.0
+          ],
+          "2": [
+            0.9880952380952381,
+            0.0
+          ],
+          "3": [
+            0.9880952380952381,
+            0.0
+          ]
+        }
+      },
+      "restart": {
+        "bytes": 21108,
+        "child_pid": 39498,
+        "confirmed_identical": true,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "hash_identical": true,
+        "ok": true,
+        "outcomes_identical": true,
+        "parent_pid": 39497,
+        "parent_pid_gone": true,
+        "provisional_branches": 32,
+        "provisional_identical": true
+      },
+      "restricted": {
+        "bytes_retrieved": 170.05833333333334,
+        "bytes_scanned": 333.0,
+        "equivalence_retrieval": 0.8452380952380952,
+        "literal_identity": 0.7023809523809523,
+        "new_forced_assimilation": 0.0,
+        "new_identity_recall": 0.8333333333333334,
+        "nodes": 3.7,
+        "out_of_family_safe": 1.0,
+        "queries": 2.4583333333333335,
+        "recall_at_4": 0.8571428571428571,
+        "units": 3.4583333333333335,
+        "writes_under_ambiguity": 0.0,
+        "zero_query_accuracy": 0.9523809523809523
+      },
+      "sketch": {
+        "exact_sufficient": true,
+        "full_bytes": 310.875,
+        "index_bytes": 360,
+        "sketch_bytes": 45.0
+      },
+      "validation": {
+        "main": {
+          "bytes_retrieved": 189.85,
+          "bytes_scanned": 370.925,
+          "equivalence_retrieval": 0.9821428571428571,
+          "literal_identity": 0.8214285714285714,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 3.7,
+          "out_of_family_safe": 1.0,
+          "queries": 2.4375,
+          "recall_at_4": 0.9464285714285714,
+          "units": 3.4375,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9821428571428571
+        },
+        "none": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.2857142857142857
+        }
+      }
+    },
+    "shared": {
+      "arms": {
+        "bigger_query_memoryless": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 3.6666666666666665,
+          "recall_at_4": 0.0,
+          "units": 4.666666666666667,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.2073170731707317
+        },
+        "exact_all_record": {
+          "bytes_retrieved": 316.25,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 0.8536585365853658,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 7.333333333333333,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 1.0,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 1.0
+        },
+        "joint_infogain": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "main": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "map_destructive": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 1.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "most_recent": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.10975609756097561,
+          "literal_identity": 0.10975609756097561,
+          "new_forced_assimilation": 0.35294117647058826,
+          "new_identity_recall": 0.17647058823529413,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.10975609756097561,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.2804878048780488
+        },
+        "no_confirmation": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "no_memory": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.2073170731707317
+        },
+        "no_new_forced": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.4878048780487805,
+          "literal_identity": 0.4146341463414634,
+          "new_forced_assimilation": 0.8235294117647058,
+          "new_identity_recall": 0.0,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.9634146341463414,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 0.7926829268292683
+        },
+        "no_new_identity": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.4878048780487805,
+          "literal_identity": 0.4146341463414634,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8235294117647058,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.9634146341463414,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.7926829268292683
+        },
+        "no_out_of_family": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.4878048780487805,
+          "literal_identity": 0.4146341463414634,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.9634146341463414,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.7682926829268293
+        },
+        "no_provisional": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "oracle_convention": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 1.0,
+          "new_identity_recall": 0.0,
+          "nodes": 0.9166666666666666,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 1.0
+        },
+        "oracle_identity": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.8235294117647058,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.9390243902439024
+        },
+        "random_clarification": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.975609756097561,
+          "literal_identity": 0.8292682926829268,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 2.75,
+          "recall_at_4": 0.9634146341463414,
+          "units": 3.75,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.975609756097561
+        },
+        "random_record": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.1951219512195122,
+          "literal_identity": 0.12195121951219512,
+          "new_forced_assimilation": 0.058823529411764705,
+          "new_identity_recall": 0.29411764705882354,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.12195121951219512,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.4146341463414634
+        },
+        "shuffled": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.14634146341463414,
+          "literal_identity": 0.0975609756097561,
+          "new_forced_assimilation": 0.058823529411764705,
+          "new_identity_recall": 0.29411764705882354,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.0975609756097561,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.3902439024390244
+        },
+        "stable_id_oracle": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 1.0,
+          "literal_identity": 1.0,
+          "new_forced_assimilation": 1.0,
+          "new_identity_recall": 0.0,
+          "nodes": 0.9166666666666666,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": NaN,
+          "zero_query_accuracy": 0.9512195121951219
+        },
+        "surface_nearest": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.1951219512195122,
+          "literal_identity": 0.10975609756097561,
+          "new_forced_assimilation": 0.058823529411764705,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.10975609756097561,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.573170731707317
+        },
+        "unlimited_retrieval": {
+          "bytes_retrieved": 316.25,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.573170731707317,
+          "literal_identity": 0.43902439024390244,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.7647058823529411,
+          "nodes": 7.333333333333333,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 1.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.7804878048780488
+        },
+        "wrong_similar": {
+          "bytes_retrieved": 155.32407407407408,
+          "bytes_scanned": 316.25,
+          "equivalence_retrieval": 0.1951219512195122,
+          "literal_identity": 0.10975609756097561,
+          "new_forced_assimilation": 0.058823529411764705,
+          "new_identity_recall": 0.23529411764705882,
+          "nodes": 3.6666666666666665,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.10975609756097561,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.573170731707317
+        }
+      },
+      "ceiling": [
+        {
+          "N": 2,
+          "accuracy": 0.5833333333333334,
+          "bytes_scanned": 74,
+          "convention_state_evals": 1327104,
+          "identity_likelihood_evals": 96,
+          "wall_s": 0.068,
+          "within_512": true
+        },
+        {
+          "N": 4,
+          "accuracy": 0.625,
+          "bytes_scanned": 186,
+          "convention_state_evals": 1990656,
+          "identity_likelihood_evals": 144,
+          "wall_s": 0.009,
+          "within_512": true
+        },
+        {
+          "N": 8,
+          "accuracy": 0.7083333333333334,
+          "bytes_scanned": 345,
+          "convention_state_evals": 3317760,
+          "identity_likelihood_evals": 240,
+          "wall_s": 0.011,
+          "within_512": true
+        },
+        {
+          "N": 16,
+          "accuracy": 0.7083333333333334,
+          "bytes_scanned": 690,
+          "convention_state_evals": 5971968,
+          "identity_likelihood_evals": 432,
+          "wall_s": 0.015,
+          "within_512": false
+        }
+      ],
+      "full": {
+        "bytes_retrieved": 155.32407407407408,
+        "bytes_scanned": 316.25,
+        "equivalence_retrieval": 0.975609756097561,
+        "literal_identity": 0.8292682926829268,
+        "new_forced_assimilation": 0.0,
+        "new_identity_recall": 0.23529411764705882,
+        "nodes": 3.6666666666666665,
+        "out_of_family_safe": 1.0,
+        "queries": 2.75,
+        "recall_at_4": 0.9634146341463414,
+        "units": 3.75,
+        "writes_under_ambiguity": 0.0,
+        "zero_query_accuracy": 0.975609756097561
+      },
+      "identities": [
+        [
+          0,
+          "same_convention",
+          3
+        ],
+        [
+          1,
+          "same_convention",
+          1
+        ],
+        [
+          2,
+          "one_mapping_apart",
+          1
+        ],
+        [
+          3,
+          "one_mapping_apart",
+          4
+        ],
+        [
+          4,
+          "order_apart",
+          1
+        ],
+        [
+          5,
+          "order_apart",
+          1
+        ],
+        [
+          6,
+          "independent",
+          2
+        ],
+        [
+          7,
+          "independent",
+          1
+        ]
+      ],
+      "probe_kinds": {
+        "ambiguous": 6,
+        "misleading": 6,
+        "new": 17,
+        "returning": 70,
+        "unknown_meaning": 9
+      },
+      "query_curve": {
+        "main": {
+          "0": [
+            0.7682926829268293,
+            0.0
+          ],
+          "1": [
+            0.975609756097561,
+            0.9166666666666666
+          ],
+          "2": [
+            0.975609756097561,
+            1.8333333333333333
+          ],
+          "3": [
+            0.975609756097561,
+            2.75
+          ]
+        },
+        "no_memory": {
+          "0": [
+            0.2073170731707317,
+            0.0
+          ],
+          "1": [
+            0.2073170731707317,
+            0.0
+          ],
+          "2": [
+            0.2073170731707317,
+            0.0
+          ],
+          "3": [
+            0.2073170731707317,
+            0.0
+          ]
+        },
+        "random_record": {
+          "0": [
+            0.4146341463414634,
+            0.0
+          ],
+          "1": [
+            0.4146341463414634,
+            0.0
+          ],
+          "2": [
+            0.4146341463414634,
+            0.0
+          ],
+          "3": [
+            0.4146341463414634,
+            0.0
+          ]
+        },
+        "stable_id_oracle": {
+          "0": [
+            0.9512195121951219,
+            0.0
+          ],
+          "1": [
+            0.9512195121951219,
+            0.0
+          ],
+          "2": [
+            0.9512195121951219,
+            0.0
+          ],
+          "3": [
+            0.9512195121951219,
+            0.0
+          ]
+        }
+      },
+      "restart": {
+        "bytes": 22053,
+        "child_pid": 39436,
+        "confirmed_identical": true,
+        "env_size": 5,
+        "forbidden_channel_closed": true,
+        "hash_identical": true,
+        "ok": true,
+        "outcomes_identical": true,
+        "parent_pid": 39435,
+        "parent_pid_gone": true,
+        "provisional_branches": 32,
+        "provisional_identical": true
+      },
+      "restricted": {
+        "bytes_retrieved": 155.32407407407408,
+        "bytes_scanned": 316.25,
+        "equivalence_retrieval": 0.9634146341463414,
+        "literal_identity": 0.8170731707317073,
+        "new_forced_assimilation": 0.0,
+        "new_identity_recall": 0.23529411764705882,
+        "nodes": 3.6666666666666665,
+        "out_of_family_safe": 1.0,
+        "queries": 2.75,
+        "recall_at_4": 0.9634146341463414,
+        "units": 3.75,
+        "writes_under_ambiguity": 0.0,
+        "zero_query_accuracy": 0.9634146341463414
+      },
+      "sketch": {
+        "exact_sufficient": true,
+        "full_bytes": 315.125,
+        "index_bytes": 345,
+        "sketch_bytes": 43.125
+      },
+      "validation": {
+        "main": {
+          "bytes_retrieved": 159.31428571428572,
+          "bytes_scanned": 327.3142857142857,
+          "equivalence_retrieval": 0.9622641509433962,
+          "literal_identity": 0.8301886792452831,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 0.18181818181818182,
+          "nodes": 3.657142857142857,
+          "out_of_family_safe": 1.0,
+          "queries": 2.742857142857143,
+          "recall_at_4": 0.9433962264150944,
+          "units": 3.742857142857143,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 1.0
+        },
+        "none": {
+          "bytes_retrieved": 0.0,
+          "bytes_scanned": 0.0,
+          "equivalence_retrieval": 0.0,
+          "literal_identity": 0.0,
+          "new_forced_assimilation": 0.0,
+          "new_identity_recall": 1.0,
+          "nodes": 0.0,
+          "out_of_family_safe": 1.0,
+          "queries": 0.0,
+          "recall_at_4": 0.0,
+          "units": 1.0,
+          "writes_under_ambiguity": 0.0,
+          "zero_query_accuracy": 0.22641509433962265
+        }
+      }
+    }
+  },
+  "final_manifest_written": false,
+  "final_stream_seed_sampled": false,
+  "gates": {
+    "L0": true,
+    "L1": true,
+    "L10": true,
+    "L11": true,
+    "L12": true,
+    "L13": true,
+    "L14": true,
+    "L15": true,
+    "L2": true,
+    "L3": true,
+    "L4": true,
+    "L5": true,
+    "L6": true,
+    "L7": true,
+    "L8": true,
+    "L9": true
+  },
+  "phase": "X65A-L",
+  "runtime_s": 48.13,
+  "s2_commit": "98bca52cef4cb3877358cee03b7ae12374e3c319",
+  "s2_corrections": {
+    "disjoint_op": {
+      "newly_corrupted": 0,
+      "non_missing": [
+        {
+          "outcome": "PROMOTE_IN_FAMILY",
+          "phi_true_after": false,
+          "phi_true_before": false,
+          "queries": 1,
+          "record_changed": true
+        },
+        {
+          "outcome": "REJECT_OUT_OF_FAMILY",
+          "phi_true_after": false,
+          "phi_true_before": false,
+          "queries": 1,
+          "record_changed": false
+        },
+        {
+          "outcome": "REJECT_OUT_OF_FAMILY",
+          "phi_true_after": false,
+          "phi_true_before": false,
+          "queries": 1,
+          "record_changed": false
+        }
+      ],
+      "outcomes": {
+        "MISSING_REPRESENTATION": 57,
+        "PROMOTE_IN_FAMILY": 1,
+        "REJECT_OUT_OF_FAMILY": 2
+      },
+      "post_corruption_cases": 60
+    },
+    "shared": {
+      "newly_corrupted": 0,
+      "non_missing": [
+        {
+          "outcome": "REJECT_OUT_OF_FAMILY",
+          "phi_true_after": false,
+          "phi_true_before": false,
+          "queries": 1,
+          "record_changed": false
+        },
+        {
+          "outcome": "REJECT_OUT_OF_FAMILY",
+          "phi_true_after": false,
+          "phi_true_before": false,
+          "queries": 1,
+          "record_changed": false
+        }
+      ],
+      "outcomes": {
+        "MISSING_REPRESENTATION": 58,
+        "REJECT_OUT_OF_FAMILY": 2
+      },
+      "post_corruption_cases": 60
+    }
+  },
+  "tracked_clean": true
+}

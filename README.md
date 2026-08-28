@@ -2325,3 +2325,101 @@ this is the number that says so.
 21 new tests.
 
 **No final X65A manifest. No final stream seed sampled.**
+
+## X65A-L: latent identity retrieval — 16/16
+
+No identity is supplied. The system must infer which stored record applies,
+reuse its convention knowledge on unseen meanings, recognise new and
+out-of-family partners, and not contaminate records while identity is
+ambiguous.
+
+### X65A-S2 scope corrections
+
+**Action space.** The impossibility theorem is over **forced PROMOTE/REJECT**
+decisions. `UNRESOLVED` escapes it — it is wrong in *neither* world, at the
+cost of acting in neither. The theorem bounds **decisiveness, not
+correctness**.
+
+**The non-MISSING cases.** Of 60 already-wrong records: shared 58 MISSING +
+**2 REJECT** (record unchanged); disjoint 57 MISSING + **2 REJECT + 1
+PROMOTE**. In every one, `phi_true` was already absent *before* the event.
+**Newly corrupted: 0.** The stop condition is not triggered. The single
+PROMOTE is a wrong record that coincidentally agreed with the partner on both
+the event meaning and the challenge meaning — detectable with more questions,
+undetected with one.
+
+Every promoted record now carries a **verification scope**: challenge-universe
+digest, legal query-set digest, validity context, and whether equivalence is
+global in the finite model or only empirical.
+
+### The exact sufficient sketch
+
+A record's likelihood depends on it only through its surviving set, which the
+grounded `(z, u)` pairs determine. So the pairs *without provenance* are a
+**type-A exact sufficient sketch**:
+
+| | bytes |
+|---|---|
+| full record | 330 |
+| **sketch** | **38** |
+| index, 8 identities | 345 (≤ 512) |
+| active total (records + index) | 3 042 (≤ 4 096) |
+
+Differentially verified: masks identical, and **0** likelihood differences
+over 20 probes × 8 records. It carries `(z, u)` pairs only — no label, no
+convention, no provenance.
+
+### Exact all-record ceiling
+
+| N | accuracy | identity evals | convention evals | scanned | ≤512 |
+|---|---|---|---|---|---|
+| 2 | 1.000 | 96 | 1.3M | 86 B | yes |
+| 4 | 1.000 | 144 | 2.0M | 173 B | yes |
+| 8 | 1.000 | 240 | 3.3M | 345 B | yes |
+| 16 | 1.000 | 432 | 6.0M | 690 B | **no** |
+
+### Arms (shared stratum)
+
+| arm | accuracy | equivalence | literal | r@4 | queries |
+|---|---|---|---|---|---|
+| no memory | 0.214 | 0.000 | 0.000 | 0.00 | 0.00 |
+| **MAIN budgeted retrieval** | **0.952** | **0.929** | 0.786 | 0.86 | 2.46 |
+| exact all-record | 1.000 | — | — | 1.00 | — |
+| stable-ID oracle | 0.988 | 1.000 | 1.000 | 1.00 | 0.00 |
+| random record | 0.405 | 0.143 | 0.119 | 0.12 | 0.00 |
+| most recent | 0.298 | 0.107 | 0.107 | 0.11 | 0.00 |
+| surface nearest | 0.500 | 0.286 | 0.143 | 0.14 | 0.00 |
+| random clarification | 0.940 | 0.917 | 0.774 | 0.86 | 2.46 |
+| joint information gain | 0.952 | 0.929 | 0.786 | 0.86 | 2.46 |
+| memoryless, larger budget | 0.214 | 0.000 | 0.000 | 0.00 | 3.70 |
+
+Query-efficiency curve, main: **0.631 → 0.952** at one question and flat
+thereafter; no-memory stays at 0.214 at every budget.
+
+**Convention equivalence (0.929) exceeds literal identity (0.786)** — exactly
+the gap the same-convention pair creates, reported separately as required.
+
+### New, out-of-family, and the restricted universe
+
+`NEW_IDENTITY` forced assimilation: **main 0.00** against a calibration arm
+that removes NEW *and* forces a decision at **0.82**. Removing NEW alone was
+not enough — it pushes cases to `UNRESOLVED` and the gate would have tested
+nothing.
+
+Full 32-question universe vs restricted 4: accuracy 0.952 both, equivalence
+**0.929 → 0.845**. Records promoted under the restricted universe carry
+`scope='empirical'`.
+
+**A property, not a patch:** in the shared 4-word alphabet **every** two-token
+utterance has an in-family reading for some live meaning, so no single
+transfer utterance can carry an out-of-family signature. Out-of-family safety
+is tested through `UNKNOWN_MEANING` and the S2 alien-event population instead.
+The disjoint alphabet does have such utterances.
+
+### Gates
+
+**16 of 16 X65A-L gates pass** in both strata on development and validation
+(validation main 1.000 / 0.982 against no-memory 0.286). Retrieval is
+unchanged across a genuine restart with 32 provisional branches preserved.
+
+**No final X65A manifest. No final stream seed sampled.**
