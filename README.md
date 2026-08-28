@@ -2326,7 +2326,13 @@ this is the number that says so.
 
 **No final X65A manifest. No final stream seed sampled.**
 
-## X65A-L: latent identity retrieval — 16/16
+## X65A-L: latent identity retrieval — historical 16/16 withdrawn by L1
+
+> **Superseded development result.** The historical evaluator emitted 16/16,
+> but X65A-L1 found unmatched oracle arms, an underpowered memoryless
+> baseline, hidden retrieval-node costs, and a missing reusable-NEW test. Its
+> phase verdict is withdrawn. The numbers below are retained to explain what
+> was audited; they do **not** unblock X65A-P.
 
 No identity is supplied. The system must infer which stored record applies,
 reuse its convention knowledge on unseen meanings, recognise new and
@@ -2352,7 +2358,7 @@ Every promoted record now carries a **verification scope**: challenge-universe
 digest, legal query-set digest, validity context, and whether equivalence is
 global in the finite model or only empirical.
 
-### The exact sufficient sketch
+### Historical sketch claim (superseded)
 
 A record's likelihood depends on it only through its surviving set, which the
 grounded `(z, u)` pairs determine. So the pairs *without provenance* are a
@@ -2365,9 +2371,11 @@ grounded `(z, u)` pairs determine. So the pairs *without provenance* are a
 | index, 8 identities | 345 (≤ 512) |
 | active total (records + index) | 3 042 (≤ 4 096) |
 
-Differentially verified: masks identical, and **0** likelihood differences
-over 20 probes × 8 records. It carries `(z, u)` pairs only — no label, no
-convention, no provenance.
+The development runner differentially checked only 20 probes × 8 records.
+That was inadequate evidence for exactness. L1 replaces it with an algebraic
+finite-model proof, exhaustive domain checks, and much larger differential
+corroboration, while keeping retrieval incompleteness separate from sketch
+sufficiency.
 
 ### Exact all-record ceiling
 
@@ -2378,7 +2386,7 @@ convention, no provenance.
 | 8 | 1.000 | 240 | 3.3M | 345 B | yes |
 | 16 | 1.000 | 432 | 6.0M | 690 B | **no** |
 
-### Arms (shared stratum)
+### Historical arms table (not matched; superseded)
 
 | arm | accuracy | equivalence | literal | r@4 | queries |
 |---|---|---|---|---|---|
@@ -2393,8 +2401,10 @@ convention, no provenance.
 | joint information gain | 0.952 | 0.929 | 0.786 | 0.86 | 2.46 |
 | memoryless, larger budget | 0.214 | 0.000 | 0.000 | 0.00 | 3.70 |
 
-Query-efficiency curve, main: **0.631 → 0.952** at one question and flat
-thereafter; no-memory stays at 0.214 at every budget.
+The main curve **0.631 → 0.952** at one question is reproducible, but the
+reported `q=2.46` is a different budget-three mean. The flat 0.214
+memoryless curve was an evaluator bug: questions were counted without asking
+them or applying their answers. L1 calibrates a live-posterior learner.
 
 **Convention equivalence (0.929) exceeds literal identity (0.786)** — exactly
 the gap the same-convention pair creates, reported separately as required.
@@ -2416,10 +2426,172 @@ transfer utterance can carry an out-of-family signature. Out-of-family safety
 is tested through `UNKNOWN_MEANING` and the S2 alien-event population instead.
 The disjoint alphabet does have such utterances.
 
-### Gates
+### Historical gates
 
-**16 of 16 X65A-L gates pass** in both strata on development and validation
-(validation main 1.000 / 0.982 against no-memory 0.286). Retrieval is
-unchanged across a genuine restart with 32 provisional branches preserved.
+The historical evaluator emitted **16/16**, but that phase verdict is
+withdrawn. Its controls were not resource matched, its restart did not load
+the full latent continuation state, and its NEW gate tested prevention of
+forced assimilation without testing decisive later reuse.
 
 **No final X65A manifest. No final stream seed sampled.**
+
+## X65A-L1: retrieval, budget, and baseline audit — FAIL
+
+**X65A-P was not started. X65A-R is not unblocked.** L1.7, L1.9, and L1.10
+fail under their frozen rules. The negative result is preserved rather than
+repairing thresholds or selecting replacement seeds.
+
+### Provenance and frozen protocol
+
+- Audited X65A-L commit:
+  `5205543b110ba6da2e3f6da30630809941f821c4` on
+  `phase-1-verifier`.
+- Development seeds: 6400, 6401, 6402, 6403. Validation seeds: 7400, 7401,
+  7402, 7403. Four complete streams per alphabet stratum in each split; eight
+  stored identities per stream.
+- Query budgets: 0, 1, 2, 3, 4. Each shared stream has 14–15 authored rows;
+  each disjoint stream has 16. Conditions include returning, ambiguous,
+  misleading, new, unknown meaning, and—where constructible—out-of-family.
+- L3 retrieval and L10 negative-transfer margins were frozen at 1/20 before
+  validation. Central comparisons use paired complete-stream resampling.
+- The runner records tracked and untracked status separately, the experiment
+  and full-suite runtimes, every per-seed task count, and the exact path of
+  every implementation and evidence artifact.
+- Final repository suite: **640 passed, 1 skipped in 1,060.66 s** from
+  `uv run pytest -q`; command, exit code, counts, and runtime are bound into
+  the provenance contract and separately mutation-calibrated.
+- Authoritative L1 evidence generation: **510.017 s**. The runner exits 1
+  because the preserved phase verdict is FAIL.
+
+Authoritative evidence:
+
+- `experiments/x65a/results/x65al1_audit.json`
+- `experiments/x65a_l1_audit.py`
+- `experiments/x65a/X65A-L1-SUFFICIENCY-PROOF.md`
+- `experiments/x65a/l1_gates.py`
+- `experiments/x65a/restart_l1.py`
+- `tests/test_x65a_l1*.py` and `tests/test_x65a_restart_l1.py`
+
+No final X65A manifest or stream seed was created.
+
+`x65al_latent.json` is a **recomputed, superseded** development artifact: L1
+made its random controls process-stable and corrected its NEW recall
+accounting. It is not represented as immutable output from commit 5205543.
+
+### Corrections established by L1
+
+**Matched stable-ID risk.** With evidence, candidate pool, inference,
+clarification, budget, abstention, threshold, and denominator matched,
+taskwise exact Bayes risk for stable identity never exceeds latent-identity
+risk at q=0, q=1, or with the same oracle query. The old 1.000-versus-0.988
+realized-accuracy table compared different arms and is withdrawn.
+
+**Sketch sufficiency.** In the finite authored indicator-evidence model,
+grounded pairs determine the surviving convention support; the proof carries
+the selection-aware weights through identity likelihood, task posterior,
+query utility, decision, and NEW/OUT mass. The support algebra was checked
+over all 2,048 legal grounded pairs in each stratum and 28,311,552 shared plus
+4,718,592 disjoint factor entries. Differential corroboration found zero
+mismatches in 1,944 shared and 1,824 disjoint comparisons. Selection-aware
+weights are nonuniform. This is a finite-model mathematical proof, not a
+proof-assistant verification and not a proof of VDFM. Retrieval itself remains
+incomplete whenever only four of eight identities are shortlisted.
+
+**Budget semantics.** The frozen main protocol is
+`A_GLOBAL_EXACT_SCAN_TOP4`: all eight exact summaries are scanned and their
+identity likelihoods evaluated; four are shortlisted; no full records are
+loaded. It stays below 512 serialized bytes, but costs **eight node-equivalents,
+not four**, and sets `incomplete_retrieval=True`. Protocol B uses a
+nonsufficient coarse index to nominate at most four records and charges those
+four. Random, recency, and surface controls now scan/evaluate the same eight
+summaries and retrieve four. Active memory remained below 4 KiB in every
+stream: the central retrieval path reached at most 3,428 B and the broader
+NEW audit reached at most 3,773 B.
+
+**Query accounting.** The legacy `q=2.46` is exactly 295/120 = 59/24 actual
+semantic questions over all rows at budget three; it is neither the budget nor
+the returning-task mean. At budget one, 101 questions were asked over 120 rows
+and the published task curve is exactly 53/84 = 0.631 to 80/84 = 0.952. Query
+offers, asks, per-stream totals, denominators, and overlapping
+semantic/identity/convention types are now separate fields.
+
+**Memoryless calibration.** Every clarification answer now updates that arm's
+live posterior. Exact task-information-gain accuracy reaches 1.000 by q=2 in
+three splits and by q=3 in disjoint validation; the seven requested policies,
+convention entropy, task entropy, candidate counts, and resolved latent
+quantities are in the artifact. The old flat 0.214 baseline was underpowered.
+
+**Active query.** Every paired 95% interval includes zero on all four
+operational metrics—task accuracy, equivalence retrieval, questions at matched
+accuracy, and false confident actions—in every split and stratum. Information
+gain's contribution is therefore recorded as **not measured in X65A-L**.
+
+### Safety and replication results
+
+**NEW_IDENTITY safely creates but does not yet decisively reuse.** Across 16
+complete streams, precision and recall are 1, false-new, forced-assimilation,
+unresolved-new, and creation contamination are 0, and 16/16 new records are
+promoted through the real S2 provisional/challenge path after five questions.
+On later encounters every record is shortlisted, identity-top, and
+task-correct, but all 16 decisions remain `UNRESOLVED` below the frozen 9/10
+threshold: strict reusable-record success is **0/16**. L1.7 fails. Controls
+show that forced reuse assimilates new partners and always-create produces
+false new records.
+
+**Scope audit.** Authored out-of-family conventions, grounded contradictions,
+UNKNOWN_MEANING, MISSING_REPRESENTATION, and restricted-query indistinguishable
+cases are nonvacuous in both strata. A two-token out-of-family transfer remains
+unconstructible and explicitly untestable in `shared`; it is nonvacuous in
+`disjoint_op`. Restricted promotions store challenge-universe and query-set
+digests, validity scope, and empirical/global status. False global promotions
+are zero.
+
+**Negative transfer.** MAIN is not noninferior to the calibrated memoryless
+learner at the frozen 1/20 margin. Six stream-condition checks fail, including
+new and stale cases in validation and stale/wrong-similar cases in disjoint
+development. The worst aggregate is disjoint-validation new identity: MAIN
+1/2 versus memoryless 1, delta -1/2. Established-record corruption and false
+confident actions remain zero, but that safety does not rescue the performance
+gate. L1.9 fails.
+
+**Restart.** A genuine second process loads the full latent checkpoint and
+continues the real main policy. Identity and convention posteriors, NEW/OUT
+mass, confirmed records, provisional branches, shortlist, accounting, next
+query, final state, and serialized component hashes match uninterrupted
+execution exactly. Corruption plants cover every required checkpoint field.
+Restart itself passes; it cannot make the failed central effects replicate.
+The serialized restart/audit checkpoints are **8,910–11,862 B** and are
+reported as a separate persistence category, not packed into the 4-KiB active
+semantic store. Consequently this audit makes no bounded-total-memory or
+bounded-persistent-state claim.
+
+### L1 gates
+
+| gate | result | finding |
+|---|---:|---|
+| L1.0 | PASS | complete provenance and calibrated omissions |
+| L1.1 | PASS | matched stable-ID Bayes risk never exceeds latent risk |
+| L1.2 | PASS | finite-model sketch sufficiency proved and checked |
+| L1.3 | PASS | exact scan charged as 8 nodes; both protocols explicit |
+| L1.4 | PASS | q=2.46 and q=1 curve use consistent labels and denominators |
+| L1.5 | PASS | live-posterior memoryless clarification calibrated |
+| L1.6 | PASS | active-query effect reported with paired intervals |
+| L1.7 | **FAIL** | 16 promoted NEW records, 0 decisively reusable |
+| L1.8 | PASS | nonvacuity/untestability reported per stratum and scoped |
+| L1.9 | **FAIL** | six stream-condition negative-transfer failures |
+| L1.10 | **FAIL** | retrieval, NEW, negative-transfer, and query effects do not all replicate |
+
+Narrow supported claim: in this controlled authored finite environment, an
+exact local posterior summary fits under the byte budget, matched stable-ID
+risk obeys the expected dominance relation, NEW can avoid destructive
+assimilation and create uncontaminated provisional-to-confirmed records, and
+the full latent state restarts exactly. The audit does **not** establish a
+four-node exact retrieval claim, an active-query advantage, reusable new
+identity learning, negative-transfer noninferiority, robust retrieval/query
+efficiency over a calibrated memoryless learner, natural-language continual
+learning, lifelong learning, AGI, or procedural compounding.
+
+Because L1 did not pass, no procedure schema, procedural task stream,
+procedural arm table, search-reachability curve, cumulative procedural compute
+ledger, target-absence snapshot, or P0–P13 result was produced. X65A-P remains
+blocked at its P0 prerequisite, and X65A-R is not unblocked.

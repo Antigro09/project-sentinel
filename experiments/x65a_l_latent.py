@@ -1,4 +1,10 @@
-"""X65A-L: latent identity retrieval with provisional assignment.
+"""X65A-L: historical latent-identity development evaluator.
+
+This runner is preserved for reproducibility, but its 16/16 development
+verdict was withdrawn by X65A-L1.  In particular, L1 found mismatched oracle
+arms, an under-calibrated memoryless baseline, hidden retrieval-node costs,
+and no demonstrated reusable NEW record.  It must not be used to unblock
+X65A-P; ``experiments/x65a_l1_audit.py`` is authoritative for that decision.
 
 No identity is supplied. The system must infer which stored record applies,
 reuse its convention knowledge on unseen meanings, recognise new and
@@ -42,8 +48,19 @@ MARGIN = 0.05
 mean = lambda xs: (sum(xs) / len(xs)) if xs else float("nan")
 
 
+def stable_seed(*parts) -> int:
+    """A process-independent seed.
+
+    Python deliberately salts ``hash(str)`` per process.  The original L
+    evaluator used that hash in arm seeds, so random controls could change
+    across a genuine restart even when every declared seed was fixed.
+    """
+    blob = "\x1f".join(str(p) for p in parts).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(blob).digest()[:8], "big")
+
+
 def score(fam, ids, probes, arm, seed, legal, budget=3):
-    rng = random.Random(seed * 131 + hash(arm) % 4441)
+    rng = random.Random(stable_seed("x65a-l", seed, arm))
     sketches = [LI.sketch_of(type("R", (), {"grounded": i.grounded})())
                 for i in ids]
     rows = []
@@ -136,9 +153,13 @@ def summarise(rows) -> dict:
         "equivalence_retrieval": mean([r["equivalent"] for r in ret]),
         "recall_at_4": mean([r["rank"] is not None for r in ret]),
         "queries": mean([r["queries"] for r in rows]),
-        "new_identity_recall": mean([r["outcome"] in (LI.CREATE_NEW,
-                                                      LI.UNRESOLVED_IDENTITY)
+        # Abstention can prevent contamination, but permanent UNRESOLVED is
+        # not recall and does not constitute learning a reusable identity.
+        "new_identity_recall": mean([r["outcome"] == LI.CREATE_NEW
                                      for r in new]) if new else float("nan"),
+        "unresolved_new_rate": mean(
+            [r["outcome"] == LI.UNRESOLVED_IDENTITY for r in new]
+        ) if new else float("nan"),
         "new_forced_assimilation": mean([r["outcome"] == LI.ASSIGN_EXISTING
                                          for r in new]) if new
                                   else float("nan"),
@@ -159,7 +180,8 @@ def summarise(rows) -> dict:
 def main() -> int:
     t0 = time.perf_counter()
     OUT.mkdir(parents=True, exist_ok=True)
-    print("X65A-L: latent identity retrieval with provisional assignment\n")
+    print("X65A-L: HISTORICAL latent-identity development evaluator")
+    print("VERDICT WITHDRAWN BY X65A-L1; DO NOT USE TO UNBLOCK X65A-P\n")
     pq = PQ.check()
     if not pq.ok:
         print("X64H prerequisite failed; exiting.")
@@ -170,6 +192,19 @@ def main() -> int:
                  "s2_commit": sh("git rev-parse 98bca52"),
                  "branch": sh("git rev-parse --abbrev-ref HEAD"),
                  "tracked_clean": sh("git status --porcelain -uno") == "",
+                 "historical_development_artifact": True,
+                 "recomputed_during_l1_audit": True,
+                 "immutable_5205543_artifact": False,
+                 "superseded_by": "X65A-L1",
+                 "phase_verdict_valid": False,
+                 "procedural_memory_unblocked": False,
+                 "known_evaluator_failures": [
+                     "stable-ID and latent oracle arms were not matched",
+                     "memoryless answers were not applied to its posterior",
+                     "eight exact summaries were hidden inside a one-node index",
+                     "NEW creation was not tested for decisive later reuse",
+                     "active-query point estimates lacked paired intervals",
+                 ],
                  "final_manifest_written": False,
                  "final_stream_seed_sampled": False}
     print("1. PROVENANCE")
@@ -203,7 +238,7 @@ def main() -> int:
         for s in DEV:
             cases += S2.build_suite(fam, s, 100, 100, legal)
         post = [c for c in cases if c.kind == "legit_after_corruption"]
-        rng = random.Random(DEV[0] * 31 + hash("main") % 977)
+        rng = random.Random(stable_seed("x65a-l-s2", DEV[0], "main"))
         by_seed: dict = {}
         others = []
         for c in post:
@@ -535,12 +570,15 @@ def main() -> int:
       f"{d_['validation']['main']['zero_query_accuracy']:.3f}")
 
     ok = [k for k, _m, p in out if p]
-    print(f"\n   VERDICT: {len(ok)}/{len(out)} X65A-L gates pass")
+    print(f"\n   HISTORICAL DEVELOPMENT OUTPUT: {len(ok)}/{len(out)} "
+          "X65A-L gates pass")
+    print("   PHASE VERDICT WITHDRAWN BY X65A-L1; X65A-P IS NOT UNBLOCKED")
     bad = [(k, m) for k, m, p in out if not p]
     for k, m in bad:
         print(f"     FAILING {k}. {m}")
     print("\n   No final X65A manifest. No final stream seed sampled.")
-    art["gates"] = {k: p for k, _m, p in out}
+    art["historical_gates"] = {k: p for k, _m, p in out}
+    art["gates"] = art["historical_gates"]
     art["runtime_s"] = round(time.perf_counter() - t0, 2)
     (OUT / "x65al_latent.json").write_text(
         json.dumps(art, indent=2, sort_keys=True, default=str))
