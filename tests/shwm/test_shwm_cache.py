@@ -187,3 +187,63 @@ def test_cached_encoder_serves_the_second_call_from_disk(tmp_path):
     assert cache.stats.writes == 1
     assert cache.stats.hits == 1
     assert cache.stats.misses == 1
+
+
+# ---- durability ------------------------------------------------------------------
+
+
+def test_writes_survive_a_process_that_never_flushed(tmp_path):
+    """The failure this guards is expensive rather than subtle.
+
+    The index used to become durable only on flush, which a cache build calls
+    once at the end. An interruption three hours into a four-hour build left
+    every payload on disk with no index referencing any of them, and the restart
+    re-encoded all of it -- against an eight-hour ceiling.
+    """
+    first = LatentCache(tmp_path)
+    for i in range(5):
+        first.put(digest_of(f"obs-{i}"), identity(), np.full(8, i, dtype=np.float32))
+    # No flush: simulate the process dying mid-build.
+
+    recovered = LatentCache(tmp_path)
+    assert recovered.stats.recovered_from_journal == 5
+    for i in range(5):
+        values = recovered.get(digest_of(f"obs-{i}"), identity())
+        assert values is not None and np.array_equal(values, np.full(8, i, dtype=np.float32))
+    assert recovered.stats.hits == 5
+
+
+def test_flushing_folds_the_journal_away(tmp_path):
+    cache = LatentCache(tmp_path)
+    cache.put(digest_of("obs"), identity(), np.zeros(8, dtype=np.float32))
+    assert cache.journal_path.exists()
+    cache.flush()
+    assert not cache.journal_path.exists()
+
+    reopened = LatentCache(tmp_path)
+    assert reopened.stats.recovered_from_journal == 0
+    assert reopened.get(digest_of("obs"), identity()) is not None
+
+
+def test_a_torn_final_journal_line_does_not_lose_the_intact_ones(tmp_path):
+    """The entry in flight when a process dies is the only one at risk."""
+    cache = LatentCache(tmp_path)
+    for i in range(3):
+        cache.put(digest_of(f"obs-{i}"), identity(), np.zeros(8, dtype=np.float32))
+    with open(cache.journal_path, "a") as handle:
+        handle.write('{"key": "sha256:incomp')  # a half-written record
+
+    recovered = LatentCache(tmp_path)
+    assert recovered.stats.recovered_from_journal == 3
+    for i in range(3):
+        assert recovered.get(digest_of(f"obs-{i}"), identity()) is not None
+
+
+def test_the_size_report_counts_the_journal(tmp_path):
+    cache = LatentCache(tmp_path)
+    cache.put(digest_of("obs"), identity(), np.zeros(512, dtype=np.float16))
+    report = cache.size_report()
+    assert report["journal_bytes"] > 0
+    assert report["total_bytes"] == (
+        report["payload_bytes_resident"] + report["index_bytes"] + report["journal_bytes"]
+    )

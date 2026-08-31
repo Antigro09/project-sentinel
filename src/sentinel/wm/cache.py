@@ -24,6 +24,15 @@ without anyone learning that the identity moved. It raises instead.
 Payload bytes and index/metadata bytes are reported separately because the
 matrix budgets them separately, and because the 1.024 GB estimate for a million
 512-wide fp16 latents covers only the first of the two.
+
+Durability matters here more than it looks. The index used to become durable
+only when the caller flushed it, which for a cache build is once at the end --
+so an interruption three hours into a four-hour build left every payload on disk
+and no index referencing any of them, and the restart re-encoded all of it. With
+an eight-hour ceiling that turns a transient failure into a blown gate. Each
+write now also appends to a journal, which the loader replays, so a restart
+loses at most the entry in flight. The journal is truncated on flush, which
+keeps total bytes written linear rather than quadratic in the entry count.
 """
 
 from __future__ import annotations
@@ -105,6 +114,7 @@ class CacheStats:
     misses: int = 0
     writes: int = 0
     stale_rejections: int = 0
+    recovered_from_journal: int = 0
 
     @property
     def hit_ratio(self) -> float:
@@ -117,6 +127,7 @@ class CacheStats:
             "misses": self.misses,
             "writes": self.writes,
             "stale_rejections": self.stale_rejections,
+            "recovered_from_journal": self.recovered_from_journal,
             "hit_ratio": self.hit_ratio,
         }
 
@@ -147,6 +158,10 @@ class LatentCache:
     def index_path(self) -> Path:
         return self.root / "index.json"
 
+    @property
+    def journal_path(self) -> Path:
+        return self.root / "index.jsonl"
+
     def _load_index(self) -> None:
         if self.index_path.exists():
             document = json.loads(self.index_path.read_text())
@@ -155,6 +170,34 @@ class LatentCache:
         else:
             self._index = {}
             self._scope_map = {}
+        self._replay_journal()
+
+    def _replay_journal(self) -> None:
+        """Recover writes that were journalled but never folded into the index."""
+        if not self.journal_path.exists():
+            return
+        recovered = 0
+        for line in self.journal_path.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                # A torn final line is the entry that was in flight when the
+                # process died. Everything before it is intact.
+                break
+            self._index[record["key"]] = record["entry"]
+            self._scope_map[record["scope_key"]] = record["key"]
+            recovered += 1
+        self.stats.recovered_from_journal += recovered
+
+    def _journal(self, key: str, scope_key: str, entry: dict[str, Any]) -> None:
+        with open(self.journal_path, "a") as handle:
+            handle.write(
+                json.dumps({"key": key, "scope_key": scope_key, "entry": entry},
+                           sort_keys=True, separators=(",", ":"))
+                + "\n"
+            )
 
     def flush(self) -> None:
         document = {"version": 1, "entries": self._index, "scopes": self._scope_map}
@@ -169,6 +212,8 @@ class LatentCache:
         finally:
             handle.close()
         os.replace(handle.name, self.index_path)
+        # Folded in; the journal has nothing left to recover.
+        self.journal_path.unlink(missing_ok=True)
 
     # ---- payload paths -------------------------------------------------
 
@@ -257,6 +302,7 @@ class LatentCache:
             "metadata": dict(metadata or {}),
         }
         self._scope_map[scope_key] = key
+        self._journal(key, scope_key, self._index[key])
         self.stats.writes += 1
         return key
 
@@ -271,6 +317,7 @@ class LatentCache:
             for path in payload_root.rglob("*.npy"):
                 resident += path.stat().st_size
         index_bytes = self.index_path.stat().st_size if self.index_path.exists() else 0
+        journal_bytes = self.journal_path.stat().st_size if self.journal_path.exists() else 0
         metadata_bytes = len(
             json.dumps(
                 {k: v.get("metadata", {}) for k, v in self._index.items()},
@@ -283,6 +330,7 @@ class LatentCache:
             "payload_bytes_indexed": payload_bytes,
             "payload_bytes_resident": resident,
             "index_bytes": index_bytes,
+            "journal_bytes": journal_bytes,
             "metadata_bytes": metadata_bytes,
-            "total_bytes": resident + index_bytes,
+            "total_bytes": resident + index_bytes + journal_bytes,
         }
