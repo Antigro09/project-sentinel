@@ -167,9 +167,7 @@ def render(document: dict[str, Any]) -> str:
     rows = []
     for cell, group in summarise_group(workloads, lambda w: w["workload_id"].rsplit(".s", 1)[0]).items():
         wall = [w["resource"]["wall_seconds"] for w in group]
-        peak = [w["resource"]["peak_unified_memory_bytes"] if "peak_unified_memory_bytes" in w["resource"]
-                else w["resource"]["peak_resident_bytes"] for w in group]
-        peak = [max(w["resource"]["peak_resident_bytes"], w["resource"]["mlx_peak_bytes"]) for w in group]
+        peak = [w["resource"]["mlx_peak_bytes"] for w in group]
         updates = [w["resource"]["throughput"]["updates_per_second"] for w in group]
         positions = [w["resource"]["throughput"]["transition_positions_per_second"] for w in group]
         cold = [w["resource"]["cold_load_seconds"] for w in group]
@@ -189,7 +187,7 @@ def render(document: dict[str, Any]) -> str:
     out.append(
         table(
             rows,
-            ["cell", "seeds", "wall s", "cold load s", "peak GiB", "upd/s", "positions/s", "measured/estimated"],
+            ["cell", "seeds", "wall s", "cold load s", "device peak GiB", "upd/s", "positions/s", "measured/estimated"],
         )
     )
 
@@ -216,6 +214,16 @@ def render(document: dict[str, Any]) -> str:
                 ],
                 ["quantity", "value"],
             )
+        )
+
+    process_peaks = [w["resource"]["process_peak_resident_bytes"] for w in workloads]
+    if process_peaks:
+        out.append(
+            "\nProcess resident high-water across the whole sequence: "
+            f"**{max(process_peaks) / 1024**3:.2f} GiB** of the 112 GiB per-process ceiling. "
+            "That figure is cumulative by construction (`ru_maxrss` never falls), so it is "
+            "the number the ceiling is checked against and *not* any single workload's cost; "
+            "the device peak column above is the per-workload figure.\n"
         )
 
     out.append("\n## Gate\n")

@@ -169,8 +169,10 @@ def main() -> int:
             continue
         elapsed = time.perf_counter() - run_started
 
+        # The 112 GiB ceiling is stated per process, so it is checked against the
+        # process high-water mark, not against this workload's device peak.
         envelope = M.check_resource_envelope(
-            outcome.resource.peak_unified_memory_bytes,
+            outcome.resource.process_peak_resident_bytes,
             baseline_artifact_bytes,
             elapsed,
         )
@@ -196,7 +198,8 @@ def main() -> int:
                     "trainable_parameters": outcome.claim.trainable_parameters,
                     "final_loss": outcome.training["final_loss"] or 0.0,
                     "wall_seconds": outcome.resource.wall_seconds,
-                    "peak_unified_gib": outcome.resource.peak_unified_memory_bytes / 1024**3,
+                    "workload_peak_gib": outcome.resource.peak_unified_memory_bytes / 1024**3,
+                    "process_peak_gib": outcome.resource.process_peak_resident_bytes / 1024**3,
                     "updates_per_second": outcome.resource.throughput.get("updates_per_second", 0.0),
                     "planner_rollouts_per_second": outcome.planner["rollouts_per_second"],
                     "verifier_detection_rate": outcome.verifier["detection_rate"],
@@ -206,7 +209,7 @@ def main() -> int:
         print(
             f"    {outcome.claim.trainable_parameters:,} params "
             f"({outcome.claim.trainable_parameters / cell.target_parameters - 1:+.4%}), "
-            f"{elapsed:.1f}s, peak {outcome.resource.peak_unified_memory_bytes / 1024**3:.2f} GiB, "
+            f"{elapsed:.1f}s, device peak {outcome.resource.peak_unified_memory_bytes / 1024**3:.2f} GiB, "
             f"{outcome.resource.throughput.get('updates_per_second', 0):.2f} upd/s"
         )
         if outcome.restart_check:
@@ -216,7 +219,7 @@ def main() -> int:
     matching = M.check_match([o.claim for o in outcomes]) if outcomes else ["no workload completed"]
     artifact_bytes = directory_bytes(output_root)
     envelope = M.check_resource_envelope(
-        max((o.resource.peak_unified_memory_bytes for o in outcomes), default=0),
+        max((o.resource.process_peak_resident_bytes for o in outcomes), default=0),
         artifact_bytes,
         max((o.resource.wall_seconds for o in outcomes), default=0.0),
         matrix_seconds=total_seconds,
@@ -236,8 +239,13 @@ def main() -> int:
         implementation_commit=git["commit"],
         dirty_tracked=git["dirty_tracked"],
         dependency_lock_sha256=digest_file(REPO / "uv.lock"),
+        # The complete identity of every encoder that produced a feature in this
+        # run, not the slot name it was filed under. A slot name is a label; the
+        # identity is what a later run has to match to be comparable.
         encoder_identities=tuple(
-            sorted(d.cache.size_report()["entries"] and slot for slot, d in datasets.items())
+            sorted(
+                f"{slot}={d.cache_identity_digest}" for slot, d in datasets.items()
+            )
         ),
         environment_generator_sha256=digest_of(
             {
@@ -295,6 +303,7 @@ def main() -> int:
         ),
     }
     report_path.write_text(json.dumps(document, indent=2, sort_keys=True, default=str) + "\n")
+    manifest.write(output_root / "freeze-manifest.json")
 
     checksums = {
         str(path.relative_to(output_root)): digest_file(path)

@@ -71,14 +71,23 @@ class EncoderDataset:
     audits: dict[str, Any]
     collection: dict[str, Any]
     resource: ResourceReport
+    encoder_identity_digest: str = ""
+    """Digest of the complete encoder identity: provider, model, revision, weight
+    digest, preprocessing digest, and precision. Two runs that both say
+    "Qwen3-VL 4B" are only comparable when this matches."""
 
     @property
     def transition_ids_digest(self) -> str:
         return digest_of([r.transition_id for r in self.records])
 
+    @property
+    def cache_identity_digest(self) -> str:
+        return self.encoder_identity_digest
+
     def canonical_dict(self) -> dict[str, Any]:
         return {
             "encoder_slot": self.encoder_slot,
+            "encoder_identity_digest": self.encoder_identity_digest,
             "transitions": len(self.records),
             "transition_ids_digest": self.transition_ids_digest,
             "split_manifest_digest": self.manifest.digest,
@@ -180,6 +189,7 @@ def build_encoder_dataset(
     }
     return EncoderDataset(
         encoder_slot=encoder_slot,
+        encoder_identity_digest=encoder.identity.digest,
         records=records,
         manifest=manifest,
         table=table,
@@ -218,7 +228,14 @@ def build_all(
             "two encoder slots produced identical features; the slots are not independent"
         )
 
+    identities = {slot: d.encoder_identity_digest for slot, d in datasets.items()}
+    if len(set(identities.values())) != len(identities):
+        raise ContractViolation(
+            f"two encoder slots share an identity: {identities}; the slots are not independent"
+        )
+
     summary = {
+        "encoder_identities": identities,
         "transition_ids_digest": next(iter(digests.values())),
         "split_manifest_digest": next(iter(manifests.values())),
         "per_slot": {slot: dataset.canonical_dict() for slot, dataset in datasets.items()},

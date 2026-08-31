@@ -10,7 +10,14 @@ model has been implemented or has passed a capability gate.
   `5205543b110ba6da2e3f6da30630809941f821c4`.
 - Phase 2 was forked from the same commit in an isolated worktree.
 - The formal and numerical setup audit is complete for finite helper claims.
-- No backbone has been downloaded for this branch.
+- The Scale-0 implementation is built and tested; the Scale-0 **gate is stopped**
+  at the S0.2 encoder preflight because `google/gemma-3-4b-it` is licence-gated
+  and this machine holds no access token. No matrix cell has run, so nothing is
+  invalidated and no restart is owed. See the
+  [Scale-0 handoff](SCALE-0-HANDOFF.md).
+- One backbone has been fetched for a runtime feasibility probe only:
+  `Qwen/Qwen3-VL-4B-Instruct` at revision `ebb281ec`, Apache-2.0. It is not
+  training anything and it does not constitute a matrix run.
 - No neural world model has been trained.
 - No Phase-2/SHWM final evaluation seeds have been sampled. Historical X64H
   seed artifacts remain part of the inherited exact line and are not Phase-2
@@ -29,6 +36,8 @@ model has been implemented or has passed a capability gate.
 | [Branch and freeze protocol](BRANCH-AND-FREEZE-PROTOCOL.md) | Branch roles, immutable reference, seed freeze, merge rules, and evidence flow |
 | [AGI dependency roadmap](AGI-DEPENDENCY-ROADMAP.md) | X65B/X66 dependency, Phase-2 joins, and later integrated acceptance path |
 | [Claude Code Scale-0 handoff](CLAUDE-CODE-PROMPT-SCALE-0.md) | Executable implementation prompt with strict non-goals |
+| [Scale-0 handoff](SCALE-0-HANDOFF.md) | What was built, the stop condition, negative findings, evidence labels, and the gate verdict |
+| [Scale-0 resource report](SCALE-0-RESOURCE-REPORT.md) | Measured parameters, memory, throughput, cache, planner, and verifier figures, generated from the run artefact |
 | [Decision log](DECISION-LOG.md) | Architecture decisions, rejected alternatives, evidence labels, and revisit triggers |
 
 The root strategy is

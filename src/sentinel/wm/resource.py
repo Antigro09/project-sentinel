@@ -7,11 +7,17 @@ not a training-memory requirement and a nominal hidden width is not a parameter
 count; the way to keep those honest is to print the estimate next to the
 measurement and let the ratio speak.
 
-`peak_unified_memory_bytes` takes the larger of the process resident set and
-MLX's own peak allocation. On Apple Silicon the two measure overlapping but not
-identical things -- the resident set includes the interpreter, the framework, and
-the page cache, while the MLX figure covers device allocations -- so reporting
-the maximum is the conservative reading against a 112 GiB ceiling.
+Two peaks are reported and they answer different questions, which is why taking
+the larger of them was wrong. `mlx_peak_bytes` is reset before each measurement,
+so it is the cost *of that workload*. `process_peak_resident_bytes` comes from
+`ru_maxrss`, which is a high-water mark for the life of the process and is
+therefore monotonic by construction -- across a 48-workload sequence it climbs
+whatever each workload does, and reporting it as a per-workload figure attributed
+12 GiB to a model that used 1.6.
+
+The per-process ceiling is checked against the process figure, because that is
+what the ceiling is about. The per-workload table uses the device figure, because
+that is what a reader comparing two arms needs.
 """
 
 from __future__ import annotations
@@ -67,6 +73,7 @@ class ResourceReport:
     peak_resident_bytes: int = 0
     mlx_peak_bytes: int = 0
     mlx_active_bytes: int = 0
+    mlx_cache_bytes: int = 0
     trainable_parameters: int = 0
     frozen_parameters: int = 0
     parameter_bytes_measured: int = 0
@@ -83,7 +90,13 @@ class ResourceReport:
 
     @property
     def peak_unified_memory_bytes(self) -> int:
-        return max(self.peak_resident_bytes, self.mlx_peak_bytes)
+        """This workload's peak device allocation. Reset before the measurement."""
+        return self.mlx_peak_bytes
+
+    @property
+    def process_peak_resident_bytes(self) -> int:
+        """Whole-process high-water mark. Monotonic; not a per-workload cost."""
+        return self.peak_resident_bytes
 
     @property
     def estimated_total_bytes(self) -> int:
@@ -100,12 +113,14 @@ class ResourceReport:
             "label": self.label,
             "wall_seconds": self.wall_seconds,
             "cold_load_seconds": self.cold_load_seconds,
-            "peak_resident_bytes": self.peak_resident_bytes,
-            "peak_resident_gib": self.peak_resident_bytes / 1024**3,
+            "process_peak_resident_bytes": self.peak_resident_bytes,
+            "process_peak_resident_gib": self.peak_resident_bytes / 1024**3,
+            "process_peak_is_cumulative": True,
             "mlx_peak_bytes": self.mlx_peak_bytes,
             "mlx_peak_gib": self.mlx_peak_bytes / 1024**3,
             "mlx_active_bytes": self.mlx_active_bytes,
-            "peak_unified_memory_gib": measured / 1024**3,
+            "mlx_cache_bytes": self.mlx_cache_bytes,
+            "workload_peak_gib": measured / 1024**3,
             "trainable_parameters": self.trainable_parameters,
             "frozen_parameters": self.frozen_parameters,
             "parameter_bytes_measured": self.parameter_bytes_measured,
@@ -170,4 +185,5 @@ def measure(label: str, report: ResourceReport | None = None) -> Iterator[Resour
         memory = mlx_memory()
         report.mlx_peak_bytes = max(report.mlx_peak_bytes, memory["peak_bytes"])
         report.mlx_active_bytes = memory["active_bytes"]
+        report.mlx_cache_bytes = memory["cache_bytes"]
         report.peak_resident_bytes = max(report.peak_resident_bytes, process_resident_bytes())

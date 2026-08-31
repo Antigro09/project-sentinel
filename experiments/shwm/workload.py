@@ -269,6 +269,7 @@ def run_workload(
     report.wall_seconds = outcome.resource.wall_seconds + planner_account["wall_seconds"]
     report.mlx_peak_bytes = outcome.resource.mlx_peak_bytes
     report.mlx_active_bytes = outcome.resource.mlx_active_bytes
+    report.mlx_cache_bytes = outcome.resource.mlx_cache_bytes
     report.peak_resident_bytes = max(outcome.resource.peak_resident_bytes, process_resident_bytes())
     report.trainable_parameters = outcome.resource.trainable_parameters
     report.frozen_parameters = 0
