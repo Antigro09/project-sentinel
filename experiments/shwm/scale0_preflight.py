@@ -142,6 +142,10 @@ def main() -> int:
     failures: list[str] = []
 
     restart_target = workloads[0][0].cell_id if workloads else None
+    # Measured once. Walking a cache of tens of thousands of files inside the
+    # per-workload loop would put the filesystem into the throughput numbers.
+    baseline_artifact_bytes = directory_bytes(output_root)
+    cache_reports = {slot: d.cache.size_report() for slot, d in datasets.items()}
 
     for index, (cell, seed) in enumerate(workloads, start=1):
         workload_id = f"{cell.cell_id}.s{seed}"
@@ -157,6 +161,7 @@ def main() -> int:
                 output_root=output_root,
                 is_matrix_run=is_matrix_run,
                 restart_check=do_restart,
+                cache_report=cache_reports[cell.encoder_id],
             )
         except Exception as exc:  # a failed workload stays in the report
             failures.append(f"{workload_id}: {type(exc).__name__}: {exc}")
@@ -166,7 +171,7 @@ def main() -> int:
 
         envelope = M.check_resource_envelope(
             outcome.resource.peak_unified_memory_bytes,
-            directory_bytes(output_root),
+            baseline_artifact_bytes,
             elapsed,
         )
         if envelope:

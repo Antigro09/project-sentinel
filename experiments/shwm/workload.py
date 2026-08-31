@@ -143,7 +143,11 @@ def verifier_dry_run(records: Sequence[TransitionRecord], sample: int = 512) -> 
     coverage_total = 0.0
     considered = 0
 
-    for index, record in enumerate(records[:sample]):
+    # Stride rather than a prefix: the records arrive one family at a time, so
+    # the first `sample` of them would all come from the controlled adapter and
+    # the visual family would never be verified at all.
+    stride = max(1, len(records) // sample) if records else 1
+    for index, record in enumerate(records[::stride][:sample]):
         if not record.probes_t1:
             continue
         actual = ProbeSet(dict(record.probes_t1))
@@ -209,6 +213,7 @@ def run_workload(
     output_root: Path,
     is_matrix_run: bool,
     restart_check: bool = False,
+    cache_report: Mapping[str, Any] | None = None,
 ) -> WorkloadOutcome:
     settings = config["optimisation"]
     workload_id = f"{cell.cell_id}.s{seed}"
@@ -273,7 +278,9 @@ def run_workload(
     report.estimated_activation_bytes = estimate["activation_bytes"]
     report.throughput = dict(outcome.resource.throughput)
     report.throughput["planner_rollouts_per_second"] = planner_account["rollouts_per_second"]
-    report.cache_report = dataset.cache.size_report()
+    # Measured once by the caller: walking a payload tree of tens of thousands
+    # of files per workload would put the filesystem into the throughput number.
+    report.cache_report = dict(cache_report) if cache_report is not None else dataset.cache.size_report()
     report.planner_account = planner_account
 
     claim = M.RunClaim(
@@ -299,7 +306,7 @@ def run_workload(
         resource=report,
         training={
             **outcome.canonical_dict(),
-            "parameters_digest": parameter_digest(model),
+            "parameters_digest": outcome.parameters_digest,
             "config_digest": sized.config.digest,
             "objective_digest": trainer.objective.digest,
             "permutation_digest": sampler.permutation_digest,

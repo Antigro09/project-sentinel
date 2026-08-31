@@ -448,3 +448,112 @@ def test_both_adapters_supply_every_evaluator_required_probe():
     for environment in (adapter(), visual()):
         environment.reset(6600)
         environment.probes().subset(REQUIRED_PROBES)
+
+
+# ---- can the model's own belief represent the distinction? --------------------
+
+
+def _encode_trace(model, encoder, envelopes, actions):
+    """Run the real belief recurrence over a history and return the final state."""
+    import mlx.core as mx
+    import numpy as np
+
+    features = np.stack([encoder.encode_array(e) for e in envelopes])[None, :, :]
+    output = model(
+        mx.array(features).astype(mx.bfloat16),
+        mx.array(np.asarray(actions, dtype=np.int32))[None, :],
+        mx.zeros((1, len(actions), 1), dtype=mx.bfloat16),
+        key=mx.random.key(0),
+    )
+    mx.eval(output.belief)
+    return np.asarray(output.belief[0, -1].astype(mx.float32))
+
+
+def test_the_recurrent_belief_can_represent_what_the_observation_cannot():
+    """The other half of the aliasing fixture, tested on the real architecture.
+
+    The fixture shows that current observation plus action does not determine
+    the successor. This shows the model has somewhere to put the difference: the
+    two histories converge to the same observation and still produce different
+    belief states, because the recurrence saw the earlier steps where they
+    differed. Without this the fixture would only prove the task is impossible,
+    not that the architecture addresses it.
+    """
+    import numpy as np
+
+    from sentinel.wm.encoder import DeterministicControlEncoder
+    from sentinel.wm.latent_contract import RepresentationKind
+    from sentinel.wm.models import build_model
+    from sentinel.wm.sizing import solve_config
+
+    fixture = build_belief_alias_fixture()
+    encoder = DeterministicControlEncoder(feature_dimension=32)
+    sized = solve_config(
+        RepresentationKind.HYBRID, 50_000_000, encoder_dimension=32, latent_width=256, action_count=4
+    )
+    model = build_model(sized.config, seed=6600)
+
+    def replay(history):
+        environment = adapter()
+        result = environment.reset(fixture.seed, fixture.dynamic)
+        envelopes = [result.observation]
+        for action in history:
+            result = environment.step(
+                action, environment.gate.authorize_evaluator(action, "belief-probe")
+            )
+            envelopes.append(result.observation)
+        return envelopes
+
+    envelopes_a = replay(fixture.history_a)
+    envelopes_b = replay(fixture.history_b)
+
+    # The two histories genuinely converge on the same final observation.
+    assert envelopes_a[-1].content_digest == envelopes_b[-1].content_digest
+    assert envelopes_a[0].content_digest != envelopes_b[0].content_digest or (
+        envelopes_a[1].content_digest != envelopes_b[1].content_digest
+    )
+
+    actions_a = list(fixture.history_a) + [fixture.probe_action]
+    actions_b = list(fixture.history_b) + [fixture.probe_action]
+    belief_a = _encode_trace(model, encoder, envelopes_a, actions_a)
+    belief_b = _encode_trace(model, encoder, envelopes_b, actions_b)
+
+    separation = float(np.linalg.norm(belief_a - belief_b))
+    assert separation > 0.0, (
+        "the recurrent belief collapsed two histories the fixture requires it to separate"
+    )
+
+    # An observation-only encoding of the shared final step has, by construction,
+    # nothing to separate: identical content gives an identical feature vector.
+    final_a = encoder.encode_array(envelopes_a[-1])
+    final_b = encoder.encode_array(envelopes_b[-1])
+    assert np.array_equal(final_a, final_b)
+
+
+def test_no_module_steps_an_environment_without_an_authorisation_token():
+    """A source audit alongside the signature enforcement.
+
+    Scoped to the Phase-2 surface. Phase-1 modules step the exact environment
+    runner, which has its own semantics and is deliberately untouched here --
+    widening the audit to them would be an assertion about the exact reference,
+    which Phase 2 does not get to make.
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    scope = [root / "src" / "sentinel" / "wm", root / "src" / "sentinel" / "env" / "adapters"]
+    pattern = re.compile(r"\.step\(\s*([^)]*)\)", re.MULTILINE)
+    offenders: list[str] = []
+    for path in sorted(p for directory in scope for p in directory.rglob("*.py")):
+        text = path.read_text()
+        for match in pattern.finditer(text):
+            arguments = match.group(1).strip()
+            if not arguments:
+                continue  # a zero-argument .step() is an optimiser step, not the world
+            if "token" in arguments or "authorize" in arguments:
+                continue
+            if arguments.count(",") >= 1:
+                continue
+            offenders.append(f"{path.relative_to(root)}: .step({arguments})")
+    assert offenders == [], offenders

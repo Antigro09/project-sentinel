@@ -414,6 +414,7 @@ class SequenceSampler:
     seed: int
     batch_size: int
     cursor: int = 0
+    _order: list[int] | None = field(default=None, init=False, repr=False)
 
     @classmethod
     def from_records(
@@ -449,11 +450,18 @@ class SequenceSampler:
 
     @property
     def permutation(self) -> list[int]:
-        order = sorted(
-            range(len(self.sequences)),
-            key=lambda i: digest_of({"seed": self.seed, "index": i}),
-        )
-        return order
+        """Seed-determined order, computed once.
+
+        Recomputing it costs one hash per sequence, and `batch` reads it on
+        every optimizer update -- which put a few thousand hashes per update
+        into a throughput number that is supposed to be measuring the model.
+        """
+        if self._order is None:
+            self._order = sorted(
+                range(len(self.sequences)),
+                key=lambda i: digest_of({"seed": self.seed, "index": i}),
+            )
+        return self._order
 
     @property
     def permutation_digest(self) -> str:

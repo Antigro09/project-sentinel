@@ -44,9 +44,16 @@ DEVELOPMENT_SEEDS: tuple[int, ...] = (6600, 6601, 6602)
 
 TOTAL_TRANSITIONS = 100_000
 TRANSITIONS_PER_ENVIRONMENT: Mapping[str, int] = {
-    "deterministic_controlled": 50_000,
+    "synthetic_control": 50_000,
     "procedural_visual": 50_000,
 }
+"""Keyed by adapter name.
+
+The run matrix writes the first family as "deterministic controlled fixtures";
+the adapter that implements it is `synthetic_control`. Keying by the adapter
+name means a rename cannot leave the config and the contract silently
+disagreeing about which environment a count belongs to.
+"""
 MIXTURE_COUNTS: Mapping[str, int] = {
     "random": 15_000,
     "scripted_oracle": 12_500,
