@@ -213,6 +213,8 @@ class MlxVlmBackboneEncoder:
                 padding=True,
             )
             pixel_values = mx.array(inputs["pixel_values"]).astype(mx.bfloat16)
+            # Family-specific extras, passed only when the processor produced
+            # them: Qwen3-VL needs the patch grid, Gemma 3 does not emit one.
             extra = {
                 key: mx.array(np.asarray(inputs[key]))
                 for key in ("image_grid_thw",)
@@ -222,6 +224,11 @@ class MlxVlmBackboneEncoder:
             inputs = processor(text=[text], return_tensors="np", padding=True)
             pixel_values = None
             extra = {}
+
+        if "attention_mask" in inputs:
+            # Gemma 3 threads the mask into its multimodal fusion; Qwen3-VL uses
+            # it for rope indices. Supplying it is correct for both.
+            extra["mask"] = mx.array(np.asarray(inputs["attention_mask"]))
 
         input_ids = mx.array(np.asarray(inputs["input_ids"]))
         features = self._model.get_input_embeddings(input_ids, pixel_values, **extra)

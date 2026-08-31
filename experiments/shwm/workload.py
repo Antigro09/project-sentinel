@@ -220,10 +220,15 @@ def run_workload(
 
     report = ResourceReport(label=workload_id)
     load_started = time.perf_counter()
+    # The encoder's *actual* feature width, not the configured one. In matrix
+    # mode a 4B backbone emits 2,560-wide features while the config's
+    # dry-run width says 512, and building the projector from the config would
+    # give a shape mismatch at the first batch.
+    encoder_dimension = int(dataset.table.values.shape[1])
     sized = solve_config(
         RepresentationKind(cell.representation.value),
         cell.target_parameters,
-        encoder_dimension=int(config["encoder"]["feature_dimension"]),
+        encoder_dimension=encoder_dimension,
         latent_width=cell.latent_width,
         action_count=4,
     )
