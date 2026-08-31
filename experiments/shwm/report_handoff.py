@@ -227,6 +227,20 @@ def render(document: dict[str, Any]) -> str:
         )
 
     out.append("\n## Gate\n")
+    clauses = document.get("gate_clauses")
+    if clauses:
+        out.append("Each clause the run matrix states, evaluated by name.\n")
+        out.append(
+            table(
+                [[name, "PASS" if ok else "**FAIL**"] for name, ok in clauses.items()],
+                ["clause", "result"],
+            )
+        )
+        external = document.get("gate_clauses_verified_externally") or {}
+        if external:
+            out.append("\nClauses the driver cannot settle, and how they are settled:\n")
+            out.append(table([[k, v] for k, v in external.items()], ["clause", "how"]))
+        out.append("")
     rows = [
         ["workloads completed", f"{document['workloads_completed']}/{document['workloads_expected']}"],
         ["matching failures", str(len(document["matching_failures"]))],

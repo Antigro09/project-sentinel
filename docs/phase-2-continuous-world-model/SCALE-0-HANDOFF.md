@@ -321,6 +321,83 @@ six, the coverage column cannot move and is not yet evidence of anything. The
 detection rate is meaningful: 256 deliberately corrupted predictions out of 512,
 all 256 caught.
 
+
+### 3.12 The preflight named the wrong blocker
+
+The first version of this handoff reported that Scale 0 was stopped because
+`google/gemma-3-4b-it` needed its licence accepted. That was wrong. The account
+had **already** accepted it -- the model page reads "You have been granted access
+to this model", and the authenticated Hub connector could read the repository's
+`config.json` throughout.
+
+The preflight had seen `gated: manual` and concluded the terms were outstanding.
+`gated` says only that the repository is gated; whether *this account* has
+accepted is a different fact, and one that is not observable without a
+credential. Conflating them sent a reader to accept a licence they already held
+while the real blocker -- no access token on this machine -- went unnamed.
+
+The two facts are now distinguished. With no credential present the preflight
+reports the missing token and says explicitly that acceptance is unobservable
+from where it stands, rather than guessing.
+
+### 3.13 The two frozen families differ in encode cost by 16x
+
+Not a defect, but a measured asymmetry large enough that a reader should not
+meet it by surprise. Under each model's own official preprocessing:
+
+| family | image size | patch | merge | vision tokens | measured rate |
+|---|---|---:|---:|---:|---:|
+| Qwen3-VL 4B | dynamic | 16 | 2 | ~49 | 70.2 obs/s |
+| Gemma 3 4B | fixed 896x896 | 14 | none | 4,096 | 3.4 obs/s |
+
+Gemma does roughly 84x the vision-token work per image, and its half of the
+sealed cache takes hours where Qwen's takes minutes. Shrinking Gemma's input
+would close the gap and was not done: preprocessing is part of the encoder
+identity, and tuning it to improve a number is the substitution the matrix
+forbids. Wall time is a measured outcome rather than a matched quantity, so this
+does not threaten the matching rule -- every matched quantity is fixed after
+caching. It does consume about half the eight-hour cache ceiling at this data
+volume, which is a fact Scale 1 needs before it chooses a larger one.
+
+### 3.14 The gate never checked restart equivalence
+
+The Scale-0 verdict was a single boolean over failures, matching, resource
+envelope, and undeclared state. Restart was not among them -- so a run whose
+restarted weights disagreed with the uninterrupted ones would have reported a
+pass, against a matrix that lists restart among its gate conditions.
+
+All ten clauses are now evaluated and reported by name. Two of them cannot be
+settled inside the driver and say so instead of being assumed: the exact full
+suite is run separately at the reported commit, and the no-final-seed condition
+is enforced structurally by the seed guard.
+
+### 3.15 Tree cleanliness failed on a file that cannot affect a run
+
+The cleanliness clause asked whether the tracked tree was clean, full stop, which
+an unrelated worktree pointer this task is forbidden to stage would have failed.
+Cleanliness is now evaluated over the paths whose state can change what the run
+does, and anything dirty outside them is listed in the report by name so the
+exemption is visible rather than silent.
+
+Writing the test for that exposed a worse one underneath. `git_state` stripped
+the whole `git status --porcelain` output before splitting it into lines.
+Porcelain v1 is `XY<space>PATH`, so an unstaged entry begins with a space, and
+stripping shifted every path two characters: `src/thing.py` was being recorded as
+`rc/thing.py`. Every dirty path in every provenance record was misreported, and
+nothing downstream noticed because only the boolean was ever read.
+
+### 3.16 An interrupted cache build lost all of its work
+
+The cache index became durable only when the caller flushed it, and a cache build
+flushes once at the end. Measured against the real Gemma build, an interruption
+at hour three would have left roughly 40,000 payload files on disk with no index
+referencing any of them, and the restart would have re-encoded every one --
+turning a transient failure into a blown eight-hour ceiling.
+
+Writes now append to a journal that the loader replays, so a restart loses at
+most the entry in flight. Flush folds the journal into the index and removes it,
+keeping total bytes written linear in the entry count rather than quadratic.
+
 ## 4. Evidence labels
 
 | Claim | Label | Boundary |
