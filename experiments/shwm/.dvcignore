@@ -1,0 +1,5 @@
+# Stage inputs only. The large run artefacts -- the latent cache, restart
+# checkpoints, and the MLflow database -- live outside this DVC root and are
+# content-addressed by the run report's own checksum file instead; tracking them
+# here as well would double-count them against the 200 GiB artifact budget.
+__pycache__/

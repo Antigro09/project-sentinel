@@ -79,6 +79,33 @@ class ForwardOutput:
     have threaded an explicit key instead."""
 
 
+class ActionEmbedding(nn.Module):
+    """Action lookup implemented as a one-hot matmul rather than a gather.
+
+    `nn.Embedding`'s backward is a scatter-add. In this model the action vector
+    is consumed once per dynamics block and again for every imagined step of the
+    multi-step term, so a handful of action indices accumulate thousands of
+    gradient contributions into four rows, and the atomic ordering of that
+    accumulation is not fixed. The result is a gradient that differs run to run
+    in the low bf16 bits while the loss -- a float32 reduction -- prints
+    identical, which is how the restart gate failed with everything apparently
+    matching.
+
+    With four actions the one-hot matrix is negligible, the parameter shape is
+    unchanged, and the backward becomes a matmul, which is deterministic.
+    """
+
+    def __init__(self, count: int, dimension: int):
+        super().__init__()
+        scale = 1.0 / (dimension**0.5)
+        self.weight = mx.random.uniform(-scale, scale, (count, dimension))
+        self._count = count
+
+    def __call__(self, indices: mx.array) -> mx.array:
+        one_hot = (mx.arange(self._count) == indices[..., None]).astype(self.weight.dtype)
+        return one_hot @ self.weight
+
+
 class SHWMModel(nn.Module):
     """Action-conditioned latent world model with a pluggable representation."""
 
@@ -102,7 +129,7 @@ class SHWMModel(nn.Module):
             self.representation_codebook = nn.Linear(width, config.code_width)
             self.representation_readout = nn.Linear(config.code_width, config.discrete_width)
 
-        self.action_embedding = nn.Embedding(config.action_count, config.action_embedding)
+        self.action_embedding = ActionEmbedding(config.action_count, config.action_embedding)
         self.belief_gru = nn.GRU(width + config.action_embedding + 1, belief)
 
         self.core_norms = [nn.LayerNorm(belief) for _ in range(config.core_depth)]

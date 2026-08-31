@@ -52,9 +52,45 @@ from sentinel.wm.restart import (
 from sentinel.wm.versioning import digest_of
 
 
-def build_optimizer() -> optim.AdamW:
+class Fp32AccumulatorAdamW(optim.AdamW):
+    """AdamW with float32 moments over bfloat16 weights.
+
+    The matrix freezes "trainable weights/activations: bf16" and "optimizer
+    accumulators: fp32". MLX's AdamW allocates its moments with
+    `mx.zeros_like(parameter)` and does its arithmetic in the gradient's dtype,
+    so on a bf16 model every accumulator is bf16 too -- eight significand bits
+    holding a running average over two hundred updates.
+
+    The matrix is explicit that a backend which cannot implement the frozen
+    precision stops the cell rather than silently substituting another regime.
+    Implementing it is the cheaper of the two, so the moments are float32, the
+    update is computed in float32, and only the resulting parameter is cast back
+    to the model's dtype.
+    """
+
+    def init_single(self, parameter: mx.array, state: dict) -> None:
+        state["m"] = mx.zeros(parameter.shape, dtype=mx.float32)
+        state["v"] = mx.zeros(parameter.shape, dtype=mx.float32)
+
+    def apply_single(self, gradient: mx.array, parameter: mx.array, state: dict) -> mx.array:
+        dtype = parameter.dtype
+        learning_rate = self.learning_rate.astype(mx.float32)
+        beta1, beta2 = self.betas
+        gradient32 = gradient.astype(mx.float32)
+        parameter32 = parameter.astype(mx.float32)
+
+        decayed = parameter32 * (1.0 - learning_rate * self.weight_decay)
+        m = beta1 * state["m"] + (1.0 - beta1) * gradient32
+        v = beta2 * state["v"] + (1.0 - beta2) * mx.square(gradient32)
+        state["m"] = m
+        state["v"] = v
+        updated = decayed - learning_rate * m / (mx.sqrt(v) + self.eps)
+        return updated.astype(dtype)
+
+
+def build_optimizer() -> Fp32AccumulatorAdamW:
     """Exactly the optimizer the matrix freezes. No schedule, no warmup."""
-    return optim.AdamW(
+    return Fp32AccumulatorAdamW(
         learning_rate=M.LEARNING_RATE,
         betas=list(M.BETAS),
         eps=M.EPSILON,
@@ -122,7 +158,7 @@ class Trainer:
     """One matrix-shaped training workload."""
 
     model: SHWMModel
-    optimizer: optim.AdamW
+    optimizer: Fp32AccumulatorAdamW
     sampler: SequenceSampler
     table: FeatureTable
     objective: ObjectiveConfig

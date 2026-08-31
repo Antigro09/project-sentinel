@@ -1,0 +1,19 @@
+schema: '2.0'
+stages:
+  backbone_preflight:
+    cmd: ../../.venv-shwm/bin/python backbone_preflight.py --allow-blocked --out
+      ../../artifacts/shwm/scale0/backbone-preflight.json
+    deps:
+    - path: ../../src/sentinel/wm/backbones.py
+      hash: md5
+      md5: 5c7883e9bc798da2edf26e2a6f3d7d49
+      size: 11626
+    - path: backbone_preflight.py
+      hash: md5
+      md5: 70eb710a52aa6f97c11417ec59782838
+      size: 2659
+    outs:
+    - path: ../../artifacts/shwm/scale0/backbone-preflight.json
+      hash: md5
+      md5: bfb9654b5d3ea076544fd998a26bb4e8
+      size: 3819

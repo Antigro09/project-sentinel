@@ -345,6 +345,7 @@ def _record(
         content_digest_t1=after.observation.content_digest,
         latent_digest_t1=digest_array(features_after).digest,
         structured_events=_events_for(before, after),
+        probes_t1=dict(after.probes.canonical_dict()),
         branch_group_id=branch_group_id,
         branch_index=branch_index,
         taint=frozenset({Taint.DEVELOPMENT}),

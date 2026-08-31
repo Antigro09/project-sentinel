@@ -112,6 +112,18 @@ class TransitionRecord:
     content_digest_t1: str
     latent_digest_t1: str
     structured_events: tuple[StructuredEvent, ...] = ()
+    probes_t1: Mapping[str, Any] = field(default_factory=dict)
+    """The exact observables the environment reported after the action.
+
+    Recorded so that the verifier bridge can be exercised entirely offline. The
+    matrix fixes online interactions at exactly zero per run, and a verifier
+    that had to step the environment to obtain a probe value would be spending
+    interactions the budget does not have.
+
+    These are observables, not hidden state: they are the same quantities the
+    event head predicts, so storing them adds no channel that training did not
+    already have.
+    """
     branch_group_id: str | None = None
     branch_index: int = 0
     taint: frozenset[Taint] = frozenset({Taint.DEVELOPMENT})
@@ -136,6 +148,7 @@ class TransitionRecord:
         if self.step < 0:
             raise ContractViolation(f"step must be non-negative, got {self.step}")
         reject_hidden_fields(self.extra, "TransitionRecord.extra")
+        reject_hidden_fields(self.probes_t1, "TransitionRecord.probes_t1")
 
     def canonical_dict(self) -> dict[str, Any]:
         return {
@@ -155,6 +168,7 @@ class TransitionRecord:
             "content_digest_t1": self.content_digest_t1,
             "latent_digest_t1": self.latent_digest_t1,
             "structured_events": [e.canonical_dict() for e in self.structured_events],
+            "probes_t1": {k: self.probes_t1[k] for k in sorted(self.probes_t1)},
             "branch_group_id": self.branch_group_id,
             "branch_index": int(self.branch_index),
             "taint": sorted(t.value for t in self.taint),

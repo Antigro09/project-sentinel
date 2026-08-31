@@ -22,3 +22,5 @@ episodes/
 corpus/
 checkpoints/
 runs/
+
+artifacts/

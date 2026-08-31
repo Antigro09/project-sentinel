@@ -1,0 +1,76 @@
+# Frozen Scale-0 configuration.
+#
+# Every value here is a transcription of SCALE-0-RUN-MATRIX.md. Changing one is
+# a matrix amendment that must be committed before the first affected workload
+# runs, and once any cell has run it invalidates every earlier cell.
+
+mode: dry_run          # dry_run | matrix
+run_label: scale-0-dry-run
+
+matrix:
+  encoders: [qwen3_vl_4b, gemma3_4b]
+  representations: [continuous, discrete, hybrid]
+  targets: [50000000, 200000000]
+  primary_width: 512
+  control_widths: [256, 1024]
+  seeds: [6600, 6601, 6602]
+
+data:
+  total_transitions: 100000
+  per_environment:
+    synthetic_control: 50000
+    procedural_visual: 50000
+  mixture:
+    random: 0.30
+    scripted_oracle: 0.25
+    sentinel: 0.25
+    uncertainty_seeking: 0.20
+  episode_length: 40
+  branch_every: 6
+  branch_actions: 3
+  split_weights:
+    train: 0.8
+    dev_held_out: 0.2
+  split_salt: scale-0-v1
+
+optimisation:
+  sequence_length: 32
+  sequences_per_batch: 32
+  updates: 200
+  optimizer: AdamW
+  learning_rate: 3.0e-4
+  betas: [0.9, 0.95]
+  epsilon: 1.0e-8
+  weight_decay: 0.01
+  gradient_clip_norm: 1.0
+  compute_precision: bfloat16
+  accumulator_precision: float32
+  loss_weight: 1.0
+
+planner:
+  adapter: beam
+  horizons: [5, 10, 25]
+  invocations_per_horizon: 100
+  candidates_per_invocation: 64
+  online_actions: 0
+
+encoder:
+  feature_dimension: 512
+  # Only consulted in dry_run mode. Two distinct control variants stand in for
+  # the two encoder slots so that the pipeline is exercised at the matrix's
+  # shape; neither is a frozen backbone and neither may enter a matrix cell.
+  control_variants:
+    qwen3_vl_4b: control-slot-a
+    gemma3_4b: control-slot-b
+
+limits:
+  peak_memory_gib: 112
+  artifact_gib: 200
+  run_timeout_seconds: 7200
+  matrix_timeout_seconds: 259200
+  cache_build_timeout_seconds: 28800
+
+output:
+  root: artifacts/shwm/scale0
+  mlflow_uri: sqlite:///artifacts/shwm/scale0/mlflow.db
+  experiment: shwm-scale-0

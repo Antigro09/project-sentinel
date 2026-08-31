@@ -172,3 +172,204 @@ def test_sampling_from_the_global_random_stream_is_refused_for_a_matrix_run():
     assert_restartable(False)
     with pytest.raises(UndeclaredState, match="global MLX random stream"):
         assert_restartable(True)
+
+
+# ---- determinism findings, locked in -------------------------------------------
+
+
+def _training_fixture(tmp_path, arm, updates: int = 4):
+    """A small but structurally complete training setup."""
+    from sentinel.env.adapters.synthetic_control import SyntheticControlAdapter
+    from sentinel.wm.cache import LatentCache
+    from sentinel.wm.collect import CollectionPlan, FeatureTable, SequenceSampler, collect
+    from sentinel.wm.dataset import CollectorPolicy, Split, SplitManifest
+    from sentinel.wm.encoder import CachedEncoder, DeterministicControlEncoder
+    from sentinel.wm.models import build_model
+    from sentinel.wm.objective import ObjectiveConfig
+    from sentinel.wm.sizing import solve_config
+    from sentinel.wm.trainer import Trainer, build_optimizer
+
+    plan = CollectionPlan(
+        environment="synthetic_control",
+        transitions=600,
+        mixture={
+            CollectorPolicy.RANDOM: 180,
+            CollectorPolicy.SCRIPTED_ORACLE: 150,
+            CollectorPolicy.SENTINEL: 150,
+            CollectorPolicy.UNCERTAINTY_SEEKING: 120,
+        },
+        episode_length=40,
+    )
+    split_manifest = SplitManifest(
+        salt="determinism", weights={Split.TRAIN: 0.8, Split.DEV_HELD_OUT: 0.2}
+    )
+    encoder = CachedEncoder(
+        DeterministicControlEncoder(feature_dimension=32),
+        LatentCache(tmp_path / "cache"),
+        digest_of("projector"),
+    )
+    collected = collect(
+        lambda gate: SyntheticControlAdapter(gate=gate),
+        plan,
+        split_manifest,
+        encoder,
+        family="synthetic_control",
+    )
+    table = FeatureTable.from_mapping(collected.features)
+    sized = solve_config(arm, 50_000_000, encoder_dimension=32, latent_width=256, action_count=4)
+
+    def fresh():
+        return Trainer(
+            model=build_model(sized.config, seed=6600),
+            optimizer=build_optimizer(),
+            sampler=SequenceSampler.from_records(
+                collected.records,
+                split_manifest,
+                split=Split.TRAIN,
+                sequence_length=8,
+                batch_size=4,
+                seed=6600,
+            ),
+            table=table,
+            objective=ObjectiveConfig(),
+            seed=6600,
+            data_digest=collected.transition_ids_digest,
+            split_manifest_digest=split_manifest.digest,
+        )
+
+    return fresh
+
+
+@pytest.mark.parametrize("arm_name", ["continuous", "discrete", "hybrid"])
+def test_two_identical_runs_produce_bit_identical_weights(tmp_path, arm_name):
+    """Regression for a non-deterministic backward that a matching loss hid.
+
+    The action embedding was a gather, so its backward was a scatter-add over
+    four rows receiving thousands of contributions. The ordering of that
+    accumulation is not fixed, the weights diverged in the low bf16 bits, and
+    the float32 loss printed identical for four updates before anything showed.
+    """
+    from sentinel.wm.latent_contract import RepresentationKind
+    from sentinel.wm.trainer import parameter_digest
+
+    fresh = _training_fixture(tmp_path, RepresentationKind(arm_name))
+    first, second = fresh(), fresh()
+    first.run(4, diagnose_every=0)
+    second.run(4, diagnose_every=0)
+    assert first.loss_history == second.loss_history
+    assert parameter_digest(first.model) == parameter_digest(second.model)
+
+
+@pytest.mark.parametrize("arm_name", ["continuous", "discrete", "hybrid"])
+def test_a_checkpointed_half_run_finishes_where_the_whole_run_did(tmp_path, arm_name):
+    from sentinel.wm.latent_contract import RepresentationKind
+    from sentinel.wm.trainer import parameter_digest
+
+    fresh = _training_fixture(tmp_path, RepresentationKind(arm_name))
+    whole = fresh()
+    whole.run(4, diagnose_every=0)
+
+    half = fresh()
+    half.run(2, diagnose_every=0)
+    half.save(tmp_path / f"checkpoint-{arm_name}")
+
+    resumed = fresh()
+    resumed.restore(tmp_path / f"checkpoint-{arm_name}")
+    resumed.run(2, diagnose_every=0)
+
+    assert resumed.loss_history == whole.loss_history
+    assert parameter_digest(resumed.model) == parameter_digest(whole.model)
+
+
+def test_the_action_embedding_gradient_is_deterministic():
+    """The narrow calibration arm for the fix above."""
+    import numpy as np
+    from mlx.utils import tree_flatten
+
+    from sentinel.wm.latent_contract import RepresentationKind
+    from sentinel.wm.models import build_model
+    from sentinel.wm.objective import ObjectiveBatch, ObjectiveConfig, compute_objective
+    from sentinel.wm.sizing import solve_config
+
+    sized = solve_config(
+        RepresentationKind.CONTINUOUS,
+        50_000_000,
+        encoder_dimension=32,
+        latent_width=256,
+        action_count=4,
+    )
+    mx.random.seed(0)
+    batch = ObjectiveBatch(
+        features=mx.random.normal((4, 8, 32)).astype(mx.bfloat16),
+        actions=mx.random.randint(0, 4, (4, 8)),
+        previous_rewards=mx.zeros((4, 8, 1), dtype=mx.bfloat16),
+        rewards=mx.zeros((4, 8)),
+        terminations=mx.zeros((4, 8)),
+        event_targets=mx.zeros((4, 8), dtype=mx.int32),
+    )
+    key = mx.random.key(7)
+    config = ObjectiveConfig()
+
+    def gradients():
+        model = build_model(sized.config, seed=6600)
+
+        def loss_fn(model):
+            output = model(batch.features, batch.actions, batch.previous_rewards, key=key)
+            total, _, _, _ = compute_objective(model, output, batch, config)
+            return total
+
+        _, grads = nn.value_and_grad(model, loss_fn)(model)
+        mx.eval(grads)
+        return {
+            name: np.asarray(tensor.astype(mx.float32)).tobytes()
+            for name, tensor in tree_flatten(grads)
+        }
+
+    first, second, third = gradients(), gradients(), gradients()
+    differing = sorted(name for name in first if first[name] != second[name])
+    assert differing == [], differing
+    assert first == third
+
+
+def test_optimizer_accumulators_are_float32_over_bfloat16_weights():
+    """The matrix freezes bf16 weights with fp32 accumulators; MLX defaults to
+    bf16 for both, which is eight significand bits holding a running average."""
+    from mlx.utils import tree_flatten
+
+    from sentinel.wm.latent_contract import RepresentationKind
+    from sentinel.wm.models import build_model
+    from sentinel.wm.sizing import solve_config
+    from sentinel.wm.trainer import build_optimizer
+
+    sized = solve_config(
+        RepresentationKind.HYBRID,
+        50_000_000,
+        encoder_dimension=32,
+        latent_width=256,
+        action_count=4,
+    )
+    model = build_model(sized.config, seed=6600)
+
+    def loss_fn(model):
+        output = model(
+            mx.zeros((2, 4, 32), dtype=mx.bfloat16),
+            mx.zeros((2, 4), dtype=mx.int32),
+            mx.zeros((2, 4, 1), dtype=mx.bfloat16),
+            key=mx.random.key(1),
+        )
+        return mx.sum(output.next_latent.astype(mx.float32) ** 2)
+
+    optimizer = build_optimizer()
+    _, grads = nn.value_and_grad(model, loss_fn)(model)
+    optimizer.update(model, grads)
+    mx.eval(model.parameters(), optimizer.state)
+
+    weights = {name: tensor.dtype for name, tensor in tree_flatten(model.parameters())}
+    moments = {
+        name: tensor.dtype
+        for name, tensor in tree_flatten(optimizer.state)
+        if name.endswith(".m") or name.endswith(".v")
+    }
+    assert moments, "the optimizer exposed no per-parameter moments"
+    assert set(weights.values()) == {mx.bfloat16}
+    assert set(moments.values()) == {mx.float32}

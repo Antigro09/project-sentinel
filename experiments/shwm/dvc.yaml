@@ -1,0 +1,34 @@
+# Scale-0 artifact pipeline.
+#
+# Two stages, in the order the plan requires: the backbone gate runs before any
+# observation is encoded, and the driver runs after. The driver's own report
+# records whether it ran the matrix or a dry run; DVC tracks the artefacts
+# either way so a rerun is reproducible from the committed code and config.
+
+stages:
+  backbone_preflight:
+    cmd: ../../.venv-shwm/bin/python backbone_preflight.py --allow-blocked --out ../../artifacts/shwm/scale0/backbone-preflight.json
+    deps:
+      - backbone_preflight.py
+      - ../../src/sentinel/wm/backbones.py
+    outs:
+      - ../../artifacts/shwm/scale0/backbone-preflight.json:
+          cache: false
+          persist: false
+
+  scale0:
+    cmd: ../../.venv-shwm/bin/python scale0_preflight.py
+    deps:
+      - scale0_preflight.py
+      - dataset.py
+      - workload.py
+      - configs/scale0.yaml
+      - ../../src/sentinel/wm
+      - ../../src/sentinel/env/adapters
+    outs:
+      - ../../artifacts/shwm/scale0/dry_run-report.json:
+          cache: false
+          persist: false
+      - ../../artifacts/shwm/scale0/checksums.json:
+          cache: false
+          persist: false
