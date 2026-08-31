@@ -70,6 +70,13 @@ class ForwardOutput:
     consistency: mx.array      # (B, T, W)
     boundary: mx.array         # (B, T, W)   metric space for the boundary margin
     code_logits: mx.array | None  # (B, T, G*C) when the arm has codes
+    used_global_rng: bool = False
+    """True when sampling fell back to the global stream.
+
+    The global MLX random stream is process state that no checkpoint records, so
+    a run that draws from it cannot be restarted bit-for-bit. Unit tests may use
+    it for convenience; the restart audit requires every matrix-shaped run to
+    have threaded an explicit key instead."""
 
 
 class SHWMModel(nn.Module):
@@ -116,15 +123,25 @@ class SHWMModel(nn.Module):
 
     # ---- representation ------------------------------------------------
 
-    def project(self, features: mx.array) -> tuple[mx.array, mx.array | None]:
+    def _sample(self, mean: mx.array, log_variance: mx.array, key: mx.array | None) -> mx.array:
+        """Reparameterised draw, from an explicit key when one is supplied."""
+        scale = mx.exp(0.5 * mx.clip(log_variance, -8.0, 8.0))
+        if key is None:
+            noise = mx.random.normal(mean.shape, dtype=mean.dtype)
+        else:
+            noise = mx.random.normal(mean.shape, dtype=mean.dtype, key=key)
+        return mean + scale * noise
+
+    def project(
+        self, features: mx.array, key: mx.array | None = None
+    ) -> tuple[mx.array, mx.array | None]:
         """Encoder features to the latent interface, in this arm's parameterisation."""
         hidden = self.projector_norm(self.projector_in(features))
         kind = self.config.representation
         if kind is RepresentationKind.CONTINUOUS:
             statistics = self.representation_continuous(hidden)
             mean, log_variance = mx.split(statistics, 2, axis=-1)
-            noise = mx.random.normal(mean.shape, dtype=mean.dtype)
-            return mean + mx.exp(0.5 * mx.clip(log_variance, -8.0, 8.0)) * noise, None
+            return self._sample(mean, log_variance, key), None
         if kind is RepresentationKind.DISCRETE:
             logits = self.representation_codebook(hidden)
             codes = straight_through_codes(
@@ -133,8 +150,7 @@ class SHWMModel(nn.Module):
             return self.representation_readout(codes), logits
         statistics = self.representation_continuous(hidden)
         mean, log_variance = mx.split(statistics, 2, axis=-1)
-        noise = mx.random.normal(mean.shape, dtype=mean.dtype)
-        continuous = mean + mx.exp(0.5 * mx.clip(log_variance, -8.0, 8.0)) * noise
+        continuous = self._sample(mean, log_variance, key)
         logits = self.representation_codebook(hidden)
         codes = straight_through_codes(
             logits, self.config.code_groups, self.config.code_categories
@@ -157,8 +173,9 @@ class SHWMModel(nn.Module):
         features: mx.array,       # (B, T, E)
         actions: mx.array,        # (B, T)     action taken *at* step t
         previous_rewards: mx.array,  # (B, T, 1)
+        key: mx.array | None = None,
     ) -> ForwardOutput:
-        latent, code_logits = self.project(features)
+        latent, code_logits = self.project(features, key)
         action_vectors = self.action_embedding(actions)
 
         # The belief update sees the previous action and reward, never the
@@ -186,6 +203,8 @@ class SHWMModel(nn.Module):
             consistency=self.head_consistency(core),
             boundary=self.head_boundary(latent),
             code_logits=code_logits,
+            used_global_rng=key is None
+            and self.config.representation is not RepresentationKind.DISCRETE,
         )
 
     # ---- accounting -------------------------------------------------------

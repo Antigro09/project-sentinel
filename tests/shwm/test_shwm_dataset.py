@@ -17,6 +17,7 @@ from sentinel.wm.dataset import (
     EpisodeKey,
     LeakageError,
     SequenceBatch,
+    assert_no_transition_overlap,
     Split,
     SplitManifest,
     TransitionRecord,
@@ -44,6 +45,8 @@ def record(
     taint: frozenset[Taint] = frozenset({Taint.DEVELOPMENT}),
     obs_t: str | None = None,
     obs_t1: str | None = None,
+    content_t: str | None = None,
+    content_t1: str | None = None,
     policy: CollectorPolicy = CollectorPolicy.RANDOM,
     propensity: float = 0.25,
     extra: dict | None = None,
@@ -53,6 +56,7 @@ def record(
         episode_id=episode_id,
         step=step,
         observation_digest_t=obs_t or digest_of(f"{episode_id}:{step}"),
+        content_digest_t=content_t or obs_t or digest_of(f"content:{episode_id}:{step}"),
         latent_digest_t=digest_of(f"latent:{episode_id}:{step}"),
         action=action,
         action_propensity=propensity,
@@ -61,6 +65,7 @@ def record(
         reward=0.0,
         termination=False,
         observation_digest_t1=obs_t1 or digest_of(f"{episode_id}:{step + 1}:{action}"),
+        content_digest_t1=content_t1 or obs_t1 or digest_of(f"content:{episode_id}:{step + 1}:{action}"),
         latent_digest_t1=digest_of(f"latent:{episode_id}:{step + 1}:{action}"),
         structured_events=(StructuredEvent(EventKind.ACTION_SUCCEEDED, witness="action_succeeded"),),
         branch_group_id=branch_group_id,
@@ -133,8 +138,10 @@ def build_branch_group(m: SplitManifest, seed: int, actions=(0, 1, 2)):
             step=4,
             action=a,
             branch_group_id=group,
-            obs_t=digest_of(f"restored:{seed}"),
+            obs_t=digest_of(f"restored:{seed}:{a}"),
+            content_t=digest_of(f"restored-content:{seed}"),
             obs_t1=digest_of(f"successor:{seed}:{a}"),
+            content_t1=digest_of(f"successor-content:{seed}:{a}"),
         )
         for a in actions
     ]
@@ -146,6 +153,7 @@ def test_branch_siblings_collected_inside_one_assigned_split_pass_the_audit():
     report = audit_splits(records, m)
     assert report["branch_groups"] == 2
     assert report["transitions"] == len(records)
+    assert report["observation_contents_in_multiple_splits"] == 0
 
 
 def test_a_branch_group_split_after_collection_is_caught():
@@ -176,24 +184,90 @@ def test_a_branch_group_spanning_two_episodes_is_caught():
     m.assignments[b_key.digest] = m.split_of(a_key)
     group = digest_of("shared-group")
     records = [
-        record(episode_key=a_key, episode_id="ep-a", branch_group_id=group, obs_t=digest_of("x")),
-        record(episode_key=b_key, episode_id="ep-b", branch_group_id=group, obs_t=digest_of("y")),
+        record(episode_key=a_key, episode_id="ep-a", branch_group_id=group,
+               obs_t=digest_of("x"), content_t=digest_of("cx")),
+        record(episode_key=b_key, episode_id="ep-b", branch_group_id=group,
+               obs_t=digest_of("y"), content_t=digest_of("cy")),
     ]
     with pytest.raises(LeakageError, match="more than one episode"):
         audit_splits(records, m)
 
 
-def test_a_duplicate_raw_frame_across_splits_is_caught():
+def two_split_keys(m: SplitManifest):
+    train_key = next(k for k in (key(i) for i in range(200)) if m.assign(k) is Split.TRAIN)
+    held_key = next(
+        k for k in (key(i) for i in range(200, 600)) if m.assign(k) is Split.DEV_HELD_OUT
+    )
+    return train_key, held_key
+
+
+def test_a_complete_transition_tuple_in_two_splits_is_measured_and_can_be_forbidden():
+    """The concrete form of "the held-out answer is in the training set".
+
+    Measured always; fatal for a family that can actually be disjoint.
+    """
     m = manifest()
-    train_key = next(k for k in (key(i) for i in range(60)) if m.assign(k) is Split.TRAIN)
-    held_key = next(k for k in (key(i) for i in range(60, 200)) if m.assign(k) is Split.DEV_HELD_OUT)
-    shared = digest_of("the-same-frame")
+    train_key, held_key = two_split_keys(m)
+    before, after = digest_of("state-before"), digest_of("state-after")
     records = [
-        record(episode_key=train_key, episode_id="ep-train", obs_t=shared),
-        record(episode_key=held_key, episode_id="ep-held", obs_t=shared),
+        record(episode_key=train_key, episode_id="ep-train", action=2,
+               content_t=before, content_t1=after),
+        record(episode_key=held_key, episode_id="ep-held", action=2,
+               content_t=before, content_t1=after),
     ]
-    with pytest.raises(LeakageError, match="raw observation"):
+    report = audit_splits(records, m)
+    assert report["transition_tuples_in_multiple_splits"] == 1
+    with pytest.raises(LeakageError, match="generative"):
+        assert_no_transition_overlap(report, "procedural_visual")
+
+
+def test_a_disjoint_generative_family_passes_the_stricter_gate():
+    m = manifest()
+    train_key, held_key = two_split_keys(m)
+    records = [
+        record(episode_key=train_key, episode_id="ep-train", action=2,
+               content_t=digest_of("a"), content_t1=digest_of("b")),
+        record(episode_key=held_key, episode_id="ep-held", action=2,
+               content_t=digest_of("c"), content_t1=digest_of("d")),
+    ]
+    report = audit_splits(records, m)
+    assert report["transition_tuples_in_multiple_splits"] == 0
+    assert_no_transition_overlap(report, "procedural_visual")
+
+
+def test_the_same_episode_step_collected_into_two_splits_is_caught():
+    m = manifest()
+    train_key, held_key = two_split_keys(m)
+    shared = digest_of("the-same-episode-step")
+    records = [
+        record(episode_key=train_key, episode_id="ep-train", obs_t=shared,
+               content_t=digest_of("c1"), content_t1=digest_of("c2")),
+        record(episode_key=held_key, episode_id="ep-held", obs_t=shared,
+               content_t=digest_of("c3"), content_t1=digest_of("c4")),
+    ]
+    with pytest.raises(LeakageError, match="positional observation"):
         audit_splits(records, m)
+
+
+def test_a_shared_observation_with_different_successors_is_reported_not_raised():
+    """A finite observation space makes some overlap arithmetic, not leakage.
+
+    The controlled adapter has eight visible states and many more episodes, so
+    demanding disjoint observations would be a check that can only be satisfied
+    by making the environment bigger. The overlap is measured instead.
+    """
+    m = manifest()
+    train_key, held_key = two_split_keys(m)
+    shared = digest_of("a-state-both-splits-can-reach")
+    records = [
+        record(episode_key=train_key, episode_id="ep-train", action=0,
+               content_t=shared, content_t1=digest_of("successor-a")),
+        record(episode_key=held_key, episode_id="ep-held", action=1,
+               content_t=shared, content_t1=digest_of("successor-b")),
+    ]
+    report = audit_splits(records, m)
+    assert report["observation_contents_in_multiple_splits"] == 1
+    assert 0.0 < report["observation_content_overlap_rate"] <= 1.0
 
 
 def test_an_environment_seed_reused_across_splits_is_caught():
@@ -205,8 +279,8 @@ def test_an_environment_seed_reused_across_splits_is_caught():
         Split.DEV_HELD_OUT if m.split_of(a) is Split.TRAIN else Split.TRAIN
     )
     records = [
-        record(episode_key=a, episode_id="ep-a", obs_t=digest_of("a")),
-        record(episode_key=b, episode_id="ep-b", obs_t=digest_of("b")),
+        record(episode_key=a, episode_id="ep-a", obs_t=digest_of("a"), content_t=digest_of("ca")),
+        record(episode_key=b, episode_id="ep-b", obs_t=digest_of("b"), content_t=digest_of("cb")),
     ]
     with pytest.raises(LeakageError, match="seed"):
         audit_splits(records, m)

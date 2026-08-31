@@ -222,26 +222,41 @@ class ObservationEnvelope:
             )
         reject_hidden_fields(self.structured_observation, "structured_observation")
 
-    def canonical_dict(self) -> dict[str, Any]:
+    def content_dict(self) -> dict[str, Any]:
+        """What the agent can actually see, with no positional metadata."""
         return {
-            "episode_id": self.episode_id,
-            "step": self.step,
             "modality_payloads": {k: v.canonical_dict() for k, v in sorted(self.modality_payloads.items())},
             "structured_observation": dict(self.structured_observation),
             "modality_mask": self.modality_mask.canonical_dict(),
             "available_action_digest": self.available_action_digest,
             "environment_version": self.environment_version,
+        }
+
+    def canonical_dict(self) -> dict[str, Any]:
+        return {
+            **self.content_dict(),
+            "episode_id": self.episode_id,
+            "step": self.step,
             "taint": sorted(t.value for t in self.taint),
         }
 
     @property
-    def digest(self) -> str:
-        """Identity of the observation content, excluding wall-clock time.
+    def content_digest(self) -> str:
+        """Identity of the observation *content* alone.
 
-        `timestamp_ns` is deliberately not hashed. Two identical observations
-        collected a second apart must hit the same cache entry, or the encoder
-        cache does nothing.
+        Episode id, step, and wall-clock time are excluded, and that exclusion
+        is load-bearing twice over. It is what lets the encoder cache dedupe two
+        identical observations reached by different routes -- with the episode id
+        hashed in, the cache never hits and its hit ratio measures nothing. And
+        it is what makes the duplicate-frame leak check able to see anything at
+        all: a frame that appears in train and in a held-out split is only
+        detectable if the two hash the same.
         """
+        return digest_of(self.content_dict())
+
+    @property
+    def digest(self) -> str:
+        """Positional identity: this content, in this episode, at this step."""
         return digest_of(self.canonical_dict())
 
 

@@ -1,0 +1,174 @@
+"""Scale-0 gate: an interrupted run continues as if it had never stopped.
+
+The gate is not "a checkpoint loads". It is that a run split in half across two
+fresh interpreters produces bit-identical weights to an uninterrupted one. The
+two differ by exactly the state nobody writes down -- a global random stream, a
+module-level cache, a counter in a closure -- so the halves run as subprocesses.
+
+Three failure directions are covered: state that was never declared, a
+checkpoint that was altered, and a checkpoint that belongs to a different run.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import mlx.core as mx
+import mlx.nn as nn
+import mlx.optimizers as optim
+import pytest
+
+from sentinel.wm.restart import (
+    AUDITED_MODULES,
+    CheckpointCorruption,
+    DeclaredRunState,
+    ProcessStateAudit,
+    UndeclaredState,
+    assert_restartable,
+    key_to_tuple,
+    load_run_state,
+    save_run_state,
+    verify_checkpoint,
+)
+from sentinel.wm.versioning import digest_of
+
+WORKER = Path(__file__).parent / "_restart_worker.py"
+UPDATES = 6
+
+
+def run_worker(phase: str, workdir: Path, updates: int) -> dict:
+    completed = subprocess.run(
+        [sys.executable, str(WORKER), phase, str(workdir), str(updates)],
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    if completed.returncode != 0:
+        raise AssertionError(f"worker {phase} failed:\n{completed.stdout}\n{completed.stderr}")
+    return json.loads(completed.stdout.strip().splitlines()[-1])
+
+
+def test_a_run_split_across_two_processes_matches_an_uninterrupted_one(tmp_path):
+    uninterrupted = run_worker("full", tmp_path / "full", UPDATES)
+    first = run_worker("first", tmp_path / "split", UPDATES // 2)
+    second = run_worker("second", tmp_path / "split", UPDATES - UPDATES // 2)
+
+    assert first["data_digest"] == uninterrupted["data_digest"], "collection is not reproducible"
+    assert second["updates"] == uninterrupted["updates"] == UPDATES
+    assert second["loss_history"] == uninterrupted["loss_history"]
+    assert second["parameters_digest"] == uninterrupted["parameters_digest"]
+    assert second["prng_key"] == uninterrupted["prng_key"]
+
+
+def state(**overrides) -> DeclaredRunState:
+    base = dict(
+        update_index=3,
+        prng_key=key_to_tuple(mx.random.key(6600)),
+        batch_cursor=3,
+        permutation_digest=digest_of("permutation"),
+        config_digest=digest_of("config"),
+        objective_digest=digest_of("objective"),
+        data_digest=digest_of("data"),
+        split_manifest_digest=digest_of("splits"),
+        planner_account={"invocations": 2},
+        gate_ledger={"issued": 5},
+        verifier_ledger={"verifications": 5},
+    )
+    base.update(overrides)
+    return DeclaredRunState(**base)
+
+
+def trained_pair():
+    model = nn.Linear(16, 16)
+    optimizer = optim.AdamW(learning_rate=1e-3)
+
+    def loss(model):
+        return mx.sum(model(mx.ones((2, 16))) ** 2)
+
+    _, grads = nn.value_and_grad(model, loss)(model)
+    optimizer.update(model, grads)
+    mx.eval(model.parameters(), optimizer.state)
+    return model, optimizer
+
+
+def test_the_checkpoint_round_trips_weights_optimizer_and_declared_state(tmp_path):
+    model, optimizer = trained_pair()
+    original = state()
+    save_run_state(tmp_path, original, model, optimizer)
+
+    restored_model, restored_optimizer = trained_pair()
+    loaded = load_run_state(tmp_path, restored_model, restored_optimizer)
+    assert loaded.digest == original.digest
+    assert bool(mx.all(model.weight == restored_model.weight).item())
+
+
+@pytest.mark.parametrize("filename", ["model.safetensors", "optimizer.safetensors", "state.json"])
+def test_a_corrupted_checkpoint_fails_before_anything_is_deserialised(tmp_path, filename):
+    model, optimizer = trained_pair()
+    save_run_state(tmp_path, state(), model, optimizer)
+    path = tmp_path / filename
+    blob = bytearray(path.read_bytes())
+    blob[-1] ^= 0xFF
+    path.write_bytes(bytes(blob))
+    with pytest.raises(CheckpointCorruption):
+        verify_checkpoint(tmp_path)
+    with pytest.raises(CheckpointCorruption):
+        load_run_state(tmp_path, *trained_pair())
+
+
+def test_a_missing_file_or_missing_checksum_manifest_fails_closed(tmp_path):
+    model, optimizer = trained_pair()
+    save_run_state(tmp_path, state(), model, optimizer)
+    (tmp_path / "model.safetensors").unlink()
+    with pytest.raises(CheckpointCorruption, match="missing"):
+        verify_checkpoint(tmp_path)
+    (tmp_path / "checksums.json").unlink()
+    with pytest.raises(CheckpointCorruption, match="checksums"):
+        verify_checkpoint(tmp_path)
+
+
+def test_the_declared_state_carries_the_stream_position_not_just_the_seed():
+    """A seed says where the stream started; a restart needs where it is now."""
+    first = state()
+    advanced = state(prng_key=key_to_tuple(mx.random.split(mx.random.key(6600))[1]))
+    assert first.digest != advanced.digest
+    assert first.key.shape == (2,)
+
+
+def test_a_forbidden_global_state_channel_is_detected():
+    """Calibration arm: the audit must catch a planted global, or it proves nothing."""
+    audit = ProcessStateAudit()
+    audit.capture()
+    assert audit.changed() == []
+    audit.assert_no_undeclared_state()
+
+    import sentinel.wm.cache as planted_module
+
+    planted_module._PLANTED_FORBIDDEN_CACHE = {"answers": [1, 2, 3]}
+    try:
+        assert "sentinel.wm.cache" in audit.changed()
+        with pytest.raises(UndeclaredState, match="sentinel.wm.cache"):
+            audit.assert_no_undeclared_state()
+        # An explicitly declared module is allowed to move.
+        audit.assert_no_undeclared_state(declared=["sentinel.wm.cache"])
+    finally:
+        del planted_module._PLANTED_FORBIDDEN_CACHE
+    assert audit.changed() == []
+
+
+def test_the_audit_covers_every_module_a_run_touches():
+    assert "sentinel.wm.models" in AUDITED_MODULES
+    assert "sentinel.wm.cache" in AUDITED_MODULES
+    assert "sentinel.env.adapters.synthetic_control" in AUDITED_MODULES
+    audit = ProcessStateAudit()
+    snapshot = audit.capture()
+    assert set(snapshot) == set(AUDITED_MODULES)
+
+
+def test_sampling_from_the_global_random_stream_is_refused_for_a_matrix_run():
+    assert_restartable(False)
+    with pytest.raises(UndeclaredState, match="global MLX random stream"):
+        assert_restartable(True)

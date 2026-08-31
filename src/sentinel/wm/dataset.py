@@ -100,6 +100,7 @@ class TransitionRecord:
     episode_id: str
     step: int
     observation_digest_t: str
+    content_digest_t: str
     latent_digest_t: str
     action: int
     action_propensity: float
@@ -108,6 +109,7 @@ class TransitionRecord:
     reward: float
     termination: bool
     observation_digest_t1: str
+    content_digest_t1: str
     latent_digest_t1: str
     structured_events: tuple[StructuredEvent, ...] = ()
     branch_group_id: str | None = None
@@ -118,8 +120,10 @@ class TransitionRecord:
     def __post_init__(self) -> None:
         for name in (
             "observation_digest_t",
+            "content_digest_t",
             "latent_digest_t",
             "observation_digest_t1",
+            "content_digest_t1",
             "latent_digest_t1",
             "collector_policy_digest",
         ):
@@ -139,6 +143,7 @@ class TransitionRecord:
             "episode_id": self.episode_id,
             "step": self.step,
             "observation_digest_t": self.observation_digest_t,
+            "content_digest_t": self.content_digest_t,
             "latent_digest_t": self.latent_digest_t,
             "action": int(self.action),
             "action_propensity": float(self.action_propensity),
@@ -147,6 +152,7 @@ class TransitionRecord:
             "reward": float(self.reward),
             "termination": bool(self.termination),
             "observation_digest_t1": self.observation_digest_t1,
+            "content_digest_t1": self.content_digest_t1,
             "latent_digest_t1": self.latent_digest_t1,
             "structured_events": [e.canonical_dict() for e in self.structured_events],
             "branch_group_id": self.branch_group_id,
@@ -285,17 +291,28 @@ def audit_splits(
     records: Sequence[TransitionRecord],
     manifest: SplitManifest,
 ) -> dict[str, Any]:
-    """The five leakage checks the implementation plan requires.
+    """Structural violations raise; content overlap is measured.
 
-    Returns a report on success and raises `LeakageError` on any violation. The
-    report is returned even when everything passes because the counts are part
-    of the evidence: "no leak found" over three episodes is not the same claim
-    as "no leak found" over a hundred thousand transitions.
+    The distinction is not a softening. A structural violation means the split
+    procedure itself was broken and no amount of environment design can excuse
+    it: a branch group divided between splits, a branch group spanning episodes,
+    an environment seed appearing in two splits, or one episode step landing in
+    two splits at once. Each of those is a bug in the ordering, and each raises.
+
+    Content overlap is different. The controlled adapter reaches a small set of
+    observations, so two splits inevitably share some of them and some complete
+    `(observation, action, successor)` tuples as well. Raising there would be a
+    check satisfiable only by enlarging the environment, so the overlap is
+    counted and returned. A family that *can* be disjoint -- a generated visual
+    level, where a shared tuple really would be the answer in the training set --
+    asserts it explicitly with `assert_no_transition_overlap`.
     """
     branch_splits: dict[str, set[Split]] = defaultdict(set)
     branch_episodes: dict[str, set[str]] = defaultdict(set)
-    observation_splits: dict[str, set[Split]] = defaultdict(set)
+    content_splits: dict[str, set[Split]] = defaultdict(set)
     latent_splits: dict[str, set[Split]] = defaultdict(set)
+    tuple_splits: dict[tuple[str, int, str], set[Split]] = defaultdict(set)
+    positional_splits: dict[str, set[Split]] = defaultdict(set)
     seed_splits: dict[tuple[str, int], set[Split]] = defaultdict(set)
     per_split: Counter[Split] = Counter()
 
@@ -305,10 +322,15 @@ def audit_splits(
         if record.branch_group_id is not None:
             branch_splits[record.branch_group_id].add(split)
             branch_episodes[record.branch_group_id].add(record.episode_id)
+        for digest in (record.content_digest_t, record.content_digest_t1):
+            content_splits[digest].add(split)
         for digest in (record.observation_digest_t, record.observation_digest_t1):
-            observation_splits[digest].add(split)
+            positional_splits[digest].add(split)
         for digest in (record.latent_digest_t, record.latent_digest_t1):
             latent_splits[digest].add(split)
+        tuple_splits[
+            (record.content_digest_t, int(record.action), record.content_digest_t1)
+        ].add(split)
         seed_splits[(record.episode_key.family, record.episode_key.seed)].add(split)
 
     crossing_branches = sorted(g for g, s in branch_splits.items() if len(s) > 1)
@@ -317,37 +339,60 @@ def audit_splits(
             f"{len(crossing_branches)} branch group(s) span more than one split, "
             f"first: {crossing_branches[0]}; branch siblings must share a split"
         )
-    shared_frames = sorted(d for d, s in observation_splits.items() if len(s) > 1)
-    if shared_frames:
-        raise LeakageError(
-            f"{len(shared_frames)} raw observation(s) appear in more than one split, "
-            f"first: {shared_frames[0][:24]}..."
-        )
-    shared_latents = sorted(d for d, s in latent_splits.items() if len(s) > 1)
-    if shared_latents:
-        raise LeakageError(
-            f"{len(shared_latents)} latent digest(s) appear in more than one split, "
-            f"first: {shared_latents[0][:24]}..."
-        )
-    reused_seeds = sorted(k for k, s in seed_splits.items() if len(s) > 1)
-    if reused_seeds:
-        raise LeakageError(
-            f"environment seed(s) reused across splits: {reused_seeds[:3]}"
-        )
     split_branches = sorted(g for g, e in branch_episodes.items() if len(e) > 1)
     if split_branches:
         raise LeakageError(
             f"branch group(s) span more than one episode: {split_branches[:3]}"
         )
+    reused_seeds = sorted(k for k, s in seed_splits.items() if len(s) > 1)
+    if reused_seeds:
+        raise LeakageError(f"environment seed(s) reused across splits: {reused_seeds[:3]}")
+    shared_positional = sorted(d for d, s in positional_splits.items() if len(s) > 1)
+    if shared_positional:
+        raise LeakageError(
+            f"{len(shared_positional)} positional observation identit(ies) appear in more "
+            f"than one split, first: {shared_positional[0][:24]}...; the same episode step "
+            "was collected into two splits"
+        )
 
+    shared_contents = sum(1 for s in content_splits.values() if len(s) > 1)
+    shared_latents = sum(1 for s in latent_splits.values() if len(s) > 1)
+    shared_tuples = sum(1 for s in tuple_splits.values() if len(s) > 1)
     return {
         "transitions": len(records),
         "per_split": {s.value: c for s, c in sorted(per_split.items(), key=lambda kv: kv[0].value)},
         "branch_groups": len(branch_splits),
-        "distinct_observations": len(observation_splits),
+        "distinct_observation_contents": len(content_splits),
         "distinct_latents": len(latent_splits),
+        "distinct_transition_tuples": len(tuple_splits),
         "environment_seeds": len(seed_splits),
+        "observation_contents_in_multiple_splits": shared_contents,
+        "observation_content_overlap_rate": (
+            shared_contents / len(content_splits) if content_splits else 0.0
+        ),
+        "latents_in_multiple_splits": shared_latents,
+        "transition_tuples_in_multiple_splits": shared_tuples,
+        "transition_tuple_overlap_rate": (
+            shared_tuples / len(tuple_splits) if tuple_splits else 0.0
+        ),
     }
+
+
+def assert_no_transition_overlap(report: Mapping[str, Any], family: str) -> None:
+    """Require complete transition disjointness for a family that can achieve it.
+
+    Called for generative domains, where a shared `(observation, action,
+    successor)` tuple is the held-out answer sitting in the training set rather
+    than an artefact of a small state space.
+    """
+    shared = int(report.get("transition_tuples_in_multiple_splits", 0))
+    if shared:
+        raise LeakageError(
+            f"{family}: {shared} complete transition tuple(s) appear in more than one "
+            f"split ({report.get('transition_tuple_overlap_rate', 0.0):.4%} of "
+            f"{report.get('distinct_transition_tuples')}); this family is generative and "
+            "must be disjoint"
+        )
 
 
 def mixture_report(records: Sequence[TransitionRecord]) -> dict[str, Any]:

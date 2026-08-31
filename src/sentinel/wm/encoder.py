@@ -70,6 +70,24 @@ def _quantise_bf16(values: np.ndarray) -> np.ndarray:
     return rounded.view(np.float32)
 
 
+def pack_bf16(values: np.ndarray) -> np.ndarray:
+    """Store bf16-quantised float32 as the two bytes it actually occupies.
+
+    A bf16 value *is* the high half of its float32 bit pattern, so keeping the
+    low half costs twice the disk for no information. This matters beyond
+    tidiness: the resource plan budgets the latent cache at two bytes per
+    coordinate, and a cache silently storing four would make the measured
+    footprint disagree with the arithmetic for a reason nobody could see.
+    """
+    return _quantise_bf16(values).view(np.uint32).astype(np.uint32).__rshift__(16).astype(np.uint16)
+
+
+def unpack_bf16(packed: np.ndarray) -> np.ndarray:
+    """Inverse of `pack_bf16`. Exact, because nothing was lost in packing."""
+    widened = packed.astype(np.uint32) << 16
+    return widened.view(np.float32)
+
+
 def apply_precision(values: np.ndarray, precision: Precision) -> np.ndarray:
     if precision is Precision.BF16:
         return _quantise_bf16(values)
@@ -98,11 +116,16 @@ class EncoderHealth:
 class DeterministicControlEncoder:
     """Reproducible random frozen encoder. A control, never a backbone.
 
-    Features come from a keyed hash of the observation digest expanded into a
-    fixed-width vector. That gives three properties the fake-model dry run needs:
-    identical output in any process, no inherited capability, and a genuine
-    dependence on the observation content so that a downstream model that
+    Features come from a keyed hash of the observation *content* digest expanded
+    into a fixed-width vector. That gives three properties the fake-model dry run
+    needs: identical output in any process, no inherited capability, and a
+    genuine dependence on the observation content so that a downstream model that
     ignores the observation still fails.
+
+    Content rather than positional identity, because a frozen encoder is a
+    function of what it was shown. Seeding on the positional digest would make
+    the same frame encode differently in two episodes, and the cache -- which
+    keys on content -- would then serve one of the two answers to both.
     """
 
     feature_dimension: int = 512
@@ -144,7 +167,7 @@ class DeterministicControlEncoder:
         return values.astype(np.float32)
 
     def encode(self, observation: ObservationEnvelope) -> EncodedObservation:
-        material = observation.digest.encode() + self.variant.encode()
+        material = observation.content_digest.encode() + self.variant.encode()
         values = apply_precision(self._expand(material), self.precision)
         from sentinel.wm.versioning import digest_array
 
@@ -157,7 +180,7 @@ class DeterministicControlEncoder:
         )
 
     def encode_array(self, observation: ObservationEnvelope) -> np.ndarray:
-        material = observation.digest.encode() + self.variant.encode()
+        material = observation.content_digest.encode() + self.variant.encode()
         return apply_precision(self._expand(material), self.precision)
 
     def health_check(self) -> EncoderHealth:
@@ -192,19 +215,28 @@ class CachedEncoder:
     def identity(self) -> EncoderIdentity:
         return self.inner.identity
 
+    @property
+    def _packs_bf16(self) -> bool:
+        return self.inner.identity.precision is Precision.BF16
+
     def encode_array(self, observation: ObservationEnvelope) -> np.ndarray:
         identity = self._identity_for(observation.modality_mask)
-        cached = self.cache.get(observation.digest, identity)
+        cached = self.cache.get(observation.content_digest, identity)
         if cached is not None:
-            return cached
+            return unpack_bf16(cached) if self._packs_bf16 else cached
         values = self.inner.encode_array(observation)
-        self.cache.put(observation.digest, identity, values)
+        self.cache.put(
+            observation.content_digest,
+            identity,
+            pack_bf16(values) if self._packs_bf16 else values,
+            metadata={"packed": "bf16" if self._packs_bf16 else "raw"},
+        )
         return values
 
     def encode(self, observation: ObservationEnvelope) -> EncodedObservation:
         from sentinel.wm.versioning import digest_array
 
-        values = self.encode_array(observation)
+        values = self.encode_array(observation)  # populates the cache on a miss
         return EncodedObservation(
             encoder_identity=self.inner.identity,
             source_observation_digest=observation.digest,
