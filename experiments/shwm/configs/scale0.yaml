@@ -55,7 +55,16 @@ planner:
   online_actions: 0
 
 encoder:
+  # Only consulted in dry_run mode; a matrix run takes its width from the
+  # backbone's own declared hidden size.
   feature_dimension: 512
+  weights_root: artifacts/shwm/backbones
+  revisions:
+    qwen3_vl_4b: ebb281ec70b05090aa6165b016eac8ec08e71b17
+    gemma3_4b: 093f9f388b31de276ce2de164bdc2081324b9767
+  licences:
+    qwen3_vl_4b: apache-2.0
+    gemma3_4b: gemma
   # Only consulted in dry_run mode. Two distinct control variants stand in for
   # the two encoder slots so that the pipeline is exercised at the matrix's
   # shape; neither is a frozen backbone and neither may enter a matrix cell.

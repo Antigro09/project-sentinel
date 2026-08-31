@@ -196,6 +196,15 @@ class DeterministicControlEncoder:
         )
 
 
+def _accepts_frame(encoder: Any) -> bool:
+    import inspect
+
+    try:
+        return "frame" in inspect.signature(encoder.encode_array).parameters
+    except (TypeError, ValueError):  # pragma: no cover - builtins have no signature
+        return False
+
+
 @dataclass
 class CachedEncoder:
     """Any adapter, plus the content-addressed cache and its statistics."""
@@ -219,12 +228,21 @@ class CachedEncoder:
     def _packs_bf16(self) -> bool:
         return self.inner.identity.precision is Precision.BF16
 
-    def encode_array(self, observation: ObservationEnvelope) -> np.ndarray:
+    def encode_array(
+        self, observation: ObservationEnvelope, frame: np.ndarray | None = None
+    ) -> np.ndarray:
         identity = self._identity_for(observation.modality_mask)
         cached = self.cache.get(observation.content_digest, identity)
         if cached is not None:
             return unpack_bf16(cached) if self._packs_bf16 else cached
-        values = self.inner.encode_array(observation)
+        # The frame is passed through rather than looked up: the envelope carries
+        # the image's digest, not its bytes. The cache key is unaffected, because
+        # that digest is already part of the observation content.
+        values = (
+            self.inner.encode_array(observation, frame=frame)
+            if frame is not None and _accepts_frame(self.inner)
+            else self.inner.encode_array(observation)
+        )
         self.cache.put(
             observation.content_digest,
             identity,

@@ -50,7 +50,7 @@ def test_one_blocked_family_stops_the_whole_matrix(blocked_index):
     for i, candidate in enumerate(FROZEN_CANDIDATES):
         if i == blocked_index:
             records.append(
-                record(candidate, PreflightVerdict.BLOCKED, [BlockReason.GATED_LICENCE])
+                record(candidate, PreflightVerdict.BLOCKED, [BlockReason.LICENCE_NOT_ACCEPTED])
             )
         else:
             records.append(record(candidate, PreflightVerdict.RUNNABLE))
@@ -80,6 +80,26 @@ def test_offline_preflight_reports_unchecked_rather_than_guessing():
     assert all(r.verdict is PreflightVerdict.UNCHECKED for r in results)
     ok, _ = matrix_may_run(results)
     assert not ok
+
+
+def test_the_two_gating_facts_are_not_conflated():
+    """"This repo is gated" and "this account has not accepted" are different.
+
+    The second cannot be observed without a credential, and an earlier version of
+    this preflight reported it anyway -- sending someone to accept a licence they
+    had already accepted, while the real blocker was a missing local token.
+    """
+    assert BlockReason.NO_CREDENTIAL.value == "no_local_access_token"
+    assert BlockReason.LICENCE_NOT_ACCEPTED.value == "gated_licence_not_accepted_by_this_account"
+    assert BlockReason.NO_CREDENTIAL is not BlockReason.LICENCE_NOT_ACCEPTED
+
+    blocked_on_credential = record(
+        FROZEN_CANDIDATES[1], PreflightVerdict.BLOCKED, [BlockReason.NO_CREDENTIAL]
+    )
+    blocked_on_licence = record(
+        FROZEN_CANDIDATES[1], PreflightVerdict.BLOCKED, [BlockReason.LICENCE_NOT_ACCEPTED]
+    )
+    assert blocked_on_credential.digest != blocked_on_licence.digest
 
 
 def test_runtime_detection_reports_what_is_actually_importable():

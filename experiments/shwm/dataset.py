@@ -124,6 +124,49 @@ def build_plans(config: Mapping[str, Any]) -> dict[str, CollectionPlan]:
     return plans
 
 
+def build_inner_encoder(
+    encoder_slot: str,
+    variant: str,
+    config: Mapping[str, Any],
+    feature_dimension: int,
+):
+    """The control encoder for a dry run, the named frozen backbone for a matrix run.
+
+    This is the only place the two modes differ in what they encode with, and the
+    matrix path refuses a slot that is not one of the two frozen families.
+    """
+    if config.get("mode") != "matrix":
+        return DeterministicControlEncoder(
+            feature_dimension=feature_dimension, variant=variant
+        )
+
+    from sentinel.wm.backbone_encoder import BackboneSpec, MlxVlmBackboneEncoder
+    from sentinel.wm.backbones import FROZEN_CANDIDATES
+    from sentinel.wm.matrix import assert_matrix_encoder
+
+    assert_matrix_encoder(encoder_slot)
+    candidate = next(c for c in FROZEN_CANDIDATES if c.encoder_id == encoder_slot)
+    weights_root = Path(config["encoder"]["weights_root"])
+    if not weights_root.is_absolute():
+        weights_root = REPO / weights_root
+    local_path = weights_root / encoder_slot
+    if not local_path.exists():
+        raise ContractViolation(
+            f"{encoder_slot}: weights are not present at {local_path}; a matrix run "
+            "cannot substitute the control encoder"
+        )
+    revision = config["encoder"]["revisions"][encoder_slot]
+    return MlxVlmBackboneEncoder(
+        spec=BackboneSpec(
+            encoder_id=encoder_slot,
+            repository=candidate.repository,
+            revision=revision,
+            licence=config["encoder"]["licences"][encoder_slot],
+            local_path=local_path,
+        )
+    )
+
+
 def build_encoder_dataset(
     encoder_slot: str,
     variant: str,
@@ -137,10 +180,13 @@ def build_encoder_dataset(
         weights={Split(name): float(w) for name, w in config["data"]["split_weights"].items()},
     )
     cache = LatentCache(output_root / "cache" / encoder_slot)
+    inner = build_inner_encoder(encoder_slot, variant, config, feature_dimension)
     encoder = CachedEncoder(
-        DeterministicControlEncoder(feature_dimension=feature_dimension, variant=variant),
+        inner,
         cache,
-        digest_of({"projector": "scale-0-identity", "width": feature_dimension}),
+        digest_of(
+            {"projector": "scale-0-identity", "width": inner.identity.feature_dimension}
+        ),
     )
 
     report = ResourceReport(label=f"dataset:{encoder_slot}")
@@ -177,6 +223,11 @@ def build_encoder_dataset(
         manifest.seal()
         cache.flush()
         table = FeatureTable.from_mapping(features)
+        release = getattr(inner, "release", None)
+        if callable(release):
+            # Two 4B backbones held at once is 16.5 GiB for nothing; the features
+            # are in the table and the cache by this point.
+            release()
 
     total = int(config["data"]["total_transitions"])
     if len(records) != total:

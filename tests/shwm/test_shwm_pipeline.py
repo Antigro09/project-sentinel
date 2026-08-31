@@ -157,3 +157,50 @@ def test_the_verifier_dry_run_consumes_no_environment_interactions(tmp_path):
     source = inspect.getsource(workload_module.verifier_dry_run)
     assert ".step(" not in source
     assert "record.probes_t1" in source
+
+
+# ---- which encoder a run is allowed to use -------------------------------------
+
+
+def test_a_dry_run_gets_the_control_encoder(config):
+    from sentinel.wm.encoder import CONTROL_PROVIDER, DeterministicControlEncoder
+
+    encoder = dataset_module.build_inner_encoder(
+        "qwen3_vl_4b", "control-slot-a", {**config, "mode": "dry_run"}, 512
+    )
+    assert isinstance(encoder, DeterministicControlEncoder)
+    assert encoder.identity.provider == CONTROL_PROVIDER
+
+
+def test_a_matrix_run_refuses_a_slot_that_is_not_a_frozen_family(config):
+    from sentinel.wm.latent_contract import ContractViolation
+
+    with pytest.raises(ContractViolation, match="frozen matrix encoder"):
+        dataset_module.build_inner_encoder(
+            "sentinel-control", "x", {**config, "mode": "matrix"}, 512
+        )
+
+
+def test_a_matrix_run_refuses_to_fall_back_to_the_control_encoder(config, tmp_path):
+    """Absent weights must stop the run, not quietly downgrade it.
+
+    A silent fallback is the failure that would make a dry run indistinguishable
+    from a matrix run in the artefact, which is the one confusion the two modes
+    exist to prevent.
+    """
+    from sentinel.wm.latent_contract import ContractViolation
+
+    tampered = {
+        **config,
+        "mode": "matrix",
+        "encoder": {**config["encoder"], "weights_root": str(tmp_path / "absent")},
+    }
+    with pytest.raises(ContractViolation, match="cannot substitute the control encoder"):
+        dataset_module.build_inner_encoder("gemma3_4b", "x", tampered, 512)
+
+
+def test_the_config_pins_a_revision_and_licence_for_each_frozen_family(config):
+    for encoder_id in M.ENCODER_IDS:
+        revision = config["encoder"]["revisions"][encoder_id]
+        assert len(revision) == 40 and all(c in "0123456789abcdef" for c in revision)
+        assert config["encoder"]["licences"][encoder_id]

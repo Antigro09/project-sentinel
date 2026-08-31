@@ -256,7 +256,9 @@ def collect(
         for step in range(plan.episode_length):
             if remaining.get(policy, 0) <= 0:
                 break
-            features_before = encoder.encode_array(current.observation)
+            features_before = encoder.encode_array(
+                current.observation, frame=_frame_of(adapter)
+            )
             result.encoder_calls += 1
             result.features[current.observation.content_digest] = features_before
             latent_before = digest_array(features_before).digest
@@ -277,6 +279,7 @@ def collect(
                             key, episode_id, step, action, 1.0 / len(current.legal_actions),
                             policy, chooser.digest, current, after, encoder,
                             latent_before, group, branch_index, result.features,
+                            _frame_of(adapter),
                         )
                     )
                     result.encoder_calls += 1
@@ -295,6 +298,7 @@ def collect(
                 _record(
                     key, episode_id, step, action, propensity, policy, chooser.digest,
                     current, after, encoder, latent_before, None, 0, result.features,
+                    _frame_of(adapter),
                 )
             )
             result.encoder_calls += 1
@@ -308,6 +312,17 @@ def collect(
 
     result.environment_interactions = adapter.interactions
     return result
+
+
+def _frame_of(adapter) -> np.ndarray | None:
+    """The adapter's current rendered frame, when it renders one.
+
+    A real backbone needs the pixels; the observation envelope carries only their
+    digest, because a record that embedded raw frames would make the transition
+    log the size of the dataset.
+    """
+    getter = getattr(adapter, "frame", None)
+    return getter() if callable(getter) else None
 
 
 def _record(
@@ -325,8 +340,9 @@ def _record(
     branch_group_id: str | None,
     branch_index: int,
     feature_store: dict[str, np.ndarray],
+    frame_after: np.ndarray | None = None,
 ) -> TransitionRecord:
-    features_after = encoder.encode_array(after.observation)
+    features_after = encoder.encode_array(after.observation, frame=frame_after)
     feature_store[after.observation.content_digest] = features_after
     return TransitionRecord(
         episode_key=key,

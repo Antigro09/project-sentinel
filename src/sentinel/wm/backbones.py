@@ -12,10 +12,14 @@ declared precision. Anything else is `BLOCKED` with the specific reason, and a
 blocked family stops Scale 0 before any observation is encoded.
 
 Two things this module deliberately will not do. It will not accept a licence
-agreement on anyone's behalf -- a gated repository stays blocked until the
-account holder accepts the terms and supplies a token. And it will not swap in a
-mirror, a re-upload, or a larger model as a workaround, because the matrix says
-a replacement requires a reviewed pre-run amendment and a complete restart.
+agreement on anyone's behalf. And it will not swap in a mirror, a re-upload, or a
+larger model as a workaround, because the matrix says a replacement requires a
+reviewed pre-run amendment and a complete restart.
+
+It is also careful about *which* blocker it names. "This repository is gated" and
+"this account has not accepted the terms" are different facts, and the second one
+cannot be observed without a credential. Reporting the second when only the first
+is known sends someone to accept a licence they already accepted.
 """
 
 from __future__ import annotations
@@ -40,7 +44,7 @@ class PreflightVerdict(str, Enum):
 
 
 class BlockReason(str, Enum):
-    GATED_LICENCE = "gated_licence_requires_account_holder_acceptance"
+    LICENCE_NOT_ACCEPTED = "gated_licence_not_accepted_by_this_account"
     NO_CREDENTIAL = "no_local_access_token"
     NO_NETWORK = "repository_unreachable"
     NO_RUNTIME = "no_local_runtime_for_architecture"
@@ -228,10 +232,16 @@ def preflight_candidate(
     dtypes = tuple((safetensors.get("parameters") or {}).keys())
 
     token = local_token()
-    if gated not in (False, None):
-        reasons.append(BlockReason.GATED_LICENCE)
-        if token is None:
-            reasons.append(BlockReason.NO_CREDENTIAL)
+
+    # `gated` says the repository is gated. It does not say whether this account
+    # has accepted the terms, and conflating the two produces the wrong blocker:
+    # an earlier version of this preflight reported "licence requires acceptance"
+    # for a repository whose licence had in fact already been accepted, when the
+    # only thing missing was a token on this machine. Without a credential the
+    # acceptance state is simply not observable from here, so it is reported as
+    # unknown rather than guessed.
+    if gated not in (False, None) and token is None:
+        reasons.append(BlockReason.NO_CREDENTIAL)
 
     # A read probe on one small file is the ground truth for access; the `gated`
     # field alone does not say whether *this* machine can actually fetch bytes.
@@ -248,8 +258,14 @@ def preflight_candidate(
             probe_status = int(probe.stdout.strip() or 0)
         except (OSError, subprocess.TimeoutExpired, ValueError):
             probe_status = 0
-        if probe_status != 200 and BlockReason.GATED_LICENCE not in reasons:
-            reasons.append(BlockReason.NO_CREDENTIAL)
+        if probe_status != 200:
+            if token is None:
+                if BlockReason.NO_CREDENTIAL not in reasons:
+                    reasons.append(BlockReason.NO_CREDENTIAL)
+            else:
+                # A credential was presented and still refused: that is the
+                # account lacking access, which is the licence question.
+                reasons.append(BlockReason.LICENCE_NOT_ACCEPTED)
 
     if not (runtime["mlx"] or runtime["torch"]):
         reasons.append(BlockReason.NO_RUNTIME)
@@ -265,11 +281,17 @@ def preflight_candidate(
         reasons.append(BlockReason.DISK_BUDGET)
 
     verdict = PreflightVerdict.BLOCKED if reasons else PreflightVerdict.RUNNABLE
-    detail = (
-        "official repository resolves, licence recorded, revision pinned, read probe succeeded"
-        if verdict is PreflightVerdict.RUNNABLE
-        else "; ".join(r.value for r in reasons)
-    )
+    if verdict is PreflightVerdict.RUNNABLE:
+        detail = (
+            "official repository resolves, licence recorded, revision pinned, read probe succeeded"
+        )
+    else:
+        detail = "; ".join(r.value for r in reasons)
+        if gated not in (False, None) and token is None:
+            detail += (
+                "; the repository is gated and no credential was presented, so whether this "
+                "account has accepted the terms is not observable from here"
+            )
     return BackbonePreflight(
         candidate=candidate,
         verdict=verdict,
