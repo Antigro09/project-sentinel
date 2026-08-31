@@ -373,3 +373,59 @@ def test_optimizer_accumulators_are_float32_over_bfloat16_weights():
     assert moments, "the optimizer exposed no per-parameter moments"
     assert set(weights.values()) == {mx.bfloat16}
     assert set(moments.values()) == {mx.float32}
+
+
+def test_persistent_state_contains_no_future(tmp_path):
+    """The no-answer-leakage gate, applied to what actually survives a restart.
+
+    `EXPERIMENT-GATES.md` requires an audit that persistent state carries no
+    target sequence, expected observation, hidden mechanic, evaluator predicate,
+    clarification answer, final split label, or branch sibling from another
+    split. The checkpoint is the only persistent state a run has, so the audit
+    is: enumerate its keys, and require them to be exactly the declared set.
+
+    An allowlist rather than a denylist, because a denylist only catches the
+    leaks someone thought to name.
+    """
+    import json
+
+    from sentinel.wm.latent_contract import HIDDEN_FIELD_NAMES
+
+    model, optimizer = trained_pair()
+    save_run_state(tmp_path, state(), model, optimizer)
+    document = json.loads((tmp_path / "state.json").read_text())
+
+    declared = {
+        "update_index",
+        "prng_key",
+        "batch_cursor",
+        "permutation_digest",
+        "config_digest",
+        "objective_digest",
+        "data_digest",
+        "split_manifest_digest",
+        "planner_account",
+        "gate_ledger",
+        "verifier_ledger",
+        "pending_counterexamples",
+        "loss_history",
+    }
+    assert set(document) == declared, set(document) ^ declared
+
+    # No hidden field name anywhere in the serialised state, at any depth.
+    text = json.dumps(document)
+    for name in HIDDEN_FIELD_NAMES:
+        assert f'"{name}"' not in text, name
+
+    # And nothing that could stand in for an answer: the state references data
+    # only by digest, never by content.
+    assert isinstance(document["data_digest"], str)
+    assert document["data_digest"].startswith("sha256:")
+    assert "records" not in document and "targets" not in document
+
+
+def test_the_checkpoint_directory_holds_only_the_declared_files(tmp_path):
+    model, optimizer = trained_pair()
+    save_run_state(tmp_path, state(), model, optimizer)
+    written = {p.name for p in tmp_path.iterdir() if p.is_file()}
+    assert written == {"state.json", "model.safetensors", "optimizer.safetensors", "checksums.json"}

@@ -637,6 +637,16 @@ Gate: every frozen cell and seed completes locally under one evaluator, exact
 tests remain intact, no leakage occurs, all matching tolerances hold, and the
 preregistered memory/storage/time ceilings are respected.
 
+**Status: implemented, gate stopped, not passed.** The pipeline is built and
+tested and the 48 workload shapes run end to end, but the S0.2 encoder preflight
+stops the matrix: `google/gemma-3-4b-it` is licence-gated and this machine has
+no access token, so no matrix cell has run. Nothing is invalidated and no
+restart is owed. The gate reopens when the account holder accepts Google's
+Gemma Terms of Use and supplies a token. Details, negative findings, and the
+measured resource report are in
+`docs/phase-2-continuous-world-model/SCALE-0-HANDOFF.md`. **Scale 1 is not
+unblocked.**
+
 ### Scale 1 — representation contest
 
 Compare continuous, discrete, and hybrid state at equal trainable parameters,
