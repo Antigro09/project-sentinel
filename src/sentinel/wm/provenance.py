@@ -157,6 +157,25 @@ class TaintLedger:
         }
 
 
+RUN_INPUT_PREFIXES: tuple[str, ...] = (
+    "src/",
+    "tests/",
+    "experiments/",
+    "docs/",
+    "pyproject.toml",
+    "uv.lock",
+)
+"""Paths whose state can change what a run does.
+
+The matrix asks for a clean tracked tree, and the intent is that the reported
+commit fully describes the code that ran. A dirty entry outside these prefixes
+-- an unrelated worktree pointer, say -- cannot affect the run, and failing the
+gate on it would report a Scale-0 failure for a bookkeeping reason. Such entries
+are listed by name in the report instead of being folded into the verdict, so
+the exemption is visible rather than assumed.
+"""
+
+
 def git_state(repo: Path) -> dict[str, Any]:
     """Commit, branch, and tracked-tree cleanliness at report time."""
 
@@ -168,16 +187,41 @@ def git_state(repo: Path) -> dict[str, Any]:
         except (OSError, subprocess.TimeoutExpired):  # pragma: no cover
             return ""
 
-    porcelain = run("status", "--porcelain=v1")
-    tracked_dirty = [
-        line for line in porcelain.splitlines() if line and not line.startswith("??")
+    # Deliberately not `run`, which strips the output: porcelain's first two
+    # columns are status flags and the third is a space, so stripping the leading
+    # blank of an unstaged entry (" M path") shifts every path two characters and
+    # silently misclassifies it.
+    try:
+        porcelain = subprocess.run(
+            ["git", "-C", str(repo), "status", "--porcelain=v1"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):  # pragma: no cover
+        porcelain = ""
+    lines = [line for line in porcelain.split("\n") if line]
+    tracked_dirty = [line for line in lines if not line.startswith("??")]
+    untracked = [line[3:] for line in lines if line.startswith("??")]
+    def path_of(entry: str) -> str:
+        """Porcelain v1 is `XY<space>PATH`; a rename is `PATH -> NEWPATH`."""
+        path = entry[3:].strip().strip('"')
+        return path.split(" -> ")[-1] if " -> " in path else path
+
+    run_input_dirty = [
+        entry
+        for entry in tracked_dirty
+        if path_of(entry).startswith(RUN_INPUT_PREFIXES)
     ]
-    untracked = [line[3:] for line in porcelain.splitlines() if line.startswith("??")]
+    other_dirty = [entry for entry in tracked_dirty if entry not in run_input_dirty]
     return {
         "commit": run("rev-parse", "HEAD"),
         "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
         "dirty_tracked": bool(tracked_dirty),
         "dirty_tracked_entries": tracked_dirty,
+        "dirty_run_inputs": run_input_dirty,
+        "dirty_outside_run_inputs": other_dirty,
+        "clean_for_run_inputs": not run_input_dirty,
         "untracked_entries": untracked,
     }
 

@@ -290,7 +290,9 @@ def main() -> int:
         "no_undeclared_process_state": not undeclared,
         "both_frozen_encoders_runnable": permitted,
         "is_a_matrix_run": is_matrix_run,
-        "tracked_tree_clean": not git["dirty_tracked"],
+        # Scoped to paths that can change what the run does. Anything dirty
+        # outside them is listed in the report by name, not waved through.
+        "tracked_tree_clean_for_run_inputs": git["clean_for_run_inputs"],
     }
     externally_verified = {
         "exact_full_suite_green": (

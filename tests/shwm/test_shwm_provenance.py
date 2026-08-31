@@ -121,6 +121,43 @@ def test_taint_ledger_blocks_a_consumer_from_a_taint_it_may_not_see():
         ledger.record("undeclared-consumer", frozenset({Taint.DEVELOPMENT}))
 
 
+def test_tree_cleanliness_is_scoped_to_paths_that_can_change_a_run(tmp_path):
+    """A dirty file that cannot affect the run must not fail the gate silently
+    -- and must not be waved through silently either."""
+    import subprocess
+
+    from sentinel.wm.provenance import RUN_INPUT_PREFIXES
+
+    assert "src/" in RUN_INPUT_PREFIXES and "experiments/" in RUN_INPUT_PREFIXES
+    assert ".claude/" not in RUN_INPUT_PREFIXES
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, timeout=30)
+    for name in ("src/thing.py", "unrelated.txt"):
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("original\n")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True, timeout=30)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-q", "-m", "base"],
+        check=True, timeout=30,
+    )
+
+    clean = git_state(tmp_path)
+    assert clean["clean_for_run_inputs"] and not clean["dirty_tracked"]
+
+    (tmp_path / "unrelated.txt").write_text("changed\n")
+    outside = git_state(tmp_path)
+    assert outside["dirty_tracked"] is True
+    assert outside["clean_for_run_inputs"] is True, "an unrelated file failed the gate"
+    assert outside["dirty_outside_run_inputs"], "the exemption was not reported"
+
+    (tmp_path / "src/thing.py").write_text("changed\n")
+    inside = git_state(tmp_path)
+    assert inside["clean_for_run_inputs"] is False, "a dirty run input was waved through"
+    assert any("src/thing.py" in entry for entry in inside["dirty_run_inputs"])
+
+
 def test_provenance_probes_report_the_running_environment(tmp_path):
     state = git_state(tmp_path)
     assert set(state) >= {"commit", "branch", "dirty_tracked", "untracked_entries"}
