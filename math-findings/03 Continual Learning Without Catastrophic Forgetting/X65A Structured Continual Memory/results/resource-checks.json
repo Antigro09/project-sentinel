@@ -1,0 +1,55 @@
+{
+  "status": "MEASURED: targeted resource checks executed; no X65A gate claim",
+  "hydra_config": {
+    "seed": 6501,
+    "retrieval_budget": 2.0,
+    "memory_budget_bytes": 4096
+  },
+  "scipy_binary_knapsack": {
+    "success": true,
+    "selection": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "cost": 2.0,
+    "value": 5.0
+  },
+  "cvxpy_relaxation": {
+    "status": "optimal",
+    "selection": [
+      0.9999999694046389,
+      0.5000000102441469,
+      1.2068798612450321e-08,
+      -2.077099599767102e-09
+    ],
+    "upper_bound": 5.499999991880646
+  },
+  "jax_soft_coverage": {
+    "value_at_half_selection": 4.40500020980835,
+    "gradient": [
+      2.499999761581421,
+      2.130000114440918,
+      3.3399999141693115,
+      -0.05000000074505806
+    ],
+    "gradient_finite": true
+  },
+  "numpyro_finite_posterior": {
+    "probabilities": [
+      0.19999999999999996,
+      0.8000000000000002
+    ],
+    "normalized": true
+  },
+  "mlflow": {
+    "experiment": "sentinel-x65a-theory-checks",
+    "logged_to_local_store": true
+  },
+  "versions": {
+    "jax": "0.11.1",
+    "cvxpy": "1.9.2",
+    "mlflow": "3.15.2"
+  }
+}

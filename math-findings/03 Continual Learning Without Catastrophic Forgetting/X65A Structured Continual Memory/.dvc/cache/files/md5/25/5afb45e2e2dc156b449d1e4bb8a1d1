@@ -1,0 +1,22 @@
+{
+  "status": "MEASURED: SymPy derivation checks executed; no capability claim",
+  "posterior": {
+    "evidence": "-l_false*p + l_false + l_true*p",
+    "true": "-l_true*p/(l_false*p - l_false - l_true*p)",
+    "false": "(l_false*p - l_false)/(l_false*p - l_false - l_true*p)",
+    "normalization": "1"
+  },
+  "reliable_counterevidence": {
+    "posterior": "(p*r - p)/(2*p*r - p - r)",
+    "posterior_minus_prior": "-p*(p - 1)*(2*r - 1)/(2*p*r - p - r)",
+    "interpretation": "for 0<p<1, posterior decreases iff r>1/2"
+  },
+  "revision_locality_marginal": "b",
+  "mdl": {
+    "saving": "-component + n*raw - n*residual",
+    "acceptance_region": "component < n*raw - n*residual"
+  },
+  "finite_sufficient_statistic_odds": "lr_neg**negatives*lr_pos**positives*odds0",
+  "macro_search_ratio": "d**(-compressed_length + length)",
+  "sympy_version": "1.14.0"
+}

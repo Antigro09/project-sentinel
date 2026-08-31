@@ -1,0 +1,11 @@
+{
+  "status": "MEASURED: Hypothesis properties passed; finite claim scope only",
+  "properties": {
+    "posterior_normalization": 300,
+    "factorized_revision_locality": 300,
+    "raw_replay_linear_lower_bound": 300,
+    "past_only_no_direct_target": 300,
+    "deterministic_coverage_submodularity": 300
+  },
+  "total_generated_examples": 1500
+}
