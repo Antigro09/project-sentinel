@@ -261,15 +261,48 @@ def main() -> int:
         ),
     )
 
-    gate_passed = (
-        not failures
-        and not matching
-        and not envelope
-        and not undeclared
-        and len(outcomes) == len(workloads)
-        and permitted
-        and is_matrix_run
+    # The run matrix states eight gate clauses. Each is evaluated explicitly here
+    # rather than folded into one boolean, because an earlier version omitted the
+    # restart clause entirely -- a run whose restart equivalence had failed would
+    # still have reported a pass.
+    restart_checks = [o.restart_check for o in outcomes if o.restart_check]
+    restart_ok = bool(restart_checks) and all(
+        check["match"] and check["loss_history_match"] for check in restart_checks
     )
+    required_seeds = sorted(seeds)
+    seeds_retained = {
+        cell.cell_id: sorted(
+            {o.claim.seed for o in outcomes if o.workload_id.startswith(cell.cell_id + ".s")}
+        )
+        for cell in cells
+    }
+    every_cell_has_every_seed = bool(seeds_retained) and all(
+        retained == required_seeds for retained in seeds_retained.values()
+    )
+
+    gate_clauses = {
+        "all_48_workloads_complete": len(outcomes) == len(workloads) == 48,
+        "all_three_seeds_retained_for_every_cell": every_cell_has_every_seed,
+        "matching_rules_hold": not matching,
+        "no_leakage_detected": not failures,
+        "restart_and_artifact_checks_pass": restart_ok,
+        "hard_resource_ceilings_hold": not envelope,
+        "no_undeclared_process_state": not undeclared,
+        "both_frozen_encoders_runnable": permitted,
+        "is_a_matrix_run": is_matrix_run,
+        "tracked_tree_clean": not git["dirty_tracked"],
+    }
+    externally_verified = {
+        "exact_full_suite_green": (
+            "not checked by this driver; run `uv run pytest -q` at the reported commit "
+            "and record the result alongside this artefact"
+        ),
+        "no_phase_2_final_seed_sampled": (
+            "enforced by sentinel.wm.provenance.FinalSeedGuard, which refuses to load a "
+            "final seed without a committed post-freeze manifest; no such manifest exists"
+        ),
+    }
+    gate_passed = all(gate_clauses.values())
 
     document = {
         "mode": config["mode"],
@@ -296,6 +329,10 @@ def main() -> int:
         "artifact_bytes": artifact_bytes,
         "freeze_manifest": manifest.canonical_dict(),
         "freeze_manifest_digest": manifest.digest,
+        "gate_clauses": gate_clauses,
+        "gate_clauses_verified_externally": externally_verified,
+        "restart_checks": restart_checks,
+        "seeds_retained_per_cell": seeds_retained,
         "scale_0_gate_passed": gate_passed,
         "gate_note": (
             "PASS requires mode=matrix with both frozen backbones runnable. A dry run "
@@ -319,6 +356,8 @@ def main() -> int:
     print(f"matching failures   : {len(matching)}")
     print(f"envelope failures   : {len(envelope)}")
     print(f"undeclared state    : {len(undeclared)}")
+    for clause, ok in gate_clauses.items():
+        print(f"  {'PASS' if ok else 'FAIL'}  {clause}")
     print(f"total wall clock    : {total_seconds / 60:.1f} min")
     print(f"artifacts           : {artifact_bytes / 1024**3:.2f} GiB")
     print(f"Scale-0 gate passed : {gate_passed}")
