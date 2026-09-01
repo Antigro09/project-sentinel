@@ -293,3 +293,39 @@ def test_the_full_audit_summary_separates_v1_from_v2():
     v2_summary = summarise([audit_not_determined_by(v2_pairs, "step", "polarity")])
     assert not v1_summary["all_passed"] and v1_summary["failed"]
     assert v2_summary["all_passed"] and not v2_summary["failed"]
+
+
+# ---- construct validity: is the hidden variable exercised at all? -----------------
+
+
+def test_the_hidden_variable_actually_changes_in_most_episodes():
+    """A hidden variable nothing exercises is a constant with a good disguise.
+
+    At three switches only 27% of episodes ever changed polarity, so a
+    hidden-phase probe was mostly reading the reset indicator rather than
+    tracking state. The density was raised until this passed, and this test
+    exists so it cannot regress silently the way v1's did.
+    """
+    from sentinel.wm.hidden_state_audit import audit_hidden_state_exercised
+
+    counts = []
+    for layout in range(10_000, 10_150):
+        adapter = v2()
+        adapter.reset(layout)
+        for step in range(6):
+            action = ACTIONS[(step * 3 + layout) % len(ACTIONS)]
+            adapter.step(action, adapter.gate.authorize_evaluator(action, "exercise"))
+        counts.append(adapter._switch_crossings)
+
+    verdict = audit_hidden_state_exercised(counts, minimum_rate=0.5)
+    assert verdict.passed, verdict.detail
+    assert verdict.evidence["mean_changes"] > 1.0
+
+
+def test_the_exercise_audit_catches_a_variable_that_never_changes():
+    """Calibration arm: v1's charge does change, but a constant must be caught."""
+    from sentinel.wm.hidden_state_audit import audit_hidden_state_exercised
+
+    assert not audit_hidden_state_exercised([0] * 100).passed
+    assert not audit_hidden_state_exercised([0] * 73 + [1] * 27).passed  # the old 27%
+    assert audit_hidden_state_exercised([0] * 24 + [2] * 76).passed

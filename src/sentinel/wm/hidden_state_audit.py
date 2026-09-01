@@ -158,6 +158,45 @@ def audit_history_identifies(
     )
 
 
+def audit_hidden_state_exercised(
+    change_counts: Sequence[int], minimum_rate: float = 0.5
+) -> AuditVerdict:
+    """Does the hidden variable actually change during ordinary episodes?
+
+    The audit v1's failure implies but does not cover. A variable can be
+    genuinely unreconstructible from public data and still be useless as a
+    testbed if nothing ever changes it: it then equals its initial value
+    everywhere, and recovering it means reading whatever revealed that value
+    rather than tracking any state.
+
+    Measured on v2 at three switches, only 27% of episodes changed polarity at
+    all, so the majority of a hidden-phase score was the reset indicator. The
+    density was raised until this audit passed, before any capability number was
+    taken from the environment.
+    """
+    total = len(change_counts)
+    exercised = sum(1 for count in change_counts if count > 0)
+    rate = exercised / total if total else 0.0
+    return AuditVerdict(
+        name="hidden_state_exercised",
+        passed=rate >= minimum_rate,
+        detail=(
+            f"the hidden variable changes in {rate:.1%} of episodes"
+            if rate >= minimum_rate
+            else f"the hidden variable changes in only {rate:.1%} of episodes, below the "
+            f"{minimum_rate:.0%} minimum; it equals its initial value in most of them, so "
+            "recovering it measures whatever revealed that initial value"
+        ),
+        evidence={
+            "episodes": total,
+            "episodes_with_a_change": exercised,
+            "rate": rate,
+            "minimum_rate": minimum_rate,
+            "mean_changes": sum(change_counts) / total if total else 0.0,
+        },
+    )
+
+
 def summarise(verdicts: Sequence[AuditVerdict]) -> dict[str, Any]:
     return {
         "all_passed": all(v.passed for v in verdicts),

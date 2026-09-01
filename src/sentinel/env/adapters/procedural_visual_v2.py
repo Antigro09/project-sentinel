@@ -60,7 +60,7 @@ FRAME = GRID * CELL
 ACTIONS: tuple[int, ...] = (0, 1, 2, 3)
 DELTAS: Mapping[int, tuple[int, int]] = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
 DEFAULT_HORIZON = 32
-SWITCH_COUNT = 3
+SWITCH_COUNT = 7
 GENERATOR_VERSION = "procedural-visual-v2"
 
 MARKERS = ("alpha", "beta")
@@ -140,7 +140,7 @@ def build_level_v2(layout_seed: int, appearance_seed: int, phase_seed: int) -> L
     The phase stream is separate so that the hidden variable is not a function of
     anything the agent can see, which is the property v1 lacked.
     """
-    layout = _stream({"axis": "layout_v2", "seed": int(layout_seed)}, GRID * GRID + 16)
+    layout = _stream({"axis": "layout_v2", "seed": int(layout_seed)}, GRID * GRID + 32)
     looks = _stream({"axis": "appearance_v2", "seed": int(appearance_seed)}, GRID * GRID + 24)
     phase = _stream({"axis": "phase_v2", "seed": int(phase_seed)}, 4)
 
@@ -161,11 +161,14 @@ def build_level_v2(layout_seed: int, appearance_seed: int, phase_seed: int) -> L
     start = free_cell(0)
     markers = {"alpha": free_cell(3), "beta": free_cell(6)}
 
-    # Switches are placed near the start on purpose. Scattered uniformly they
-    # were unreachable inside any practical search depth, so polarity never
-    # flipped and the environment could not certify the hidden state it exists
-    # to provide -- a hidden variable nothing can ever change is not hidden, it
-    # is constant.
+    # Switches are placed near the start, and densely, on purpose. Scattered
+    # uniformly they were unreachable inside any practical search depth, so
+    # polarity never flipped. Sparse but reachable was not enough either: at
+    # three switches only 27% of episodes crossed one, which left polarity equal
+    # to its initial value in the large majority and made "recovering the hidden
+    # state from history" mostly a matter of reading the reset frame's
+    # indicator. A hidden variable that is almost never exercised tests almost
+    # nothing, whatever a probe scores on it.
     candidates = [
         (row, column)
         for row in range(GRID)
@@ -175,7 +178,7 @@ def build_level_v2(layout_seed: int, appearance_seed: int, phase_seed: int) -> L
     candidates.sort(
         key=lambda cell: (abs(cell[0] - start[0]) + abs(cell[1] - start[1]), cell)
     )
-    near = [c for c in candidates if 1 <= abs(c[0] - start[0]) + abs(c[1] - start[1]) <= 4]
+    near = [c for c in candidates if 1 <= abs(c[0] - start[0]) + abs(c[1] - start[1]) <= 3]
     if len(near) < SWITCH_COUNT:
         near = candidates[:SWITCH_COUNT]
     picks: list[tuple[int, int]] = []
