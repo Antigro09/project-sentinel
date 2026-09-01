@@ -12,10 +12,19 @@ Those are different findings with different remedies -- a worse encoder versus a
 worse pooling -- and the brief asks failures to be classified into exactly that
 distinction.
 
-Probes are linear and fitted on development levels only. Linear is deliberate: a
-deep probe can manufacture structure that a downstream model would also have to
-manufacture, so a linear probe is the honest question -- is the variable *there*,
-in a form something simple can read.
+Two probe families are fitted, on development levels only. A linear ridge asks
+whether a variable is there in a form something simple can read. A random-Fourier
+ridge asks whether it is there at all, with enough capacity to find a nonlinear
+encoding of it.
+
+Running both is not thoroughness for its own sake. The first pass used only the
+linear probe and it failed to recover the agent's position from *raw pixels* --
+an input that provably contains it, since the agent is drawn as a coloured cell.
+A probe that cannot read a variable from an input which certainly holds it is not
+calibrated, and its negative results elsewhere say nothing about the encoder. So
+there is also a positive control whose features contain the answer by
+construction: if a probe cannot score near-perfectly on that, the machinery is
+broken and no other column in the table means anything.
 
     .venv-shwm/bin/python experiments/shwm/feature_sufficiency.py
 """
@@ -190,6 +199,19 @@ def build_representations(
     representations: dict[str, np.ndarray] = {
         "raw_lowres_pixels": small.reshape(len(samples), -1),
     }
+    # Calibration arm. Its features contain the spatial answers by construction,
+    # so any probe that cannot read them is broken and every other column in the
+    # table is uninterpretable. It is not a candidate representation.
+    control = np.zeros((len(samples), 4 * GRID), dtype=np.float32)
+    for row, sample in enumerate(samples):
+        truth = sample["truth"]
+        control[row, truth["agent_row"]] = 1.0
+        control[row, GRID + truth["agent_col"]] = 1.0
+        control[row, 2 * GRID + truth["goal_row"]] = 1.0
+        control[row, 3 * GRID + truth["goal_col"]] = 1.0
+    representations["positive_control_oracle"] = control + rng.normal(
+        scale=0.01, size=control.shape
+    ).astype(np.float32)
     # A random frozen projection of the pixels. Preserves linear structure, so it
     # is a real floor rather than a trivially uninformative one.
     projection = rng.normal(size=(flat.shape[1], 2560)).astype(np.float32) / np.sqrt(flat.shape[1])
@@ -230,6 +252,30 @@ def build_representations(
 # ---- linear probes ----------------------------------------------------------------
 
 
+@dataclass
+class RandomFourier:
+    """Fixed random nonlinear expansion, so a ridge probe gets real capacity.
+
+    Closed-form like the linear probe -- no training loop, no optimiser, nothing
+    that could quietly differ between representations -- but able to express the
+    nonlinear functions that read position out of pixels.
+    """
+
+    width: int
+    bandwidth: float
+    weights: np.ndarray | None = field(default=None, init=False)
+    offsets: np.ndarray | None = field(default=None, init=False)
+
+    def fit_shape(self, dimension: int, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        self.weights = rng.normal(scale=self.bandwidth, size=(dimension, self.width)).astype(np.float32)
+        self.offsets = rng.uniform(0.0, 2.0 * np.pi, size=self.width).astype(np.float32)
+
+    def __call__(self, features: np.ndarray) -> np.ndarray:
+        projected = features @ self.weights + self.offsets
+        return np.cos(projected, dtype=np.float32) * np.sqrt(2.0 / self.width)
+
+
 def ridge_fit(features: np.ndarray, targets: np.ndarray, penalty: float) -> np.ndarray:
     n, d = features.shape
     design = np.hstack([features, np.ones((n, 1), dtype=features.dtype)])
@@ -247,6 +293,10 @@ def ridge_predict(features: np.ndarray, weights: np.ndarray) -> np.ndarray:
 PENALTIES = (1e-2, 1e-1, 1.0, 1e1, 1e2, 1e3, 1e4)
 
 
+RFF_WIDTH = 2048
+RFF_BANDWIDTHS = (0.05, 0.15, 0.5)
+
+
 def probe(
     train_x: np.ndarray,
     train_y: np.ndarray,
@@ -255,12 +305,21 @@ def probe(
     held_x: np.ndarray,
     held_y: np.ndarray,
     target: Target,
+    family: str = "linear",
 ) -> dict[str, Any]:
-    """Fit on train, select the penalty on validation, report on held-out."""
+    """Fit on train, select hyperparameters on validation, report on held-out."""
     mean, scale = train_x.mean(axis=0), train_x.std(axis=0) + 1e-6
     tr = (train_x - mean) / scale
     va = (validation_x - mean) / scale
     te = (held_x - mean) / scale
+
+    expansions = [(None, tr, va, te)]
+    if family == "rff":
+        expansions = []
+        for bandwidth in RFF_BANDWIDTHS:
+            feature_map = RandomFourier(RFF_WIDTH, bandwidth)
+            feature_map.fit_shape(tr.shape[1], seed=6600)
+            expansions.append((bandwidth, feature_map(tr), feature_map(va), feature_map(te)))
 
     # A target with almost no variation is unreadable: every probe and the
     # baseline both score near-perfectly and the margin means nothing. Flag it
@@ -289,15 +348,18 @@ def probe(
         baseline_name = "train mean (R2 = 0)"
 
     best = None
-    for penalty in PENALTIES:
-        weights = ridge_fit(tr, train_t, penalty)
-        value = score(ridge_predict(va, weights), validation_t)
-        if best is None or value > best[0]:
-            best = (value, penalty, weights)
-    validation_score, penalty, weights = best
-    held_score = score(ridge_predict(te, weights), held_y)
+    for bandwidth, tr_e, va_e, te_e in expansions:
+        for penalty in PENALTIES:
+            weights = ridge_fit(tr_e, train_t, penalty)
+            value = score(ridge_predict(va_e, weights), validation_t)
+            if best is None or value > best[0]:
+                best = (value, penalty, bandwidth, weights, te_e)
+    validation_score, penalty, bandwidth, weights, te_e = best
+    held_score = score(ridge_predict(te_e, weights), held_y)
     return {
         "target": target.name,
+        "family": family,
+        "bandwidth": bandwidth,
         "kind": target.kind,
         "note": target.note,
         "needs_history": target.needs_history,
@@ -323,6 +385,8 @@ def main() -> int:
     parser.add_argument("--train-levels", type=int, default=300)
     parser.add_argument("--held-levels", type=int, default=100)
     parser.add_argument("--out", type=Path, default=REPO / "artifacts/shwm/scale1/feature-sufficiency.json")
+    parser.add_argument("--rebuild", action="store_true", help="ignore cached representations")
+    parser.add_argument("--families", nargs="*", default=["linear", "rff"])
     arguments = parser.parse_args()
 
     import yaml
@@ -340,7 +404,34 @@ def main() -> int:
     split = len(train_samples)
     print(f"  {len(train_samples)} train observations, {len(held_samples)} held-out")
 
-    representations, geometry = build_representations(samples, config, arguments.encoders)
+    cache_path = arguments.out.parent / "probe-representations.npz"
+    signature = digest_of(
+        {
+            "train": arguments.train_levels,
+            "held": arguments.held_levels,
+            "steps": arguments.steps,
+            "encoders": sorted(arguments.encoders),
+            "chunks": TOKEN_CHUNKS,
+            "projection": CHUNK_PROJECTION,
+        }
+    )
+    representations = geometry = None
+    if cache_path.exists() and not arguments.rebuild:
+        stored = np.load(cache_path, allow_pickle=True)
+        if str(stored["signature"]) == signature:
+            representations = {k: stored[k] for k in stored.files if k.startswith("rep::")}
+            representations = {k[5:]: v for k, v in representations.items()}
+            geometry = json.loads(str(stored["geometry"]))
+            print(f"  reusing cached representations from {cache_path.name}")
+    if representations is None:
+        representations, geometry = build_representations(samples, config, arguments.encoders)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            cache_path,
+            signature=signature,
+            geometry=json.dumps(geometry, default=str),
+            **{f"rep::{k}": v for k, v in representations.items()},
+        )
 
     # Validation is carved out of train by level, never from held-out.
     train_level_ids = np.array([s["seed"] for s in train_samples])
@@ -349,24 +440,26 @@ def main() -> int:
     is_validation = np.array([s["seed"] in validation_levels for s in train_samples])
 
     results: dict[str, Any] = {}
-    for name, matrix in representations.items():
-        train_block, held_block = matrix[:split], matrix[split:]
-        rows = []
-        for target in TARGETS:
-            y_train = np.array([s["truth"][target.name] for s in train_samples], dtype=np.float32)
-            y_held = np.array([s["truth"][target.name] for s in held_samples], dtype=np.float32)
-            rows.append(
-                probe(
-                    train_block[~is_validation],
-                    y_train[~is_validation],
-                    train_block[is_validation],
-                    y_train[is_validation],
-                    held_block,
-                    y_held,
-                    target,
+    for family in arguments.families:
+        for name, matrix in representations.items():
+            train_block, held_block = matrix[:split], matrix[split:]
+            rows = []
+            for target in TARGETS:
+                y_train = np.array([s["truth"][target.name] for s in train_samples], dtype=np.float32)
+                y_held = np.array([s["truth"][target.name] for s in held_samples], dtype=np.float32)
+                rows.append(
+                    probe(
+                        train_block[~is_validation],
+                        y_train[~is_validation],
+                        train_block[is_validation],
+                        y_train[is_validation],
+                        held_block,
+                        y_held,
+                        target,
+                        family=family,
+                    )
                 )
-            )
-        results[name] = {"dimension": int(matrix.shape[1]), "probes": rows}
+            results[f"{family}::{name}"] = {"dimension": int(matrix.shape[1]), "probes": rows}
 
     document = {
         "gate": "S1.2 feature sufficiency",
@@ -382,21 +475,90 @@ def main() -> int:
         "config_digest": digest_of(config),
     }
     arguments.out.parent.mkdir(parents=True, exist_ok=True)
-    arguments.out.write_text(json.dumps(document, indent=2, sort_keys=True, default=str) + "\n")
 
-    names = list(results)
-    width = max(len(n) for n in names)
-    print(f"\n{'target':22s} " + " ".join(f"{n[:16]:>16s}" for n in names))
-    for index, target in enumerate(TARGETS):
-        cells = []
-        for name in names:
-            row = results[name]["probes"][index]
-            cells.append(f"{row['held_out_score']:+.3f}/{row['margin']:+.3f}")
-        flag = " (history)" if target.needs_history else ""
-        if results[names[0]]["probes"][index]["degenerate"]:
-            flag += " DEGENERATE"
-        print(f"{target.name:22s} " + " ".join(f"{c:>16s}" for c in cells) + flag)
+    spatial = ("agent_row", "agent_col", "goal_row", "goal_col")
+    calibration: dict[str, Any] = {}
+    for family in arguments.families:
+        key = f"{family}::positive_control_oracle"
+        if key not in results:
+            continue
+        rows = {r["target"]: r for r in results[key]["probes"]}
+        worst = min(rows[t]["held_out_score"] for t in spatial)
+        calibration[family] = {
+            "worst_spatial_score_on_oracle": worst,
+            "calibrated": worst > 0.95,
+        }
+    document["calibration"] = calibration
+
+    for family in arguments.families:
+        family_names = [n for n in results if n.startswith(f"{family}::")]
+        if not family_names:
+            continue
+        status = calibration.get(family, {})
+        verdict = (
+            "CALIBRATED" if status.get("calibrated")
+            else f"NOT CALIBRATED (oracle worst {status.get('worst_spatial_score_on_oracle', float('nan')):.3f})"
+        )
+        print(f"\n=== {family} probe -- {verdict} ===")
+        short = [n.split("::", 1)[1] for n in family_names]
+        print(f"{'target':22s} " + " ".join(f"{n[:17]:>17s}" for n in short))
+        for index, target in enumerate(TARGETS):
+            cells = []
+            for name in family_names:
+                row = results[name]["probes"][index]
+                cells.append(f"{row['held_out_score']:+.3f}/{row['margin']:+.3f}")
+            flag = " (history)" if target.needs_history else ""
+            if results[family_names[0]]["probes"][index]["degenerate"]:
+                flag += " DEGENERATE"
+            print(f"{target.name:22s} " + " ".join(f"{c:>17s}" for c in cells) + flag)
+    # ---- attribution -------------------------------------------------------
+    #
+    # Every representation, including raw pixels, sits at baseline on position
+    # while the oracle scores 1.000. Two causes fit that: the encoder interface
+    # lost the information, or the evaluation asks for something no fixed readout
+    # can do -- held-out levels carry unseen colour palettes, and "where is the
+    # agent" is "which cell matches this level's agent colour". Splitting by
+    # *step within training levels* holds appearance fixed and unseen state
+    # varying, which separates the two.
+    step_of = np.array([s["step"] for s in train_samples])
+    seen_train = step_of <= 5
+    seen_test = step_of >= 6
+    attribution: dict[str, Any] = {}
+    for name, matrix in representations.items():
+        block = matrix[:split]
+        rows = []
+        for target in TARGETS:
+            if target.name in ("reward", "terminated"):
+                continue
+            y = np.array([s["truth"][target.name] for s in train_samples], dtype=np.float32)
+            inner_validation = seen_train & (np.arange(len(train_samples)) % 5 == 0)
+            inner_train = seen_train & ~inner_validation
+            rows.append(
+                probe(
+                    block[inner_train], y[inner_train],
+                    block[inner_validation], y[inner_validation],
+                    block[seen_test], y[seen_test],
+                    target, family="rff",
+                )
+            )
+        attribution[name] = rows
+    document["attribution_same_appearance"] = {
+        "design": "train on steps 0-5 of training levels, test on steps 6-7 of the same levels",
+        "holds_fixed": "colour palette and layout",
+        "varies": "agent position and step",
+        "results": attribution,
+    }
+
+    print("\n=== attribution: same appearance, unseen state (rff) ===")
+    att_names = list(attribution)
+    print(f"{'target':22s} " + " ".join(f"{n[:17]:>17s}" for n in att_names))
+    for index, row0 in enumerate(attribution[att_names[0]]):
+        cells = [f"{attribution[n][index]['held_out_score']:+.3f}/"
+                 f"{attribution[n][index]['margin']:+.3f}" for n in att_names]
+        print(f"{row0['target']:22s} " + " ".join(f"{c:>17s}" for c in cells))
+
     print("\nheld-out score / margin over baseline")
+    arguments.out.write_text(json.dumps(document, indent=2, sort_keys=True, default=str) + "\n")
     print(f"written: {arguments.out}")
     return 0
 
