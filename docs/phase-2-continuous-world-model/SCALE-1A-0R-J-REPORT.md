@@ -29,6 +29,25 @@ lookup — the 0.0000 appearance-shift score is the same fact seen from the othe
 honest statement is that the *previous* R² = 0.029 measured the scalar-regression
 formulation, not the information and not the probe family.
 
+## §11.1 Provenance
+
+| item | value |
+|---|---|
+| commit | `a391323faab8ea1a1f203556e8d6ca8defea255b` |
+| branch | `phase-2-continuous-world-model` |
+| tracked tree | DIRTY:  M docs/phase-2-continuous-world-model/SCALE-1A-0R-J-REPORT.md |
+| exact-reference suite | 522 passed |
+| Phase-2 suite | 425 passed, 4 skipped |
+| complete repository | 947 passed, 4 skipped |
+| Stage 1A training started | no |
+| final Scale-1 seed opened | no |
+
+The 4 skips are backbone-dependent tests requiring `mlx-vlm`, absent from the exact
+environment by design and passing in `.venv-shwm`.
+
+Artifacts: `artifacts/shwm/scale1/{alias-audit, readout-qualification,
+slot-event-qualification, chain-end-to-end, event-fidelity, j-gates}.json`.
+
 ## §0 Canonical corrections, recorded
 
 1. **The global unidentifiability claim is retracted.** Hidden phase is not unidentifiable
@@ -231,52 +250,6 @@ target, not a gate.
    accuracy with the same parameter budget, it shows that the object-relation *structure*,
    not capacity, is what recovers the event.
 
-## §9 Independent review, and what it overturned
-
-Three targeted reviewers were run as specified. **All three returned "overstated" at high
-confidence.** Every objection acted on below was reproduced independently before being
-accepted; none was taken on the reviewer's word.
-
-**Overturned.**
-
-1. **The state enumeration was a canonical-representative sample, not an enumeration.** Keyed
-   on `(position, polarity)` with one route per node, while level C hashes `step`,
-   `previous_action` and `action_result`. Corrected: 5007 → **43,179** states, full-packet
-   pairs 14 → **9,581**. Two independent implementations now agree on every cell of the
-   table.
-2. **"Scalar sensors carry nothing" — withdrawn.** They destroy 141,384 pairs.
-3. **"Partial observability is real but rare" — withdrawn.** It is common.
-4. **The packet is ten fields, and `source_observation_digest` leaks `initial_polarity`.**
-   Verified directly. Recorded above as a second leak alongside the timestamp.
-5. **The position result is not attributable to the CNN.** A dense linear ridge reaches
-   0.9875 held-out under the same cell-classification target, and with appearance pinned the
-   agent is a globally unique colour, so "held-out layouts" poses little transfer question
-   for this readout.
-6. **`GEOMETRY_D` was silently dropped from the slot run** — the one arm built to separate
-   resolution from alignment. Running it refutes the classification this report originally
-   drew; see §8.
-7. **The ceiling arithmetic was wrong.** The cap is `P(true cell is the row-major-first cell
-   of its slot)` under `argmax`'s first-index tie-break on the empirical position
-   distribution — **0.1175** at 4×4 and **0.3650** at 8×8 — not `1/(cells per slot)`. The
-   arms are *at* ceiling, not below an abstract bound.
-8. **The J6 gate had no discriminative power as built.** Its `raw_control` had an arithmetic
-   maximum of 0.3714 given the arms run, so UNKNOWN was guaranteed before any frame was
-   encoded; and it drew the calibration arm and the verdict from the same unfiltered pool, so
-   a raw arm at a geometry no backbone can supply could have flipped it to PASS. Both fixed:
-   qualification is now per geometry, and the verdict considers only backbone arms at
-   backbone-suppliable geometries.
-9. **The temporal controls do not change the event multiset**, contrary to their own
-   docstring. Reversal visits the same pairs in the opposite order and the shuffle permutes
-   within a trajectory, so final-step parity is identical under all three modes. They bite by
-   misaligning intermediate parities, which is a weaker control than claimed.
-
-**Survived refutation.** J2's existential certificate — strengthened, not weakened, by the
-corrected enumeration. The timestamp leak in full. The absence of any reset-frame aliasing.
-The renderer-occlusion finding. The relation head having zero parameters and never seeing an
-event label, which a reviewer confirmed collapses to chance under a proper label scramble,
-across five seeds. And the event labels themselves: cumulative `crossed_now` matches the
-simulator's `switch_crossings` on 4229/4229 rows.
-
 ## §8 Geometry: still UNKNOWN, and now for a precise reason
 
 The geometry comparison uses the qualified relation head with a **slot** decoder (readout 4:
@@ -334,25 +307,51 @@ earlier gate was worse than uninformative: its `raw_control` had an arithmetic m
 drew its calibration arm and its verdict from the same unfiltered pool. Qualification is now
 per geometry, and the verdict considers only backbone arms at backbone-suppliable geometries.
 
-## Decision
+## §9 Independent review, and what it overturned
 
-The classification in the first version of this report — *"readout architecture failure,
-confined to the slot readout family"* — is **withdrawn**. It is refuted by the 12×12 arm.
+Three targeted reviewers were run as specified. **All three returned "overstated" at high
+confidence.** Every objection acted on below was reproduced independently before being
+accepted; none was taken on the reviewer's word.
 
-The correct classification is narrower: **the slot readout's output parameterisation cannot
-localise within a slot, and no backbone supplies a slot grid as fine as a game cell.** That
-is neither a readout-family failure nor demonstrated interface information loss. It is a
-mismatch between the decoder's output resolution and the quantity being decoded, at exactly
-the geometries the backbones can provide.
+**Overturned.**
 
-**Stage 1A-1 is NOT unblocked. The 87-workload screen is not launched.**
+1. **The state enumeration was a canonical-representative sample, not an enumeration.** Keyed
+   on `(position, polarity)` with one route per node, while level C hashes `step`,
+   `previous_action` and `action_result`. Corrected: 5007 → **43,179** states, full-packet
+   pairs 14 → **9,581**. Two independent implementations now agree on every cell of the
+   table.
+2. **"Scalar sensors carry nothing" — withdrawn.** They destroy 141,384 pairs.
+3. **"Partial observability is real but rare" — withdrawn.** It is common.
+4. **The packet is ten fields, and `source_observation_digest` leaks `initial_polarity`.**
+   Verified directly. Recorded above as a second leak alongside the timestamp.
+5. **The position result is not attributable to the CNN.** A dense linear ridge reaches
+   0.9875 held-out under the same cell-classification target, and with appearance pinned the
+   agent is a globally unique colour, so "held-out layouts" poses little transfer question
+   for this readout.
+6. **`GEOMETRY_D` was silently dropped from the slot run** — the one arm built to separate
+   resolution from alignment. Running it refutes the classification this report originally
+   drew; see §8.
+7. **The ceiling arithmetic was wrong.** The cap is `P(true cell is the row-major-first cell
+   of its slot)` under `argmax`'s first-index tie-break on the empirical position
+   distribution — **0.1175** at 4×4 and **0.3650** at 8×8 — not `1/(cells per slot)`. The
+   arms are *at* ceiling, not below an abstract bound.
+8. **The J6 gate had no discriminative power as built.** Its `raw_control` had an arithmetic
+   maximum of 0.3714 given the arms run, so UNKNOWN was guaranteed before any frame was
+   encoded; and it drew the calibration arm and the verdict from the same unfiltered pool, so
+   a raw arm at a geometry no backbone can supply could have flipped it to PASS. Both fixed:
+   qualification is now per geometry, and the verdict considers only backbone arms at
+   backbone-suppliable geometries.
+9. **The temporal controls do not change the event multiset**, contrary to their own
+   docstring. Reversal visits the same pairs in the opposite order and the shuffle permutes
+   within a trajectory, so final-step parity is identical under all three modes. They bite by
+   misaligning intermediate parities, which is a weaker control than claimed.
 
-The remaining work is specific and small: a slot readout that can localise *within* a slot —
-readout 5 (slot cross-attention), readout 6 (matched token-grid CNN), or simply a sub-slot
-offset head on the existing decoder — then rerun §8. Only then can "do the pretrained slot
-interfaces lose spatial information" be asked at all. Two further items stand before training:
-the `timestamp_ns` and `source_observation_digest` leaks should be versioned, and the
-qualified readout is currently within-appearance only.
+**Survived refutation.** J2's existential certificate — strengthened, not weakened, by the
+corrected enumeration. The timestamp leak in full. The absence of any reset-frame aliasing.
+The renderer-occlusion finding. The relation head having zero parameters and never seeing an
+event label, which a reviewer confirmed collapses to chance under a proper label scramble,
+across five seeds. And the event labels themselves: cumulative `crossed_now` matches the
+simulator's `switch_crossings` on 4229/4229 rows.
 
 ## §10 Gates
 
@@ -374,28 +373,36 @@ qualified readout is currently within-appearance only.
 
 ## Decision
 
-The specification's branches do not cover this case exactly, because the raw-pixel family
-passed while the *slot* readout family failed its own calibration. The nearest correct
-classification is **readout architecture failure, confined to the slot readout family** — not
-slot/interface information loss, which would require a qualified slot readout to establish.
+The classification in the first version of this report — *"readout architecture failure,
+confined to the slot readout family"* — is **withdrawn**. It is refuted by the 12×12 arm.
 
-**Stage 1A-1 is NOT unblocked.** The 87-workload screen is not launched.
+The correct classification is narrower: **the slot readout's output parameterisation cannot
+localise within a slot, and no backbone supplies a slot grid as fine as a game cell.** That
+is neither a readout-family failure nor demonstrated interface information loss. It is a
+mismatch between the decoder's output resolution and the quantity being decoded, at exactly
+the geometries the backbones can provide.
 
-What changed is that the blocker is now small and specific. The chain is fully recoverable
-from raw pixels; what remains is to build a slot readout that clears the same raw-pixel
-calibration the pixel readout cleared — slot cross-attention or a matched token-grid CNN,
-either of which can localise within a slot — and then rerun §8. Two further items are
-outstanding before training: the `timestamp_ns` packet leak should be versioned, and the
+**Stage 1A-1 is NOT unblocked. The 87-workload screen is not launched.**
+
+The remaining work is specific and small: a slot readout that can localise *within* a slot —
+readout 5 (slot cross-attention), readout 6 (matched token-grid CNN), or simply a sub-slot
+offset head on the existing decoder — then rerun §8. Only then can "do the pretrained slot
+interfaces lose spatial information" be asked at all. Two further items stand before training:
+the `timestamp_ns` and `source_observation_digest` leaks should be versioned, and the
 qualified readout is currently within-appearance only.
 
 ## Narrow supported claim
 
 > With appearance held fixed, agent position, switch location, switch-crossing events and
-> hidden phase are all recoverable end-to-end from raw frames on held-out layouts, at exact-cell
-> accuracy 1.000, event balanced accuracy 1.000 and phase accuracy 1.000, using a
+> hidden phase are all recoverable end-to-end from raw frames on held-out layouts, at
+> exact-cell accuracy 1.000, event balanced accuracy 1.000 and phase accuracy 1.000, using a
 > 35,650-parameter object-relation readout that is never shown a hidden value or an event
-> label. Legally reachable states nevertheless exist — 14 of them here — that share a complete
-> public observation, differ in hidden phase, and lead to different outcomes under the same
+> label. The position half of that is not attributable to the architecture — a dense linear
+> ridge reaches 0.9875 under the same cell-classification target — and with appearance pinned
+> the agent is a globally unique colour, so it carries little systematic-generalisation
+> content; under appearance shift the same readout scores 0.000. Legally reachable states
+> nevertheless exist — **9,581** of them over 60 layouts at depth 7 — that share a complete
+> public observation, differ in hidden phase, and lead to a different outcome under the same
 > action, so the environment is genuinely partially observable at those states. Nothing is
 > established about the slot interfaces or about slot geometry.
 
