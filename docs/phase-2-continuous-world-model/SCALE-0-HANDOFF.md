@@ -1,76 +1,73 @@
 # SHWM Scale-0 Handoff
 
-Status: **Scale 0 is not passed.** The gate stopped where the run matrix says it
-must, at the S0.2 encoder preflight, on a licence the account holder has not
-accepted. Everything downstream of that gate was built, tested, and measured, so
-that granting access is the only remaining step before the matrix can run.
+Status: **Scale 0 passed.** All 48 mandatory workloads ran against both named
+frozen backbones under the frozen matching contract, and all ten gate clauses
+hold. This unblocks a preregistered Scale-1 experiment design and nothing else:
+Scale 0 measures interface correctness, attribution, throughput, restart, and
+local feasibility. It measured no capability, and no representation arm was
+shown better than another.
 
 Branch: `phase-2-continuous-world-model`
 Base commit: `5205543b110ba6da2e3f6da30630809941f821c4`
 Generated resource report: [`SCALE-0-RESOURCE-REPORT.md`](SCALE-0-RESOURCE-REPORT.md)
 
-## 1. The stop
+## 1. The gate
 
-`SCALE-0-RUN-MATRIX.md` names two frozen encoder families and says: "If either
-family cannot run faithfully, Scale 0 stops." One of them cannot.
+| clause | result |
+|---|---|
+| all 48 workloads complete | PASS |
+| all three seeds retained for every cell | PASS |
+| matching rules hold | PASS |
+| no leakage detected | PASS |
+| restart and artifact checks pass | PASS |
+| hard resource ceilings hold | PASS |
+| no undeclared process state | PASS |
+| both frozen encoders runnable | PASS |
+| is a matrix run | PASS |
+| tracked tree clean for run inputs | PASS |
 
-| Encoder | Repository | Verdict | Licence | Gated |
-|---|---|---|---|---|
-| `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | runnable | apache-2.0 | no |
-| `gemma3_4b` | `google/gemma-3-4b-it` | **blocked** | gemma | `manual` |
+Two clauses cannot be settled inside the driver and are not asserted by it. The
+exact full suite is run separately at the reported commit and its result is in
+§2b. The no-final-seed condition is enforced structurally by
+`FinalSeedGuard`, which refuses to load a final seed without a committed
+post-freeze manifest; no such manifest exists.
 
-`qwen3_vl_4b` was taken further than the metadata check, because whether a 4B
-backbone is affordable on this machine is itself a Scale-0 stop condition and is
-cheaper to answer now than after access is granted. Loaded at the pinned
-revision `ebb281ec` in MLX at bfloat16:
+### The stop that resolved
 
-| quantity | measured |
-|---|---:|
-| cold load | 1.0 s |
-| total parameters | 4,437,815,808 |
-| vision-tower parameters | 415,347,712 |
-| parameter bytes | 8.27 GiB |
-| peak resident | 8.55 GiB |
-| encode rate | 26.4 frames/s |
-| feature width | 2,560 |
-| projected 50,000 visual observations | **0.53 h** against an 8 h ceiling |
+An earlier version of this document reported Scale 0 as **stopped** because
+`google/gemma-3-4b-it` was licence-gated. That was a misdiagnosis, and it is
+written up as a defect in §3.12 rather than deleted. The account had already
+accepted the Gemma terms; the preflight saw `gated: manual` and inferred an
+outstanding acceptance, when `gated` says only that the repository is gated and
+the acceptance state is not observable without a credential. The real blocker was
+a missing local access token. Once one was installed, both families preflighted
+runnable at their pinned revisions and the matrix ran.
 
-So the backbone premise holds: one frozen 4B encoder can build its half of the
-latent cache in about half an hour, at under 9 GiB, with 7% of the ceiling spent.
-Those parameters are inherited capability and are reported apart from the 50M or
-200M Sentinel-trainable count, which they never enter.
+| Encoder | Repository | Revision | Licence | Frozen parameters |
+|---|---|---|---|---:|
+| `qwen3_vl_4b` | `Qwen/Qwen3-VL-4B-Instruct` | `ebb281ec` | apache-2.0 | 4,437,815,808 |
+| `gemma3_4b` | `google/gemma-3-4b-it` | `093f9f38` | gemma | 4,300,079,472 |
 
-The block is not a network failure and not a missing dependency. An anonymous
-read of `config.json` at the pinned revision returns **HTTP 401**, the Hugging
-Face API reports `gated: manual`, and this machine has no access token in any of
-the four places one can live. Google's Gemma Terms of Use must be reviewed and
-accepted by the account holder on the model page, after which a token has to be
-made available locally.
+Those parameters are inherited capability. They are reported apart from the 50M
+or 200M trainable budget, which they never enter, and every workload's trainable
+count excludes them entirely.
 
-Two things this handoff deliberately does not do:
+## 2. Headline measurements
 
-- **Accept the licence.** Agreeing to terms on someone's behalf is not a step an
-  implementation is entitled to take, whatever the deadline.
-- **Substitute a model.** A community re-upload of the same weights would route
-  around the gate rather than satisfy it, and a different family would be a
-  replacement. The matrix permits a replacement only through a reviewed pre-run
-  amendment, and never one selected after seeing results.
+| quantity | measured | ceiling |
+|---|---:|---:|
+| workloads completed | 48 / 48 | — |
+| cold latent-cache build (both backbones) | **3.67 h** | 8 h |
+| matrix wall clock, warm cache | 25.9 min | 72 h |
+| peak device memory, 200M arm | 3.94 GiB | — |
+| process resident high-water | 12.15 GiB | 112 GiB |
+| artifact storage | 0.97 GiB | 200 GiB |
+| worst parameter drift from target | +0.0074% | ±1% |
 
-The consequence is narrow and worth stating precisely: **no matrix cell has
-run**, so nothing has been invalidated and no restart is owed. The matrix is
-waiting, not broken.
-
-## 2. What was built and audited anyway
-
-The encoder gate blocks the *matrix*. It does not block the pipeline the matrix
-runs on, all of which is backbone-independent. So the remaining twelve build
-items were implemented and tested, and the 48 workload *shapes* were executed
-end to end against the deterministic control encoder as a dry run.
-
-Every artefact from that run is stamped `is_matrix_run: false`, and the driver
-is written so that a dry run **cannot** report a Scale-0 pass however well it
-goes. That is enforced in code, not in a footnote.
-
+The cold cache figure is the one the eight-hour ceiling is about. A confirmation
+re-run against a warm cache rebuilt the dataset in 82 s, which says nothing about
+that ceiling and is not the number to quote; see §3.17, where the fact that the
+warm run overwrote the cold run's artefact is recorded as a defect.
 
 ## 2a. Implemented file map
 
@@ -120,39 +117,39 @@ generator, the Qwen runtime probe, and the DVC pipeline.
 
 ## 2b. Test results and tree status
 
-Full suite, from the repository root:
+The gate clause the driver cannot settle itself. Run at the reported commit:
 
 ```text
 uv run pytest -q
-829 passed in 939.27s (0:15:39)
+839 passed in 943.35s (0:15:43)
 ```
 
 | suite | tests | result |
 |---|---:|---|
 | exact Phase-1 (`tests/`, excluding `tests/shwm/`) | 522 | all passed |
-| Phase-2 Scale-0 (`tests/shwm/`) | 307 | all passed |
-| **total** | **829** | **0 failed, 0 skipped** |
+| Phase-2 Scale-0 (`tests/shwm/`) | 317 | all passed |
+| **total** | **839** | **0 failed, 0 skipped** |
 
 The exact half is unchanged in composition. `VERIFICATION.md` records the
-pre-Phase-2 baseline as "521 passed, 1 skipped in 940.11s" — the same 522 tests,
-in the same wall time to within a second. The one skip now passes because this
-checkout has the ignored offline asset bundle that the isolated setup worktree
-did not; no test was modified, deleted, or weakened to achieve it.
+pre-Phase-2 baseline as "521 passed, 1 skipped in 940.11s" -- the same 522 tests,
+in the same wall time to within four seconds. The one skip passes here because
+this checkout has the ignored offline asset bundle that the isolated setup
+worktree did not; no test was modified, deleted, or weakened.
 
-The exact reference branches were not touched. `phase-1-exact-reference` still
+The exact reference branch was not touched. `phase-1-exact-reference` still
 resolves to `5205543b110ba6da2e3f6da30630809941f821c4` and its reflog contains
 only the entry that created it.
 
-Tracked tree at the reported commit: **clean**. Untracked entries, exactly:
+Tracked tree: **clean for run inputs**. One entry is dirty outside them --
+`.claude/worktrees/x35-novelty-trigger`, a gitlink that was already modified
+before this work began and that this task is forbidden to stage. It cannot
+affect a run; §3.15 explains why the clause is scoped rather than absolute, and
+the report lists the entry by name so the exemption is visible.
 
-```text
-(none — artifacts/, .venv-shwm/, and the downloaded backbone are gitignored)
-```
-
-The 8.5 GiB of run artefacts and backbone weights under `artifacts/` are
-deliberately not tracked; they are content-addressed by
-`artifacts/shwm/scale0/checksums.json` and reproducible from the committed code,
-config, and DVC pipeline.
+Untracked entries in tracked scope: none. The 18 GiB under `artifacts/` -- both
+backbones, the latent caches, restart checkpoints, and the MLflow database -- is
+gitignored and content-addressed by `artifacts/shwm/scale0/checksums.json`,
+reproducible from the committed code, config, and DVC pipeline.
 
 ## 3. Negative findings and corrected defects
 
@@ -262,7 +259,7 @@ the discrete arm raised at the first backward pass — and had the error been
 softer, the arm would have trained with no gradient reaching its codebook. It is
 now a broadcast equality against the argmax.
 
-### 3.8 The latent cache costs 12.5% more than the plan's arithmetic
+### 3.8 The latent cache costs 69% more than the plan's arithmetic
 
 The plan estimates one million 512-wide fp16 latents at 1.024 decimal GB. That
 covers the raw payload and nothing else. Measured over 46,443 real entries:
@@ -398,67 +395,94 @@ Writes now append to a journal that the loader replays, so a restart loses at
 most the entry in flight. Flush folds the journal into the index and removes it,
 keeping total bytes written linear in the entry count rather than quadratic.
 
+### 3.17 A confirmation re-run destroyed the artefact it was confirming
+
+The driver wrote its report to a fixed filename per mode. The first matrix run
+built both caches cold in **13,221.2 s (3.67 h)**; the confirmation re-run, which
+existed only to recompute the verdict under corrected gate logic, hit a fully
+warm cache, rebuilt the dataset in 82 s, and overwrote the artefact carrying the
+cold figure. The number survived in a run log rather than in evidence.
+
+That matters beyond tidiness: the cold build is the measurement the eight-hour
+cache ceiling is actually about, and the warm 82 s says nothing about it. Reports
+are now also written to a content-addressed copy under `runs/`, so a re-run adds
+an artefact instead of replacing one. The cold figure quoted throughout this
+document is sourced from the first matrix run's log, which is a weaker provenance
+than the artefact it should have come from.
+
 ## 4. Evidence labels
 
 | Claim | Label | Boundary |
 |---|---|---|
-| Both named encoder families were checked for licence, revision, gating, and local access | `MEASURED` | HTTP probes at pinned revisions on 2026-08-31; a re-check may differ if access changes |
-| `gemma3_4b` is not runnable on this machine | `MEASURED` | anonymous read returns 401; no token present; resolvable by the account holder |
-| `qwen3_vl_4b` is licence-clear, locally readable, and encodes at 26.4 frames/s in 8.55 GiB | `MEASURED` | one load at the pinned revision, 24 procedural frames at 224x224; a different resolution or batch shape gives a different rate |
-| A frozen 4B backbone can build its half of the latent cache inside the 8 h ceiling | `INFERRED` | linear extrapolation from 24 frames to 50,000; assumes no thermal throttling and the same preprocessing |
-| The Scale-0 pipeline runs end to end at the matrix's workload shape | `MEASURED` | with the control encoder; not a matrix run |
-| Every arm's actual trainable parameter count is within 0.01% of target | `MEASURED` | counted off the built MLX model, all widths and both targets |
-| A run split across two fresh interpreters produces bit-identical weights | `REPRODUCED` | subprocess restart test, all three arms |
-| Recorded training throughput would hold with real backbone features | `UNKNOWN` | the control encoder is a hash projection; features of the same width but different statistics may train at a different rate |
-| The controlled family's held-out split supports a generalisation claim | `RETRACTED` | measured at 36.3% transition-tuple overlap; see 3.2b |
-| Any representation arm is better than another | `UNKNOWN` | Scale 0 makes no capability comparison and 200 updates at plumbing weights cannot support one |
-| SHWM improves planning, transfer, or causal reasoning | `UNKNOWN` | requires Scales 2-5 |
+| All 48 mandatory workloads completed under the frozen matching contract, with both named backbones | `MEASURED` | one machine, one run, confirmed by a second run against a warm cache |
+| Every arm's actual trainable parameter count is within 0.008% of target | `MEASURED` | counted off the built MLX model at every width and both targets |
+| A run split across two fresh interpreters produces bit-identical weights | `REPRODUCED` | subprocess restart test on all three arms, and in-run at update 100 of 200 |
+| Cold latent-cache build for both 4B backbones takes 3.67 h | `MEASURED` | this machine, 100,000 transitions, each model's official preprocessing; the artefact was overwritten and the figure is sourced from the run log (§3.17) |
+| The two frozen families differ in encode cost by ~16x | `MEASURED` | 4,096 vision tokens against ~49, under each model's own preprocessing |
+| `gemma3_4b` requires the account holder to accept its licence | `RETRACTED` | the account had already accepted; the blocker was a missing local token (§3.12) |
+| The controlled family's held-out split supports a generalisation claim | `RETRACTED` | measured at 36.3% transition-tuple overlap; it is a replication check (§3.2b) |
+| Any representation arm is better than another | `UNKNOWN` | Scale 0 makes no capability comparison, and 200 updates at plumbing weights cannot support one |
+| The learned world model contributes anything to planning or control | `UNKNOWN` | requires Scale 2 against a reactive frozen-backbone baseline at equal interactions |
+| SHWM improves transfer, causal reasoning, or continual learning | `UNKNOWN` | requires Scales 4-6 and, for the last, the committed X65A/X65B contract |
+| The project is measurably closer to human-level capability | `UNKNOWN` | no valid metric for that distance is defined, here or in the strategy document |
 
 ## 5. Scale-0 gate
 
-The gate requires all 48 mandatory workloads to complete under both named
-frozen encoders. Zero have. The gate result is therefore **not passed**, for one
-reason and one reason only: the `gemma3_4b` licence gate.
-
-Every other gate clause was exercised against the dry run and is reported in
+**PASSED.** All 48 mandatory workloads completed against both named frozen
+encoder families, all three development seeds retained for every one of the 16
+cells, every matching rule held, and every hard ceiling held with room to spare.
+The per-clause table is in §1 and the full measurements are in
 [`SCALE-0-RESOURCE-REPORT.md`](SCALE-0-RESOURCE-REPORT.md).
+
+What that does **not** mean, stated because the matrix says so in the same
+breath as the pass: no capability was measured. Two hundred optimizer updates at
+plumbing weight 1.0 is a stopwatch on a pipeline. The 48 models are throwaway.
+No representation arm was shown better than another, and the matching rules exist
+precisely to stop a winner being read out of those loss values.
 
 ## 6. Scale 1
 
-**Scale 1 is not unblocked.**
+**Scale 1 is unblocked.**
 
-Passing Scale 0 would unblock a preregistered Scale-1 design and nothing else.
-Scale 0 has not passed, and the dry run cannot substitute: it measures a
-pipeline, not a representation, and the control encoder carries no perceptual
-grounding for a representation contest to be about.
+It is unblocked for exactly one thing: a preregistered Scale-1 experiment design,
+which must be committed before it runs and must define its own
+equal-cumulative-compute protocol, which Scale 0 deliberately did not. Nothing
+about planning, transfer, causality, continual learning, or capability follows
+from this pass.
+
+Three things Scale 1 has to settle before it can mean anything, all of them
+findings from this run rather than general caution:
+
+1. **The controlled family's held-out split is not a generalisation test.** At
+   36.3% transition-tuple overlap it is a replication check. Either enlarge the
+   environment or say so in the Scale-1 design; deciding afterwards invalidates
+   the result (§3.2b).
+2. **Both backbones' text paths are nearly as weak as the control's.** The shared
+   adapter is an embedding lookup for structured observations and the full vision
+   tower for images, so inherited capability enters through vision almost
+   exclusively. An attribution argument that ignores this will over-credit the
+   backbone on the visual family and under-credit it on the controlled one
+   (§3.13, and the module docstring in `backbone_encoder.py`).
+3. **The two families cost 16x differently to encode.** That is a measured
+   outcome and does not threaten the matching rule, but at a larger data volume
+   it threatens the cache ceiling: Gemma alone consumed 3.5 of the 8 hours at
+   100,000 transitions.
 
 ## 7. Cheapest next falsifier
 
-In order of cost, and each one can retire the step after it:
-
-1. **Accept the Gemma Terms of Use and provide a token.** Minutes of human time,
-   no compute. It is now the only thing standing between the current state and a
-   matrix run.
-
-   The falsifier that would have come before it has already been run and passed:
-   the Qwen3-VL runtime probe shows a frozen 4B backbone encoding at 26.4
-   frames/s in 8.55 GiB, which puts the visual half of the cache at 0.53 h
-   against an 8 h ceiling. Had that failed, granting access would have unblocked
-   nothing and the right answer would have been a narrower design rather than a
-   larger download. It did not fail, so the licence really is the whole blocker.
-
-2. **Run the matrix.** The dry run puts 48 workloads at 26.2 minutes of training
-   and planning; adding two backbone encode passes at roughly half an hour each
-   leaves the 72-hour ceiling untouched. Peak device memory per workload is 3.94
-   GiB at 200M and the process high-water across the whole sequence is 12.15 GiB,
-   against a 112 GiB ceiling — the matrix is not close to any resource limit.
-
-3. **Decide what the controlled family's held-out split is for** (§3.2b). Its
-   36.3% transition-tuple overlap is a property of an 11,883-transition
-   environment, not of the split procedure. Scale 1 should either enlarge it or
-   declare it a replication check, before it is used to support a generalisation
-   claim it cannot carry. This costs nothing to decide and invalidates a Scale-1
-   result if decided afterwards.
+1. **Write the Scale-1 design and freeze it.** Costs nothing but thought, and
+   deciding the three questions above afterwards would retract whatever Scale 1
+   produces. This is the only step that must come first.
+2. **Run the Scale-2 comparison before the Scale-1 contest, if forced to choose.**
+   Scale 1 asks which representation is best; Scale 2 asks whether a learned
+   world model beats a reactive frozen-backbone policy at equal interactions. If
+   the answer to Scale 2 is no, the Scale-1 result is a comparison among options
+   that do not matter. The strategy document already orders them 1 then 2, and
+   that ordering is worth revisiting now that the backbone is cheap to run and a
+   reactive baseline is nearly free to build.
+3. **Re-measure the cache ceiling at the Scale-1 data volume.** Gemma's 3.4
+   observations per second is the binding constraint on every later scale, and it
+   is a property of its official preprocessing rather than of anything tunable.
 
 ## 8. What is explicitly not claimed
 
@@ -466,6 +490,9 @@ No capability result. No representation winner. No statement that continuous,
 discrete, or hybrid state is preferable. No planning, transfer, causal, or
 continual-learning claim. No Phase-2 final seed has been sampled, and the
 final-seed guard refuses to load one without a committed post-freeze manifest.
-The frozen backbone remains inherited capability and is reported separately from
-Sentinel-trainable parameters, which for every workload here is zero frozen and
-50M or 200M trainable.
+The frozen backbones remain inherited capability. Every workload trained 50M or
+200M parameters of its own on top of 4,437,815,808 or 4,300,079,472 frozen ones,
+and the two counts are reported in separate columns throughout. Roughly 99% of
+the parameters involved in any Scale-0 workload were trained by someone else, on
+data this project has not audited; that ratio is the reason attribution controls
+exist at every later scale and the reason a Scale-0 pass licenses none of them.

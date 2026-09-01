@@ -637,14 +637,17 @@ Gate: every frozen cell and seed completes locally under one evaluator, exact
 tests remain intact, no leakage occurs, all matching tolerances hold, and the
 preregistered memory/storage/time ceilings are respected.
 
-**Status: implemented, gate stopped, not passed.** The pipeline is built and
-tested and the 48 workload shapes run end to end, but the S0.2 encoder preflight
-stops the matrix: `google/gemma-3-4b-it` is licence-gated and this machine has
-no access token, so no matrix cell has run. Nothing is invalidated and no
-restart is owed. The gate reopens when the account holder accepts Google's
-Gemma Terms of Use and supplies a token. Details, negative findings, and the
-measured resource report are in
-`docs/phase-2-continuous-world-model/SCALE-0-HANDOFF.md`. **Scale 1 is not
+**Status: PASSED 2026-08-31.** All 48 mandatory workloads ran against both named
+frozen backbones -- Qwen3-VL 4B and Gemma 3 4B at pinned revisions -- with zero
+matching failures, zero resource-envelope failures, and zero undeclared process
+state. Cold latent-cache build 3.67 h of an 8 h ceiling; matrix wall clock 25.9
+min of 72 h; worst parameter drift +0.0074% of a ±1% tolerance. Restart produced
+bit-identical weights. Full suite green at the reported commit.
+
+Scale 0 measured no capability and selected no representation. It unblocks a
+preregistered Scale-1 design and nothing further. Details, eighteen recorded
+negative findings, and the measured resource report are in
+`docs/phase-2-continuous-world-model/SCALE-0-HANDOFF.md`. **Scale 1 is
 unblocked.**
 
 ### Scale 1 — representation contest

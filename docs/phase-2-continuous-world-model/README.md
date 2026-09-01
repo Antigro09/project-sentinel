@@ -10,15 +10,19 @@ model has been implemented or has passed a capability gate.
   `5205543b110ba6da2e3f6da30630809941f821c4`.
 - Phase 2 was forked from the same commit in an isolated worktree.
 - The formal and numerical setup audit is complete for finite helper claims.
-- The Scale-0 implementation is built and tested; the Scale-0 **gate is stopped**
-  at the S0.2 encoder preflight because `google/gemma-3-4b-it` is licence-gated
-  and this machine holds no access token. No matrix cell has run, so nothing is
-  invalidated and no restart is owed. See the
+- **Scale 0 has passed.** All 48 mandatory workloads ran against both named
+  frozen backbones under the frozen matching contract, and all ten gate clauses
+  hold. This unblocks a preregistered Scale-1 design and nothing else; no
+  capability was measured and no representation arm won. See the
   [Scale-0 handoff](SCALE-0-HANDOFF.md).
-- One backbone has been fetched for a runtime feasibility probe only:
-  `Qwen/Qwen3-VL-4B-Instruct` at revision `ebb281ec`, Apache-2.0. It is not
-  training anything and it does not constitute a matrix run.
-- No neural world model has been trained.
+- Both frozen backbones are present locally at their pinned revisions:
+  `Qwen/Qwen3-VL-4B-Instruct` at `ebb281ec` (Apache-2.0) and
+  `google/gemma-3-4b-it` at `093f9f38` (Gemma terms). They are frozen throughout
+  and their parameters are inherited capability, reported apart from the
+  trainable budget.
+- Trainable models have been built and run for 200 optimizer updates each at
+  plumbing weights. That is a throughput measurement, not training: no neural
+  world model has been trained to do anything.
 - No Phase-2/SHWM final evaluation seeds have been sampled. Historical X64H
   seed artifacts remain part of the inherited exact line and are not Phase-2
   seeds.

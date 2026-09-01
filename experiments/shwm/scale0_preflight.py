@@ -341,7 +341,17 @@ def main() -> int:
             "measures the pipeline and can never pass the Scale-0 gate."
         ),
     }
-    report_path.write_text(json.dumps(document, indent=2, sort_keys=True, default=str) + "\n")
+    payload = json.dumps(document, indent=2, sort_keys=True, default=str) + "\n"
+    report_path.write_text(payload)
+
+    # Also keep a content-addressed copy. Writing only to a fixed filename means
+    # a confirmation re-run destroys the artefact of the run it is confirming --
+    # which is how the cold cache-build measurement from the first matrix run
+    # came to survive only in a log file.
+    archive = output_root / "runs"
+    archive.mkdir(parents=True, exist_ok=True)
+    (archive / f"{config['mode']}-{digest_of(document)[7:23]}.json").write_text(payload)
+
     manifest.write(output_root / "freeze-manifest.json")
 
     checksums = {
