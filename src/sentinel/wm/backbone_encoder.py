@@ -104,6 +104,7 @@ class MlxVlmBackboneEncoder:
     _feature_dimension: int = field(default=0, init=False, repr=False)
     calls: int = field(default=0, init=False)
     last_geometry: dict[str, Any] = field(default_factory=dict, init=False)
+    _last_input_ids: Any = field(default=None, init=False, repr=False)
     """Shape facts from the most recent encode, for the feature-geometry audit.
 
     A diagnostic, not state the output depends on: what a reader needs to know
@@ -264,6 +265,7 @@ class MlxVlmBackboneEncoder:
             extra["mask"] = mx.array(np.asarray(inputs["attention_mask"]))
 
         input_ids = mx.array(np.asarray(inputs["input_ids"]))
+        self._last_input_ids = np.asarray(inputs["input_ids"])
         features = self._model.get_input_embeddings(input_ids, pixel_values, **extra)
         embeddings = features.inputs_embeds if hasattr(features, "inputs_embeds") else features
         self.last_geometry = {
@@ -314,6 +316,65 @@ class MlxVlmBackboneEncoder:
             np.asarray(pooled, dtype=np.float32),
             np.asarray(tokens.astype(mx.float32), dtype=np.float32).reshape(-1, tokens.shape[-1]),
         )
+
+    def _visual_token_id(self, ids: np.ndarray) -> int:
+        """The id that actually fills the visual span, chosen by multiplicity.
+
+        Naming it from one attribute does not work across families. Gemma 3's
+        `processor.image_token_id` is `<start_of_image>`, a single marker that
+        appears once, while the 256 visual slots carry `<image_soft_token>` from
+        `config.image_token_index`. Taking the processor's answer gave one visual
+        token instead of 256 and would have handed the slot interface a marker.
+
+        So every candidate is collected and the one that actually repeats is
+        used, which is self-correcting if a third family spells it differently
+        again.
+        """
+        candidates: list[int] = []
+        for attribute in ("image_token_id", "boi_token_id"):
+            value = getattr(self._processor, attribute, None)
+            if value is not None:
+                candidates.append(int(value))
+        config = self._config()
+        for key in ("image_token_index", "image_token_id"):
+            if key in config:
+                candidates.append(int(config[key]))
+        if not candidates:
+            raise ContractViolation(
+                f"{self.spec.encoder_id}: no image token id is discoverable, so the "
+                "visual span cannot be located"
+            )
+        counts = {candidate: int((ids == candidate).sum()) for candidate in set(candidates)}
+        best = max(counts, key=lambda candidate: counts[candidate])
+        if counts[best] <= 1:
+            raise ContractViolation(
+                f"{self.spec.encoder_id}: no candidate image token repeats in the "
+                f"sequence (counts {counts}); the visual span cannot be isolated"
+            )
+        return best
+
+    def encode_visual_tokens(
+        self, observation: ObservationEnvelope, frame: np.ndarray
+    ) -> np.ndarray:
+        """Only the visual tokens, in sequence order.
+
+        A slot interface needs the image span alone. Taking a prefix of the
+        sequence would mix language tokens into the slots for one family and not
+        the other.
+        """
+        import mlx.core as mx
+
+        tokens = self._forward_tokens(observation, frame)
+        mx.eval(tokens)
+        ids = np.asarray(self._last_input_ids).reshape(-1)
+        mask = ids == self._visual_token_id(ids)
+        if not mask.any():
+            raise ContractViolation(
+                f"{self.spec.encoder_id}: no image token found in the sequence; the "
+                "visual span cannot be isolated"
+            )
+        flat = np.asarray(tokens.astype(mx.float32), dtype=np.float32).reshape(-1, tokens.shape[-1])
+        return flat[mask]
 
     def encode(self, observation: ObservationEnvelope) -> EncodedObservation:
         values = self.encode_array(observation)
