@@ -89,7 +89,19 @@ EVALUATOR_ONLY_FIELDS: tuple[str, ...] = (
 AGENT_VISIBLE = tuple(f for f in PUBLIC_FIELDS
                       if f not in ("interface_name", "source_observation_digest"))
 
+V2_AGENT_VISIBLE: tuple[str, ...] = (
+    "visual", "language_goal_tokens", "scalar_sensors", "previous_action",
+    "action_result", "delta_t", "modality_masks", "audio_slots",
+)
+"""The v2 AgentVisiblePacket: the step is gone and timing is the constant delta_t.
+
+This is the level the K-phase certificate is computed at. It is deliberately NOT
+`C_minus_timestamp` under another name -- that level was a diagnostic that removed
+a field the packet still carried, whereas here the field no longer exists in the
+schema a model reads."""
+
 LEVELS: dict[str, tuple[str, ...]] = {
+    "V2_agent_visible": V2_AGENT_VISIBLE,
     "A_frame": ("visual",),
     "B_visual_plus_scalars": ("visual", "scalar_sensors"),
     "C_full_packet": AGENT_VISIBLE,
@@ -137,6 +149,7 @@ class VisibleState:
             "previous_action": self.previous_action,
             "action_result": self.action_result,
             "timestamp_ns": self.step,
+            "delta_t": 1.0,   # v2: synchronous, so relative timing carries nothing
             "modality_masks": MASK.canonical_dict(),
             "audio_slots": None,
             "interface_name": self.interface_name,
