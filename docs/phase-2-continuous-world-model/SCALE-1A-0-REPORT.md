@@ -166,11 +166,22 @@ not assume its belief state has much to work with.
 moves. That is the strata behaving correctly, and it is also why that stratum
 cannot veto the screen.
 
-### Gate S1.2 (v2): **PASSED**
+### Gate S1.2 (v2): **RETRACTED — see the 1A-0R verdict**
 
-- oracle calibrated: yes
-- intervention-capable: `qwen3_vl_4b_spatial_slots`, `gemma3_4b_spatial_slots`
-- hidden-phase-capable: five interfaces clear +0.05, none convincingly
+This section originally read **PASSED**. It does not survive the 1A-0R audit and
+is corrected in
+[`SCALE-1A-0R-REPORT.md`](SCALE-1A-0R-REPORT.md). Two things were wrong:
+
+1. The gate checked its two clauses **independently**, so a pass could be — and
+   was — assembled from two different interfaces. A Stage 1A-1 model receives one
+   interface, not the union of several.
+2. It judged on point estimates alone. With episode-level intervals the
+   hidden-phase margin for the only interface clearing both thresholds is
+   `+0.070 [-0.009, +0.141]`, which includes zero; conditioning on post-switch
+   states drops it to `-0.028` against an oracle at `+0.543`.
+
+The intervention result is unaffected and strengthens under intervals. The
+hidden-phase result does not survive. **S1.2 passes on intervention only.**
 
 ## H. Frozen, and the Stage 1A-1 matrix
 

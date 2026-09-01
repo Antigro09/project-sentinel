@@ -668,3 +668,64 @@ def build_language_certificate(seed: int = 9000, max_depth: int = 6) -> dict[str
         f"no reachable state at seed {seed} within depth {max_depth} has the instruction "
         "change the correct action; the task does not require language there"
     )
+
+
+def build_vision_necessity_certificate(seed: int = 9000, max_depth: int = 5) -> dict[str, Any]:
+    """The mirror of the language certificate: language alone is not enough.
+
+    Same instruction, two different reachable visual states, different correct
+    actions. Together with the language certificate this pins that the task needs
+    both channels -- a task solvable from either one alone would make a
+    multimodal claim unearned in the other direction.
+    """
+    adapter = ProceduralVisualV2Adapter(gate=AuthorityGate())
+    adapter.reset(seed)
+    marker = adapter._goal_marker
+    reachable: dict[tuple[tuple[int, int], int], tuple[int, ...]] = {}
+    frontier: list[tuple[int, ...]] = [()]
+    for _ in range(max_depth):
+        next_frontier: list[tuple[int, ...]] = []
+        for history in frontier:
+            for action in ACTIONS:
+                candidate = history + (action,)
+                _replay(adapter, seed, "base", candidate)
+                key = (adapter._position, adapter._polarity)
+                if key not in reachable:
+                    reachable[key] = candidate
+                    next_frontier.append(candidate)
+        frontier = next_frontier
+
+    def best_action(history) -> tuple[int, str]:
+        _replay(adapter, seed, "base", history)
+        snapshot = adapter.snapshot()
+        content = adapter._observation().content_digest
+        scores = {}
+        for action in ACTIONS:
+            adapter.restore(snapshot)
+            token = adapter.gate.authorize_evaluator(action, "vision-certificate")
+            scores[action] = float(adapter.step(action, token).probes.values["goal_progress"])
+        return max(scores, key=lambda a: scores[a]), content
+
+    entries = sorted(reachable.items())
+    for i, (_, history_a) in enumerate(entries):
+        action_a, content_a = best_action(history_a)
+        for _, history_b in entries[i + 1 :]:
+            action_b, content_b = best_action(history_b)
+            if action_a != action_b and content_a != content_b:
+                return {
+                    "seed": seed,
+                    "goal_text": GOAL_PHRASES[marker],
+                    "identical_instruction": True,
+                    "history_a": list(history_a),
+                    "history_b": list(history_b),
+                    "visual_state_differs": True,
+                    "best_action_a": action_a,
+                    "best_action_b": action_b,
+                    "vision_changes_correct_action": True,
+                    "states_searched": len(reachable),
+                }
+    raise ContractViolation(
+        f"no pair of reachable visual states at seed {seed} changes the correct action "
+        "under one instruction; language alone would suffice and the multimodal claim "
+        "would be unearned"
+    )

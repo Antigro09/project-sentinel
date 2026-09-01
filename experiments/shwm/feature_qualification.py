@@ -426,20 +426,28 @@ def main() -> int:
 
     clean = Stratum.DYNAMICS_CLEAN.value
     admissible = [n for n in results if n != "oracle_structured_state"]
+    intervention_capable = [
+        n for n in admissible if group_margin(n, clean, "intervention") > 0.05
+    ]
+    phase_capable = [n for n in admissible if group_margin(n, clean, "hidden_phase") > 0.05]
+    # The two clauses must be satisfied by the *same* interface. An earlier
+    # version checked them independently and reported a pass that two different
+    # interfaces had each half of -- which is a much weaker statement than the
+    # one it appeared to make, and is not what a Stage 1A-1 model would inherit,
+    # since a model receives one interface rather than the union of several.
+    both = [n for n in intervention_capable if n in phase_capable]
     gate = {
         "oracle_calibrated": group_margin("oracle_structured_state", clean, "intervention") > 0.2,
-        "interfaces_supporting_intervention": [
-            n for n in admissible if group_margin(n, clean, "intervention") > 0.05
-        ],
-        "interfaces_recovering_hidden_phase": [
-            n for n in admissible if group_margin(n, clean, "hidden_phase") > 0.05
-        ],
+        "interfaces_supporting_intervention": intervention_capable,
+        "interfaces_recovering_hidden_phase": phase_capable,
+        "interfaces_supporting_both": both,
+        "clause_reading": (
+            "one interface must clear both; satisfying them with different "
+            "interfaces does not pass"
+        ),
     }
-    gate["passed"] = bool(
-        gate["oracle_calibrated"]
-        and gate["interfaces_supporting_intervention"]
-        and gate["interfaces_recovering_hidden_phase"]
-    )
+    gate["passed"] = bool(gate["oracle_calibrated"] and both)
+    gate["intervention_only_pass"] = bool(gate["oracle_calibrated"] and intervention_capable)
 
     document = {
         "gate": "S1.2 v2 feature qualification",
@@ -468,6 +476,8 @@ def main() -> int:
     print(f"  oracle calibrated              : {gate['oracle_calibrated']}")
     print(f"  intervention-capable interfaces: {gate['interfaces_supporting_intervention']}")
     print(f"  hidden-phase-capable interfaces: {gate['interfaces_recovering_hidden_phase']}")
+    print(f"  interfaces clearing BOTH       : {gate['interfaces_supporting_both']}")
+    print(f"  intervention-only would pass   : {gate['intervention_only_pass']}")
     print(f"written: {arguments.out}")
     return 0
 
