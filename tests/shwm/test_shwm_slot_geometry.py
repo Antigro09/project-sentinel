@@ -93,6 +93,20 @@ def test_pixel_sources_can_reach_every_geometry() -> None:
         assert len(sg.available_geometries(source)) == len(sg.GEOMETRIES)
 
 
+def test_sub_cell_diagnostic_is_capacity_matched_to_the_aligned_one() -> None:
+    """D and E must hold the same scalars, or the alignment question is confounded."""
+    assert sg.GEOMETRY_D.scalars == sg.GEOMETRY_E.scalars == 9216
+    assert sg.GEOMETRY_D.cells_per_block == 1.0
+    assert sg.GEOMETRY_E.cells_per_block == 0.5
+    assert sg.GEOMETRY_D.cell_aligned and not sg.GEOMETRY_E.cell_aligned
+
+
+def test_neither_backbone_can_supply_the_fine_diagnostics() -> None:
+    for encoder in ("qwen3_vl_4b", "gemma3_4b"):
+        names = [g.name for g in sg.available_geometries(encoder)]
+        assert "g12x12x64" not in names and "g24x24x16" not in names
+
+
 def test_qwen_reaches_its_native_grid_without_pooling() -> None:
     names = [g.name for g in sg.available_geometries("qwen3_vl_4b")]
     assert "g8x8x64" in names and "g8x8x256" in names
@@ -158,5 +172,5 @@ def test_raw_slots_preserve_frame_content_at_every_geometry() -> None:
 
 def test_geometry_report_is_serialisable_and_complete() -> None:
     report = sg.geometry_report()
-    assert len(report["geometries"]) == 4
+    assert len(report["geometries"]) == len(sg.GEOMETRIES) == 5
     assert set(report["availability"]) == {"qwen3_vl_4b", "gemma3_4b", "raw", "cnn"}

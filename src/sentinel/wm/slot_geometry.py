@@ -106,7 +106,18 @@ sources, because neither backbone emits a 12x12 grid and upsampling one to reach
 it would answer the question by inventing the evidence.
 """
 
-GEOMETRIES: tuple[Geometry, ...] = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, GEOMETRY_D)
+GEOMETRY_E = Geometry("g24x24x16", 24, 16, "sub_cell_diagnostic")
+"""One slot per PIXEL: finer than a game cell, and capacity-matched to D.
+
+D and E both hold 9,216 scalars, but D is exactly one slot per cell while E puts
+four slots inside each cell. That pairing answers a question D alone cannot: if D
+scores perfectly because its boundaries coincide with the simulator's cells, E
+should not match it; if what matters is simply having at least one slot per cell,
+E should match or beat it. Without E, "the 12x12 arm is perfect" and "the 12x12
+arm is aligned to the environment" are the same sentence."""
+
+GEOMETRIES: tuple[Geometry, ...] = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, GEOMETRY_D,
+                                    GEOMETRY_E)
 SPECIFIED_GEOMETRIES: tuple[Geometry, ...] = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C)
 
 NATIVE_TOKEN_GRID: Mapping[str, int] = {"qwen3_vl_4b": 8, "gemma3_4b": 16}
