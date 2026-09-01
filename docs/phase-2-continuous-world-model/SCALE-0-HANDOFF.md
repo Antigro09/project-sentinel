@@ -410,6 +410,15 @@ an artefact instead of replacing one. The cold figure quoted throughout this
 document is sourced from the first matrix run's log, which is a weaker provenance
 than the artefact it should have come from.
 
+The fix arrived after the matrix ran, and verifying it cost one more instance of
+the same defect: a one-workload smoke test exercising the archive path overwrote
+the full dry-run report. That artefact was already superseded by the matrix, so
+nothing downstream depended on it, but it is the third time this filename
+collision destroyed something in one session -- which is the argument for the
+fix, made three times. The matrix deliverable has since been archived under
+`runs/matrix-f3f16c289e54b31b.json` and every artefact re-checksummed, so the
+result this document reports cannot be lost the same way.
+
 ## 4. Evidence labels
 
 | Claim | Label | Boundary |
