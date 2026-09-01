@@ -919,7 +919,29 @@ def pin_correct_histories_reachable(samples) -> dict[str, Any]:
 
 
 def apply_decision_rule(findings: dict[str, Any]) -> dict[str, Any]:
-    """The specification's rule, evaluated rather than narrated."""
+    """The specification's rule, evaluated rather than narrated.
+
+    One clause runs before all the others. A readout that cannot recover a
+    prerequisite from a representation that provably contains it has not
+    measured the representation, and every downstream comparison inherits that
+    failure. Raw pixel blocks are a lossless partition of the frame -- the agent
+    occupies exactly four pixels and is uniquely identifiable in every layout --
+    so failing to read position from them is a fact about the probe. The
+    specification anticipates this: "If raw/CNN also fail: stop and classify the
+    audit as testbed/readout invalid."
+    """
+    if not findings.get("readout_recovers_prerequisites", True):
+        return {
+            "inputs": findings,
+            "outcome": "stop_testbed_or_readout_invalid",
+            "selected_geometry": None,
+            "screen_unblocked": False,
+            "reason": (
+                "the shared readout does not recover agent position from a lossless "
+                "pixel representation, so the chain past link 1 measures the probe"
+            ),
+        }
+
     fine = findings["fine_grid_improves_switch_detection"]
     phase = findings["fine_grid_improves_phase_or_outcome"]
     non_inferior = findings["intervention_non_inferior"]
@@ -933,12 +955,12 @@ def apply_decision_rule(findings: dict[str, Any]) -> dict[str, Any]:
         outcome, selected = "adopt_8x8x64", "g8x8x64"
     elif high_capacity_only:
         outcome, selected = "capacity_requirement_reported_not_adopted", "g4x4x256"
-    elif coarse_recovers_events and not phase:
-        outcome, selected = "keep_4x4_remaining_question_is_temporal_capacity", "g4x4x256"
-    elif not any_non_oracle_events and pixel_recovers_events:
-        outcome, selected = "stop_slot_resampling_loss", None
     elif not pixel_recovers_events:
         outcome, selected = "stop_testbed_or_readout_invalid", None
+    elif not any_non_oracle_events:
+        outcome, selected = "stop_slot_resampling_loss", None
+    elif coarse_recovers_events and not phase:
+        outcome, selected = "keep_4x4_remaining_question_is_temporal_capacity", "g4x4x256"
     else:
         outcome, selected = "keep_4x4_remaining_question_is_temporal_capacity", "g4x4x256"
 

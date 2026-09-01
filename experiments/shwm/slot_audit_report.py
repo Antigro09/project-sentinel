@@ -35,15 +35,52 @@ OUTCOME_TARGETS = ("successor_0", "successor_1", "successor_2", "successor_3")
 PRETRAINED = ("qwen3_vl_4b_spatial_slots", "gemma3_4b_spatial_slots")
 PIXEL = ("raw_lowres_spatial", "learned_cnn_spatial_slots", "fixed_random_spatial_projection")
 REFERENCE = "g4x4x256"
+POSITION_TARGETS = ("agent_row", "agent_col")
+
+LEGITIMATE_CONDITIONS = frozenset({
+    "current_frame_only", "correct_history", "correct_action_sequence",
+})
+"""Conditions from which a representation claim may be drawn.
+
+`exact_switch_event_history` supplies the true crossing indicator, so scoring
+`crossed_now` from it is predicting a feature from itself -- a readout control,
+never evidence that an interface detected anything. The shuffled and reversed
+arms are negative controls. An earlier version of this file omitted the filter,
+counted the circular condition as recovery, and reported that the coarse grid
+recovers switch events when no legitimate condition scored above zero.
+"""
+
+DIFFERENCING_POSITION_THRESHOLD = 0.95
+"""Position fidelity below which a difference across two steps carries no signal.
+
+Movement is position(t) - position(t-1). The two errors add while the signal
+shrinks: movement's standard deviation is 0.21x position's in this environment,
+so at R^2 = 0.55 the implied R^2 for the difference is about -18. Nothing
+downstream of movement -- switch crossing, parity, phase -- can be measured
+until position clears roughly 0.99."""
 
 
-def recovers(rows, sources, targets, stratum="all") -> list[dict[str, Any]]:
-    """Arms whose margin is positive with a bootstrap interval clear of zero."""
+def recovers(rows, sources, targets, stratum="all", any_geometry=False) -> list[dict[str, Any]]:
+    """Arms whose margin is positive with a bootstrap interval clear of zero.
+
+    Only legitimate conditions count: an arm handed the answer has not recovered it.
+    """
     return [
         r for r in rows
         if r["source"] in sources and r["target"] in targets and r["stratum"] == stratum
-        and r["geometry"] == REFERENCE and r["ci_low"] > 0.0
+        and r["condition"] in LEGITIMATE_CONDITIONS
+        and (any_geometry or r["geometry"] == REFERENCE)
+        and r["ci_low"] > 0.0
     ]
+
+
+def best_margin(rows, sources, targets) -> float:
+    candidates = [
+        r["margin"] for r in rows
+        if r["source"] in sources and r["target"] in targets and r["stratum"] == "all"
+        and r["condition"] in LEGITIMATE_CONDITIONS
+    ]
+    return max(candidates, default=0.0)
 
 
 def improved(deltas, sources, targets, geometry, stratum="all") -> list[dict[str, Any]]:
@@ -72,7 +109,15 @@ def build_findings(report) -> dict[str, Any]:
     fine_outcome = improved(deltas, all_sources, OUTCOME_TARGETS, "g8x8x64")
     high_switch = improved(deltas, all_sources, SWITCH_TARGETS, "g8x8x256")
 
+    position_lossless = best_margin(rows, ("raw_lowres_spatial",), POSITION_TARGETS)
+    position_best = best_margin(rows, all_sources, POSITION_TARGETS)
+
     return {
+        "readout_recovers_prerequisites": position_lossless > 0.5,
+        "position_r2_from_lossless_pixels": round(position_lossless, 4),
+        "position_r2_best_arm": round(position_best, 4),
+        "position_clears_differencing_threshold":
+            position_best > DIFFERENCING_POSITION_THRESHOLD,
         "fine_grid_improves_switch_detection": bool(fine_switch),
         "fine_grid_improves_phase_or_outcome": bool(fine_phase or fine_outcome),
         "intervention_non_inferior": worst_intervention_delta(deltas, "g8x8x64")
