@@ -4,16 +4,32 @@ This directory is the implementation-facing plan for the
 `phase-2-continuous-world-model` branch. It does not claim that a learned world
 model has been implemented or has passed a capability gate.
 
+## Canonical project status
+
+The single place to read current status. Narrative sections elsewhere record how
+a line developed and may describe intermediate states that are no longer current.
+
+| Item | Status |
+|---|---|
+| X64 | **Closed** at the controlled hidden-convention level, 2026-08-27. Narrow: not language understanding in open vocabulary or on real text. |
+| Phase-1 exact reference | **Frozen** at `5205543b110ba6da2e3f6da30630809941f821c4`. |
+| X65A | Latent-identity development work reached; **X65A as a whole is not closed**. X65A-P and X65B-core remain pending. |
+| SHWM Scale 0 | **Passed** at commit `f694c23`. Infrastructure only. |
+| SHWM Scale 1 | **No capability result exists.** |
+
+Scale 0's pass establishes that the pipeline runs, is matched, restarts, and fits
+the machine. It establishes no world model and no representation winner.
+
 ## Current state
 
 - `phase-1-exact-reference` is frozen at
   `5205543b110ba6da2e3f6da30630809941f821c4`.
 - Phase 2 was forked from the same commit in an isolated worktree.
 - The formal and numerical setup audit is complete for finite helper claims.
-- **Scale 0 has passed.** All 48 mandatory workloads ran against both named
-  frozen backbones under the frozen matching contract, and all ten gate clauses
-  hold. This unblocks a preregistered Scale-1 design and nothing else; no
-  capability was measured and no representation arm won. See the
+- **Scale 0 has passed** at `f694c23`. All 48 mandatory workloads ran against
+  both named frozen backbones under the frozen matching contract, and all ten
+  gate clauses hold. This unblocks a preregistered Scale-1 design and nothing
+  else; no capability was measured and no representation arm won. See the
   [Scale-0 handoff](SCALE-0-HANDOFF.md).
 - Both frozen backbones are present locally at their pinned revisions:
   `Qwen/Qwen3-VL-4B-Instruct` at `ebb281ec` (Apache-2.0) and

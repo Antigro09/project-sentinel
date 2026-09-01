@@ -103,6 +103,12 @@ class MlxVlmBackboneEncoder:
     _identity: EncoderIdentity | None = field(default=None, init=False, repr=False)
     _feature_dimension: int = field(default=0, init=False, repr=False)
     calls: int = field(default=0, init=False)
+    last_geometry: dict[str, Any] = field(default_factory=dict, init=False)
+    """Shape facts from the most recent encode, for the feature-geometry audit.
+
+    A diagnostic, not state the output depends on: what a reader needs to know
+    is how many tokens existed before pooling and how many survived it, and that
+    is not recoverable from the pooled vector."""
 
     # ---- identity ------------------------------------------------------
 
@@ -219,7 +225,8 @@ class MlxVlmBackboneEncoder:
             "so an image cannot be positioned in the prompt deterministically"
         )
 
-    def encode_array(self, observation: ObservationEnvelope, frame: np.ndarray | None = None) -> np.ndarray:
+    def _forward_tokens(self, observation: ObservationEnvelope, frame: np.ndarray | None):
+        """The fused multimodal embedding, before pooling."""
         import mlx.core as mx
 
         self.load()
@@ -259,6 +266,23 @@ class MlxVlmBackboneEncoder:
         input_ids = mx.array(np.asarray(inputs["input_ids"]))
         features = self._model.get_input_embeddings(input_ids, pixel_values, **extra)
         embeddings = features.inputs_embeds if hasattr(features, "inputs_embeds") else features
+        self.last_geometry = {
+            "modality": "image+text" if frame is not None else "text",
+            "embedding_shape": [int(d) for d in embeddings.shape],
+            "tokens_before_pooling": int(
+                embeddings.size // embeddings.shape[-1] if embeddings.size else 0
+            ),
+            "tokens_after_pooling": 1,
+            "pooling_axes": list(range(embeddings.ndim - 1)),
+        }
+        return embeddings
+
+    def encode_array(
+        self, observation: ObservationEnvelope, frame: np.ndarray | None = None
+    ) -> np.ndarray:
+        import mlx.core as mx
+
+        embeddings = self._forward_tokens(observation, frame)
         pooled = mx.mean(embeddings.astype(mx.float32), axis=tuple(range(embeddings.ndim - 1)))
         mx.eval(pooled)
         self.calls += 1
@@ -269,6 +293,27 @@ class MlxVlmBackboneEncoder:
                 f"declared {self.identity.feature_dimension}"
             )
         return values
+
+    def encode_with_tokens(
+        self, observation: ObservationEnvelope, frame: np.ndarray | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return the pooled vector *and* the token sequence it was pooled from.
+
+        The feature-sufficiency probe needs both from one forward pass. Whether a
+        controllable variable is missing from the pooled vector but present in
+        the tokens is the difference between the encoder having destroyed the
+        information and the pooling having destroyed it, and those two findings
+        have different remedies.
+        """
+        import mlx.core as mx
+
+        tokens = self._forward_tokens(observation, frame)
+        pooled = mx.mean(tokens.astype(mx.float32), axis=tuple(range(tokens.ndim - 1)))
+        mx.eval(pooled, tokens)
+        return (
+            np.asarray(pooled, dtype=np.float32),
+            np.asarray(tokens.astype(mx.float32), dtype=np.float32).reshape(-1, tokens.shape[-1]),
+        )
 
     def encode(self, observation: ObservationEnvelope) -> EncodedObservation:
         values = self.encode_array(observation)

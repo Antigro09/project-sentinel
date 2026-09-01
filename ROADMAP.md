@@ -224,7 +224,10 @@ without), and unseen FORM is not the problem -- unseen COMPOSITION is.
 disagreement-maximising questions, detects conflict, abstains when nothing
 adequate exists, and fails safely when its language is wrong. It has NOT
 been shown to understand language that was not authored around its
-evaluation set.** X64 is not closed as evidence of language understanding.
+evaluation set.** That remains true after closure: X64 closed at the
+controlled hidden-convention level, which is not evidence of language
+understanding in the open-vocabulary sense. See the X64 status subsection
+below.
 
 **X64D replaced the authored lexicon with induced senses: 9/10 gates.**
 Senses are indexed by (word, role) and induced by clustering the predicate
@@ -308,6 +311,22 @@ template grammar, so an inverse can be written, and a perfect inverse cannot
 be beaten. No self-generated controlled language can show induction beating
 authoring. That needs variation no static rule set can invert: noise, open
 vocabulary, inconsistent constructions, or real text.
+
+### X64 status: CLOSED at the controlled hidden-convention level (2026-08-27)
+
+**X64 is closed.** The final hidden run passed on 2026-08-27. The X64G text
+above records the state partway through the line and is retained because the
+G2 failure and the testbed diagnosis are the reasons the closure took the form
+it did -- not because X64 is open. Anything reading this file for current
+status should read this subsection, not the narrative above it.
+
+The closure is narrow and the narrowness is the point: it holds at the
+controlled hidden-convention level. It is not a claim of language understanding
+in open vocabulary, on real text, or under variation a static rule set cannot
+invert. That limitation is the same one the testbed diagnosis names, and it
+carries forward as the entry condition for anything that would widen the claim.
+
+### X65 status
 
 X65A-L is complete at the frozen Phase-2 baseline commit `5205543`; X65A as a
 whole is not closed. X65A-P and the mandatory X65B-core scoped-transfer gate
