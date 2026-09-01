@@ -765,33 +765,57 @@ def gru_parity_capability(episodes: int = 200, length: int = 8, seed: int = 6600
     }
 
 
-def evaluate_pairs(pairs, pair_reduced, main_reduced, main_actions, episodes_main,
-                   truth_polarity, truth_successors, tr, va, te) -> list[dict[str, Any]]:
+def evaluate_pairs(pairs, encoder_tokens=None) -> list[dict[str, Any]]:
     """Items 7 and 8, on states whose observations are byte-identical.
 
-    For a current-frame arm the two members have *identical* features, so any
-    probe returns identical outputs and the ranking is an exact tie at 0.5. That
-    is not a weak result to be improved on -- it is the construction proving that
-    hidden phase and same-action outcome are unreadable from the current
-    observation at any slot resolution.
+    The first version of this function took the pair features as an argument and
+    was called with None, so its identity check compared None to None, passed,
+    and verified nothing. Identity is now *computed*: every geometry is built
+    from both members' frames and compared elementwise.
 
-    Conditions carrying action history are reported separately and only on pairs
-    whose two routes have equal length, because unequal routes would let an arm
-    separate the members by counting steps rather than by tracking phase.
+    The argument the measurement rests on is short. The two members share a
+    byte-identical frame and an identical observation content digest, so they
+    share every input any interface reads; any deterministic function of those
+    inputs returns the same value for both; so a current-frame probe emits the
+    same prediction for a pair whose phases are opposite, ties, and scores
+    exactly 0.5. That is a fact about the construction, not a weak result -- and
+    anything above 0.5 would be a leak rather than a win.
     """
     rows: list[dict[str, Any]] = []
-    equal_length = [
-        i for i, p in enumerate(pairs) if len(p["a"]["route"]) == len(p["b"]["route"])
-    ]
-    features_a = pair_reduced
-    features_b = pair_reduced  # identical frames -> identical frame features, by construction
+    if not pairs:
+        return rows
+
+    mismatched: dict[str, int] = {}
+    for geometry in GEOMETRIES:
+        differences = 0
+        for pair in pairs:
+            fa = raw_slots(pair["a"]["frame"], geometry)
+            fb = raw_slots(pair["b"]["frame"], geometry)
+            if not np.array_equal(fa, fb):
+                differences += 1
+        mismatched[f"raw@{geometry.name}"] = differences
+    for geometry in GEOMETRIES:
+        runner = cnn_slots_factory(geometry)
+        differences = sum(
+            0 if np.array_equal(runner(p["a"]["frame"]), runner(p["b"]["frame"])) else 1
+            for p in pairs[:200]
+        )
+        mismatched[f"cnn@{geometry.name}"] = differences
+
+    token_differences = None
+    if encoder_tokens is not None:
+        token_differences = sum(
+            0 if np.array_equal(a, b) else 1 for a, b in encoder_tokens
+        )
+
+    features_identical = all(v == 0 for v in mismatched.values()) and (
+        token_differences in (None, 0)
+    )
 
     polarity_a = np.array([p["a"]["polarity"] for p in pairs])
     polarity_b = np.array([p["b"]["polarity"] for p in pairs])
-    identical = bool(np.array_equal(features_a, features_b))
-
-    delta = np.zeros(len(pairs))
     label = np.sign(polarity_a - polarity_b)
+    delta = np.zeros(len(pairs))  # identical features -> identical predictions
     correct = np.where(delta * label > 0, 1.0, np.where(delta == 0, 0.5, 0.0))
     rows.append({
         "measurement": "7_phase_discrimination",
@@ -799,27 +823,33 @@ def evaluate_pairs(pairs, pair_reduced, main_reduced, main_actions, episodes_mai
         "pairs": len(pairs),
         "score": float(correct.mean()),
         "chance": 0.5,
-        "features_identical": identical,
-        "note": "identical observations force an exact tie",
+        "features_identical": features_identical,
+        "per_geometry_feature_mismatches": mismatched,
+        "backbone_token_mismatches": token_differences,
+        "note": "identical observations force an exact tie at chance",
     })
 
     successors_a = np.array([p["a"]["successors"] for p in pairs])
     successors_b = np.array([p["b"]["successors"] for p in pairs])
     differing = (successors_a != successors_b).any(axis=1)
-    same_action_differs = float(differing.mean())
+    per_action = [
+        float((successors_a[:, a] != successors_b[:, a]).mean()) for a in range(len(ACTIONS))
+    ]
+    equal_length = sum(1 for p in pairs if len(p["a"]["route"]) == len(p["b"]["route"]))
     rows.append({
         "measurement": "8_same_action_outcome_ranking",
         "condition": "current_frame_only",
         "pairs": len(pairs),
-        "score": 0.5 if identical else float("nan"),
+        "score": 0.5 if features_identical else float("nan"),
         "chance": 0.5,
-        "features_identical": identical,
-        "fraction_of_pairs_where_same_action_differs": same_action_differs,
-        "equal_length_route_pairs": len(equal_length),
+        "features_identical": features_identical,
+        "fraction_of_pairs_where_some_action_differs": float(differing.mean()),
+        "fraction_differing_per_action": per_action,
+        "equal_length_route_pairs": equal_length,
         "note": (
-            "the same action leads somewhere different in "
-            f"{same_action_differs:.1%} of pairs while the observation is identical, "
-            "so a current-frame predictor is necessarily wrong on one member of each"
+            "the same action reaches a different successor while the observation is "
+            "identical, so a current-frame predictor is necessarily wrong on one "
+            "member of every such pair"
         ),
     })
     return rows
@@ -1192,9 +1222,26 @@ def main() -> int:
     print(f"  parity accumulation accuracy: {parity_capability['accuracy']:.4f} "
           f"(capable={parity_capability['capable']})")
 
-    paired_rows = evaluate_pairs(
-        pairs, None, None, None, None, None, None, tr, va, te
-    ) if pairs else []
+    paired_token_check = None
+    if pairs and arguments.encoders:
+        sample_pairs = pairs[:24]
+        checker = arguments.encoders[0]
+        candidate = next(c for c in FROZEN_CANDIDATES if c.encoder_id == checker)
+        probe_encoder = MlxVlmBackboneEncoder(
+            BackboneSpec(
+                checker, candidate.repository, config["encoder"]["revisions"][checker],
+                config["encoder"]["licences"][checker], REPO / config["encoder"]["weights_root"] / checker,
+            )
+        )
+        paired_token_check = [
+            (
+                probe_encoder.encode_visual_tokens(p["a"]["observation"], p["a"]["frame"]),
+                probe_encoder.encode_visual_tokens(p["b"]["observation"], p["b"]["frame"]),
+            )
+            for p in sample_pairs
+        ]
+        probe_encoder.release()
+    paired_rows = evaluate_pairs(pairs, paired_token_check)
 
     elapsed = time.perf_counter() - started
     report = {
