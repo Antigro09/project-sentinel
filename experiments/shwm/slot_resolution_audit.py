@@ -989,7 +989,7 @@ def main() -> int:
     test_layouts = list(range(80_000, 80_000 + arguments.test_levels))
     paired_layouts = list(range(90_000, 90_000 + arguments.paired_levels))
 
-    print("collecting trajectories")
+    print("collecting trajectories", flush=True)
     train = collect_episodes(train_layouts, arguments.steps, "train")
     val = collect_episodes(val_layouts, arguments.steps, "val")
     test = collect_episodes(test_layouts, arguments.steps, "test")
@@ -997,7 +997,7 @@ def main() -> int:
     n_train, n_val = len(train), len(val)
     print(f"  train {len(train)}  val {len(val)}  test {len(test)}")
 
-    print("building same-frame / different-phase pairs")
+    print("building same-frame / different-phase pairs", flush=True)
     pairs = collect_paired(paired_layouts, arguments.steps)
     print(f"  {len(pairs)} pairs from {arguments.paired_levels} layouts")
 
@@ -1042,15 +1042,33 @@ def main() -> int:
         "post_two_changes": test_crossings >= 2,
     }
 
-    print("validating labels with the exact parity accumulator")
+    print("validating labels with the exact parity accumulator", flush=True)
     reconstructed = exact_parity_accumulator(
         truth_values["initial_polarity"], events, episodes
     )
     accumulator_accuracy = float((reconstructed == truth_values["polarity"]).mean())
     print(f"  exact accumulator reproduces polarity: {accumulator_accuracy:.4f}")
 
-    print("encoding visual tokens (frozen backbones, preprocessing untouched)")
-    tokens, timings = encode_tokens(samples, config, arguments.encoders)
+    print("encoding visual tokens (frozen backbones, preprocessing untouched)", flush=True)
+    cache_path = arguments.out.parent / "slot-audit-tokens.npz"
+    cache_key = digest_of({
+        "train": arguments.train_levels, "val": arguments.val_levels,
+        "test": arguments.test_levels, "steps": arguments.steps,
+        "encoders": sorted(arguments.encoders),
+    })
+    tokens, timings = None, {}
+    if cache_path.exists():
+        stored = np.load(cache_path, allow_pickle=True)
+        if str(stored["key"]) == cache_key:
+            tokens = {e: list(stored[f"tok::{e}"]) for e in arguments.encoders}
+            timings = json.loads(str(stored["timings"]))
+            print("  reusing the cached token pass (encoding is unchanged)", flush=True)
+    if tokens is None:
+        tokens, timings = encode_tokens(samples, config, arguments.encoders)
+        np.savez(
+            cache_path, key=cache_key, timings=json.dumps(timings),
+            **{f"tok::{e}": np.stack(tokens[e]) for e in arguments.encoders},
+        )
     for encoder_id, record in timings.items():
         print(f"  {encoder_id}: {record['observations_per_second']:.1f} obs/s, "
               f"{record['visual_tokens']} tokens of width {record['token_width']}")
@@ -1058,11 +1076,13 @@ def main() -> int:
     windows = {"short": SHORT_WINDOW, "full": arguments.steps}
     results: list[dict[str, Any]] = []
     recurrent_results: list[dict[str, Any]] = []
+    correctness: dict[tuple, np.ndarray] = {}
+    strata_rows: dict[str, np.ndarray] = {}
     rng_master = np.random.default_rng(31337)
 
     for source, geometry, reduced in iter_reduced_arms(samples, tokens, arguments.encoders):
         oracle_block = reduced if source == "oracle_structured_state" else None
-        print(f"  probing {source} @ {geometry.name}")
+        print(f"  probing {source} @ {geometry.name}", flush=True)
         for condition in CONDITIONS:
             if condition.name == "structured_hidden_phase_oracle" and source != "oracle_structured_state":
                 continue
@@ -1103,6 +1123,9 @@ def main() -> int:
                         low, high = paired_bootstrap(
                             correct, test_layout_ids[mask], BOOTSTRAP_RESAMPLES, 99
                         )
+                        correctness[(source, geometry.name, condition.name, window_name,
+                                     target.name, stratum)] = correct
+                        strata_rows[stratum] = test_layout_ids[mask]
                         results.append({
                             "source": source, "geometry": geometry.name, "condition": condition.name,
                             "window": window_name, "target": target.name, "link": target.link,
@@ -1138,7 +1161,33 @@ def main() -> int:
             })
         del reduced
 
-    print("checking the recurrent readout can accumulate parity at all")
+    print("computing paired geometry differences against the 4x4 reference", flush=True)
+    geometry_deltas: list[dict[str, Any]] = []
+    reference = "g4x4x256"
+    for key, values in correctness.items():
+        source, geometry, condition, window, target, stratum = key
+        if geometry == reference:
+            continue
+        base_key = (source, reference, condition, window, target, stratum)
+        if base_key not in correctness:
+            continue
+        base_values = correctness[base_key]
+        if len(base_values) != len(values):
+            continue
+        difference = values - base_values
+        groups = strata_rows[stratum]
+        low, high = paired_bootstrap(difference, groups, BOOTSTRAP_RESAMPLES, 4242)
+        geometry_deltas.append({
+            "source": source, "geometry": geometry, "reference": reference,
+            "condition": condition, "window": window, "target": target,
+            "stratum": stratum, "delta": float(difference.mean()),
+            "ci_low": low, "ci_high": high,
+            "excludes_zero": bool(low > 0.0 or high < 0.0),
+            "improves": bool(low > 0.0),
+            "observations": int(len(difference)),
+        })
+
+    print("checking the recurrent readout can accumulate parity at all", flush=True)
     parity_capability = gru_parity_capability()
     print(f"  parity accumulation accuracy: {parity_capability['accuracy']:.4f} "
           f"(capable={parity_capability['capable']})")
@@ -1157,6 +1206,7 @@ def main() -> int:
         "encode_timings": timings,
         "conditions": [{"name": c.name, "role": c.role, "reachable": c.reachable} for c in CONDITIONS],
         "ridge_results": results,
+        "geometry_deltas": geometry_deltas,
         "recurrent_results": recurrent_results,
         "pins": {
             "hidden_state_absent": pin_hidden_state_absent_from_features(samples, pairs),
