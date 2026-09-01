@@ -201,6 +201,7 @@ class SHWMModel(nn.Module):
         actions: mx.array,        # (B, T)     action taken *at* step t
         previous_rewards: mx.array,  # (B, T, 1)
         key: mx.array | None = None,
+        recurrent: bool = True,
     ) -> ForwardOutput:
         latent, code_logits = self.project(features, key)
         action_vectors = self.action_embedding(actions)
@@ -212,7 +213,18 @@ class SHWMModel(nn.Module):
             [mx.zeros_like(action_vectors[:, :1]), action_vectors[:, :-1]], axis=1
         )
         belief_input = mx.concatenate([latent, previous_actions, previous_rewards], axis=-1)
-        belief = self.belief_gru(belief_input)
+        if recurrent:
+            belief = self.belief_gru(belief_input)
+        else:
+            # The same module and the same parameters, run one step at a time from
+            # a zero state. Prior belief is unreachable and the budget is
+            # untouched -- a smaller network here would confound "recurrence
+            # matters" with "this model is smaller".
+            steps = [
+                self.belief_gru(belief_input[:, t : t + 1])
+                for t in range(belief_input.shape[1])
+            ]
+            belief = mx.concatenate(steps, axis=1)
 
         core = self.dynamics(belief, action_vectors)
 
