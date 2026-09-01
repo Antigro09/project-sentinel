@@ -184,7 +184,7 @@ Held-out layouts, appearance fixed, event derived from predicted masks:
 |---|---|---:|---:|---:|---|---:|
 | raw @ 12×12×64 · token_grid_cnn | diagnostic | 1.0000 | 1.0000 | **1.0000** | [+0.260, +0.260] | 27,122 |
 | raw @ 12×12×64 · hierarchical | diagnostic | 1.0000 | 1.0000 | **1.0000** | [+0.260, +0.260] | 8,710 |
-| **randproj @ 8×8×64 · token_grid_cnn** | fixed random | 1.0000 | 0.8989 | **0.9719** | [+0.203, +0.254] | 34,178 |
+| **randproj @ 8×8×64 · token_grid_cnn** | fixed random (lossless at this width) | 1.0000 | 0.8989 | **0.9719** | [+0.203, +0.254] | 34,178 |
 | raw @ 8×8×64 · token_grid_cnn | pixel control | 0.9857 | 0.8282 | 0.9045 | [+0.117, +0.214] | 34,178 |
 | gemma @ 8×8×256 · token_grid_cnn | capacity | 0.9914 | 0.7318 | 0.8012 | [+0.049, +0.151] | 43,394 |
 | **gemma @ 8×8×64 · token_grid_cnn** | pretrained | 0.9629 | 0.6756 | 0.7725 | [+0.009, +0.120] | 34,178 |
@@ -196,11 +196,24 @@ Held-out layouts, appearance fixed, event derived from predicted masks:
 
 Two results stand out.
 
-**A fixed random projection beats both pretrained encoders.** `randproj` at 8×8×64 reaches
-0.9719 against Qwen's 0.7594 and Gemma's 0.7725, on the same frames and the same decoder.
-The pretrained encodings are therefore *losing* information that a frozen random matrix
-preserves. This is the first clean comparison in this line of work, because it is the first
-time the readout has not been the binding constraint.
+**A fixed random projection beats both pretrained encoders — but the comparison is
+confounded, and the confound is mine.** `randproj` at 8×8×64 reaches 0.9719 against Qwen's
+0.7594 and Gemma's 0.7725 on the same frames and the same decoder. My first reading was that
+the pretrained encodings lose information a frozen random matrix preserves. That reading is
+not supported.
+
+At 8×8 each raw block is 3×3 pixels × 3 channels = **27 scalars**, and the slot width is 64.
+A random projection from 27 dimensions into 64 is rank-27 and therefore **lossless** — it
+rearranges the pixels without discarding any. The backbone arm at the same slot width
+projects a **2560**-dimensional token into 64, a 40:1 compression. So the arms are not
+"pretrained features versus random features"; they are *lossless 27→64* against *lossy
+2560→64*, and the width budget is doing the work.
+
+The supporting evidence is in the table: Gemma improves from 0.7725 at width 64 to 0.8012 at
+width 256, which is what a width-limited arm does. The honest statement is that **the
+pretrained arms are width-limited at these geometries**, and a fair test of the pretrained
+encodings against a random baseline needs a slot width at which neither side is truncated.
+That test has not been run.
 
 **`token_grid_cnn` dominates the family.** `hierarchical_slot_offset` is second and much
 cheaper (8,710 parameters, and 0.9857 at 8×8 raw). `coordinate_query_cross_attention`
@@ -264,6 +277,10 @@ correctly marked provisional.
 3. **K2 initially reported as missing** because the regenerated alias run was written to a
    scratch path rather than the artifact directory, so the gate read a stale file.
 4. **The J-phase geometry claim is reversed**, as recorded in §H.
+5. **My own headline reading of the random-projection result was wrong**, caught by checking
+   the arm's rank before the reviewers reported on it. A 27→64 random projection is lossless
+   and a 2560→64 one is not, so the arms differ in how much the slot width truncates them and
+   not only in what produced the features. The number stands; the interpretation does not.
 
 ## Decision
 
