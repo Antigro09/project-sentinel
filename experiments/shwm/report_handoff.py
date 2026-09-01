@@ -156,7 +156,7 @@ def render(document: dict[str, Any]) -> str:
                 str(config["latent_width"]),
                 str(config["belief_dimension"]),
                 str(config["core_width"]),
-                "0",
+                f"{workload['resource'].get('frozen_parameters', 0):,}",
             ]
         )
     out.append(

@@ -52,6 +52,25 @@ the cache is built to refuse to serve across that change.
 """
 
 
+def _safetensors_parameter_count(path: Path) -> int:
+    """Sum of tensor element counts, from the file's JSON header alone."""
+    import struct
+
+    with open(path, "rb") as handle:
+        header_length = struct.unpack("<Q", handle.read(8))[0]
+        header = json.loads(handle.read(header_length))
+    total = 0
+    for name, entry in header.items():
+        if name == "__metadata__":
+            continue
+        shape = entry.get("shape") or []
+        count = 1
+        for axis in shape:
+            count *= int(axis)
+        total += count if shape else 0
+    return total
+
+
 @dataclass(frozen=True, slots=True)
 class BackboneSpec:
     encoder_id: str
@@ -163,11 +182,18 @@ class MlxVlmBackboneEncoder:
 
     @property
     def frozen_parameters(self) -> int:
-        if self._model is None:
-            return 0
-        from mlx.utils import tree_flatten
+        """Inherited parameter count, read from the weight headers.
 
-        return int(sum(v.size for _, v in tree_flatten(self._model.parameters())))
+        Counted without loading the tensors, because with a warm cache the model
+        is never loaded at all -- and a report that said "0 frozen parameters"
+        because nothing happened to be resident would be worse than no report.
+        Each safetensors file begins with a JSON header giving every tensor's
+        shape, which is exact and costs a few kilobytes to read.
+        """
+        total = 0
+        for weights in sorted(self.spec.local_path.glob("*.safetensors")):
+            total += _safetensors_parameter_count(weights)
+        return total
 
     # ---- encoding ------------------------------------------------------
 

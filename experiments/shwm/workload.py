@@ -277,7 +277,7 @@ def run_workload(
     report.mlx_cache_bytes = outcome.resource.mlx_cache_bytes
     report.peak_resident_bytes = max(outcome.resource.peak_resident_bytes, process_resident_bytes())
     report.trainable_parameters = outcome.resource.trainable_parameters
-    report.frozen_parameters = 0
+    report.frozen_parameters = int(getattr(dataset, "frozen_parameters", 0))
     report.parameter_bytes_measured = outcome.resource.parameter_bytes_measured
     report.estimated_model_bytes = estimate["model_bytes"] + estimate["gradient_bytes"]
     report.estimated_optimizer_bytes = estimate["optimizer_bytes"]

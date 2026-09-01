@@ -71,6 +71,12 @@ class EncoderDataset:
     audits: dict[str, Any]
     collection: dict[str, Any]
     resource: ResourceReport
+    frozen_parameters: int = 0
+    """Inherited backbone parameters. Zero for the control encoder, which has none.
+
+    Reported apart from the trainable budget it never enters: a frozen backbone
+    is inherited capability, and folding the two together would let a 4B encoder
+    be mistaken for Sentinel-learned scale."""
     encoder_identity_digest: str = ""
     """Digest of the complete encoder identity: provider, model, revision, weight
     digest, preprocessing digest, and precision. Two runs that both say
@@ -88,6 +94,7 @@ class EncoderDataset:
         return {
             "encoder_slot": self.encoder_slot,
             "encoder_identity_digest": self.encoder_identity_digest,
+            "frozen_parameters": self.frozen_parameters,
             "transitions": len(self.records),
             "transition_ids_digest": self.transition_ids_digest,
             "split_manifest_digest": self.manifest.digest,
@@ -238,8 +245,10 @@ def build_encoder_dataset(
     report.throughput = {
         "transitions_per_second": len(records) / max(report.wall_seconds, 1e-9),
     }
+    frozen = getattr(inner, "frozen_parameters", 0)
     return EncoderDataset(
         encoder_slot=encoder_slot,
+        frozen_parameters=int(frozen),
         encoder_identity_digest=encoder.identity.digest,
         records=records,
         manifest=manifest,
