@@ -166,9 +166,11 @@ def main() -> int:
 
     print("\n## Same-observation pairs (items 7 and 8)\n")
     for row in report["paired_measurements"]:
-        print(f"**{row['measurement']}** — {row['pairs']} pairs, score "
-              f"{row['score']:.3f} against chance {row['chance']:.3f}; "
-              f"features identical: {row['features_identical']}.\n")
+        print(f"**{row['measurement']}** — {row['pairs']} pairs; "
+              f"{row.get('kind', 'result')}; implied value "
+              f"{row.get('implied_score', float('nan')):.3f} against chance "
+              f"{row['chance']:.3f}; features identical: {row['features_identical']} "
+              f"(scope: {row.get('scope', 'unstated')}).\n")
         print(f"> {row['note']}\n")
 
     print("\n## Pins\n")

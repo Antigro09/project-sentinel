@@ -785,6 +785,11 @@ def evaluate_pairs(pairs, encoder_tokens=None) -> list[dict[str, Any]]:
     if not pairs:
         return rows
 
+    # A prefix of `pairs` is not a sample: pairs are generated layout by layout, so
+    # pairs[:200] covers a handful of layouts. Sample across the whole set instead.
+    rng = np.random.default_rng(20250901)
+    subset = [pairs[i] for i in rng.choice(len(pairs), size=min(200, len(pairs)), replace=False)]
+
     mismatched: dict[str, int] = {}
     for geometry in GEOMETRIES:
         differences = 0
@@ -798,7 +803,7 @@ def evaluate_pairs(pairs, encoder_tokens=None) -> list[dict[str, Any]]:
         runner = cnn_slots_factory(geometry)
         differences = sum(
             0 if np.array_equal(runner(p["a"]["frame"]), runner(p["b"]["frame"])) else 1
-            for p in pairs[:200]
+            for p in subset
         )
         mismatched[f"cnn@{geometry.name}"] = differences
 
@@ -820,14 +825,28 @@ def evaluate_pairs(pairs, encoder_tokens=None) -> list[dict[str, Any]]:
     rows.append({
         "measurement": "7_phase_discrimination",
         "condition": "current_frame_only",
+        "kind": "identity proof, not a probe result",
         "pairs": len(pairs),
-        "score": float(correct.mean()),
+        "implied_score": float(correct.mean()),
         "chance": 0.5,
         "features_identical": features_identical,
         "per_geometry_feature_mismatches": mismatched,
         "backbone_token_mismatches": token_differences,
-        "note": "identical observations force an exact tie at chance",
+        "scope": "post-reset observations only",
+        "note": (
+            "0.5 here is arithmetic, not a measurement: identical features force "
+            "identical predictions, hence an exact tie. No probe is run. The scope "
+            "matters -- byte-identity can never pair a reset frame against a "
+            "post-reset one, so this set excludes precisely the observations where "
+            "the polarity stripe makes phase readable from one frame."
+        ),
     })
+
+    # content_digest deliberately excludes step, so "identical content digest" is a
+    # weaker statement than "identical envelope". Record the gap rather than paper over it.
+    differing_step = sum(
+        1 for p in pairs if len(p["a"]["route"]) != len(p["b"]["route"])
+    )
 
     successors_a = np.array([p["a"]["successors"] for p in pairs])
     successors_b = np.array([p["b"]["successors"] for p in pairs])
@@ -840,12 +859,15 @@ def evaluate_pairs(pairs, encoder_tokens=None) -> list[dict[str, Any]]:
         "measurement": "8_same_action_outcome_ranking",
         "condition": "current_frame_only",
         "pairs": len(pairs),
-        "score": 0.5 if features_identical else float("nan"),
+        "kind": "identity proof, not a probe result",
+        "implied_score": 0.5 if features_identical else float("nan"),
         "chance": 0.5,
         "features_identical": features_identical,
+        "scope": "post-reset observations only",
         "fraction_of_pairs_where_some_action_differs": float(differing.mean()),
         "fraction_differing_per_action": per_action,
         "equal_length_route_pairs": equal_length,
+        "pairs_whose_members_sit_at_different_steps": differing_step,
         "note": (
             "the same action reaches a different successor while the observation is "
             "identical, so a current-frame predictor is necessarily wrong on one "
