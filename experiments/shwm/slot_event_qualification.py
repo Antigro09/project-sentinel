@@ -43,7 +43,8 @@ from sentinel.wm.authority import AuthorityGate  # noqa: E402
 from sentinel.wm.backbone_encoder import BackboneSpec, MlxVlmBackboneEncoder  # noqa: E402
 from sentinel.wm.backbones import FROZEN_CANDIDATES  # noqa: E402
 from sentinel.wm.slot_geometry import (  # noqa: E402
-    GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, backbone_slots, raw_slots,
+    GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, GEOMETRY_D, available_geometries,
+    backbone_slots, raw_slots,
 )
 from sentinel.wm.splits_v2 import CANONICAL_APPEARANCE_SEED  # noqa: E402
 
@@ -52,7 +53,16 @@ from readout_qualification import (  # noqa: E402
     f1, mask_f1, mask_iou,
 )
 
-GEOMETRIES = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C)
+GEOMETRIES = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, GEOMETRY_D)
+"""D is the cell-aligned diagnostic, and dropping it was a real defect.
+
+An earlier version of this file ran only A, B and C. That silently removed the one
+arm built to separate "the slot grid is coarser than a game cell" from "the slot
+readout cannot localise", and led to a classification -- readout architecture
+failure -- that the missing arm refutes: at 12x12, one slot per cell, the identical
+readout scores exact-cell 1.0000, switch F1 1.0000 and event balanced accuracy
+1.0000 on raw slots. Neither backbone can supply a 12x12 grid, so D runs for the
+pixel sources only; `available_geometries` enforces that rather than a comment."""
 
 
 def collect_trajectories(layouts, trajectories, steps, appearance, seed):
@@ -315,7 +325,8 @@ def main() -> int:
 
     sources = list(arguments.encoders) + ["raw"]
     for source in sources:
-        for geometry in GEOMETRIES:
+        for geometry in available_geometries(
+                "raw" if source == "raw" else source):
             label = f"{source}@{geometry.name}"
             slots = slot_tensor(source, geometry, tokens, index, flat_frames)
             test_sets = {

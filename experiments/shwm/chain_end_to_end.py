@@ -12,11 +12,19 @@ one-pixel top stripe -- the reset-observability statement, and the reason the
 global "unidentifiable" claim was withdrawn. Events come from the object-relation
 decoder. Nothing here is given a hidden value.
 
-J7 asks whether correct order actually matters. Parity is order-invariant, so a
-shuffled history over the *same* events would score identically -- which would make
-the control vacuous. The controls therefore resample which events occur (shuffled
-across trajectories) and reverse the trajectory, both of which change the multiset
-and so can genuinely fail.
+J7 asks whether correct order actually matters, and the controls need care because
+parity is order-invariant over a fixed multiset.
+
+Both controls preserve the event multiset -- an earlier version of this docstring
+claimed they change it, which is false: reversing visits the same (t, t-1) pairs in
+the opposite order, and the within-trajectory shuffle permutes the same events. So
+the FINAL-step parity is identical under all three modes, and the controls cannot
+fail there. What they do change is the alignment between the running parity and the
+step it is attributed to, so every intermediate phase is wrong while the endpoint is
+right. That is why they score 0.55 and 0.63 against 1.00 rather than 0.00, and it is
+a weaker control than a multiset-changing one would be. A control that resampled
+which events occur -- across trajectories rather than within -- would be stronger and
+is not implemented here.
 
     .venv-shwm/bin/python experiments/shwm/chain_end_to_end.py
 """

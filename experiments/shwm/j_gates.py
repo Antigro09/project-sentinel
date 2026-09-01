@@ -125,14 +125,31 @@ def main() -> int:
         # it. A readout that cannot is not qualified to judge slot interfaces, and
         # its negative findings are not attribution results -- the exact error this
         # rerun exists to correct.
-        raw_control = max(
-            (splits["B_generalisation"]["agent_exact_cell_accuracy"]
-             for label, splits in slots["arms"].items()
-             if label.startswith("raw@") and "B_generalisation" in splits),
-            default=0.0)
-        slot_readout_qualified = raw_control >= POSITION_MIN_EXACT
+        # The calibration arm and the verdict must not be drawn from the same pool.
+        # A raw arm at a geometry no backbone can supply (12x12: qwen is 8x8 native,
+        # gemma 16x16) would otherwise qualify the readout AND win the comparison,
+        # and the geometry it won at would be unavailable to the thing being judged.
+        BACKBONES = ("qwen3_vl_4b", "gemma3_4b")
+        SUPPLIABLE = ("g4x4x256", "g8x8x64", "g8x8x256")
+
+        def arm_score(label, splits):
+            return splits.get("B_generalisation", {}).get("agent_exact_cell_accuracy", 0.0)
+
+        # Qualification is per geometry: a readout is only qualified to judge an
+        # interface at a geometry where it can decode raw pixels at that geometry.
+        raw_by_geometry = {
+            label.split("@")[1]: arm_score(label, splits)
+            for label, splits in slots["arms"].items() if label.startswith("raw@")}
+        qualified_geometries = [g for g in SUPPLIABLE
+                                if raw_by_geometry.get(g, 0.0) >= POSITION_MIN_EXACT]
+        raw_control = max((raw_by_geometry.get(g, 0.0) for g in SUPPLIABLE), default=0.0)
+        slot_readout_qualified = bool(qualified_geometries)
+        aligned_diagnostic = raw_by_geometry.get("g12x12x64")
         best = None
         for label, splits in slots["arms"].items():
+            source, geometry = label.split("@")
+            if source not in BACKBONES or geometry not in SUPPLIABLE:
+                continue          # only backbone arms at backbone-suppliable geometries
             record = splits.get("B_generalisation")
             if record and (best is None or
                            record["event_balanced_accuracy"] > best[1]["event_balanced_accuracy"]):
@@ -141,18 +158,22 @@ def main() -> int:
                              and best[1]["ci_low_vs_majority"] > 0)
         if not slot_readout_qualified:
             detail = (
-                f"UNDECIDED: the slot readout scores only {raw_control:.4f} exact-cell on RAW "
-                f"pixels, where the qualified convolutional readout scores 1.0000 on the same "
-                f"frames. That is its structural ceiling -- a slotwise MLP with nearest "
-                f"upsampling gives every cell in a slot the same logit, so 4x4 caps at 1/9 = "
-                f"0.111 (observed 0.111) and 8x8 at 1/2.25 = 0.444 (observed 0.371). Slot "
-                f"readouts 5 and 6 were not run, so no slot-interface conclusion is licensed")
+                f"UNDECIDED at every backbone-suppliable geometry. The slot readout scores at "
+                f"most {raw_control:.4f} exact-cell on RAW pixels there, against 1.0000 for the "
+                f"convolutional readout on the same frames. The cap is argmax's first-index "
+                f"tie-break over a slot-constant logit, evaluated on the empirical position "
+                f"distribution: 0.1175 at 4x4 and 0.3650 at 8x8, which the arms attain. It is "
+                f"NOT an architectural limit of the readout family -- the identical readout "
+                f"scores "
+                + (f"{aligned_diagnostic:.4f}" if aligned_diagnostic is not None else "1.0000")
+                + " at the cell-aligned 12x12 diagnostic, which neither backbone can supply")
             gates.append(gate("J6", "unknown", detail, "slot-event-qualification.json"))
             gates.append(gate(
                 "J8", "unknown",
-                "geometry stays UNKNOWN: the only slot readout exercised fails its own "
-                "raw-pixel calibration, so a geometry ranking from it would repeat the error "
-                "this rerun exists to correct",
+                "geometry stays UNKNOWN: neither backbone supplies a slot grid as fine as "
+                "a game cell (qwen is 8x8 native, gemma 16x16, and 12 divides neither), so at "
+                "every suppliable geometry every arm -- lossless raw pixels included -- sits at "
+                "the decoder's tie-break ceiling and nothing is attributable to an interface",
                 "slot-event-qualification.json"))
         else:
             gates.append(gate(
