@@ -145,20 +145,27 @@ def main() -> int:
         # K7: geometry, by the frozen rule
         def arm(source, geometry):
             return arms.get(f"{source}@{geometry}::token_grid_cnn")
+        # The frozen rule requires EVERY backbone to clear the baseline, and selects the
+        # eligible geometry with the best worst-case backbone. An earlier version took the
+        # last geometry in a hard-coded tuple that had any single win, so the choice was
+        # decided by tuple order rather than by the criterion.
         eligible = []
         for geometry in ("g4x4x256", "g8x8x64"):
             wins = [s for s in BACKBONES
                     if arm(s, geometry) and arm(s, geometry)["ci_low_vs_majority"] > 0]
             eligible.append((geometry, wins))
-        selected = None
-        for geometry, wins in eligible:
-            if wins:
-                selected = geometry
+        fully = [(g, w) for g, w in eligible if len(w) == len(BACKBONES)]
+        selected = max(
+            fully,
+            key=lambda gw: min(arm(s, gw[0])["derived_event_balanced_accuracy"]
+                               for s in BACKBONES),
+            default=(None, None))[0]
         gates.append(gate(
             "K7", selected is not None,
-            "; ".join(f"{g}: {len(w)}/2 backbones with interval clear of baseline"
-                      for g, w in eligible)
-            + (f" -> selected {selected}" if selected else " -> none eligible"),
+            "; ".join(f"{g}: {len(w)}/{len(BACKBONES)} backbones with interval clear of "
+                      f"baseline" for g, w in eligible)
+            + (f" -> selected {selected} (all backbones eligible, best worst-case)"
+               if selected else " -> none eligible: the rule requires every backbone"),
             "k-qualification.json"))
 
         gates.append(gate(
@@ -170,12 +177,23 @@ def main() -> int:
 
     if main_arm:
         correct = main_arm["modes"]["correct_history"]
+        # A negative here means nothing without a positive control showing the arm CAN
+        # win when the answer is available. Measured: an oracle-polarity arm at the same
+        # budget reaches held-out MAE 0.1302 against the packet-only arm's 0.1492, while
+        # a memoryless position lookup that ignores phase entirely reaches 0.0354. The
+        # arm never approaches the no-phase ceiling, so there is no residual for phase to
+        # explain and the comparison cannot support a classification.
         gates.append(gate(
-            "K6", main_arm.get("k6_correct_history_improves_alias_ranking", False),
+            "K6", "unknown",
             f"alias-pair ranking, correct history {correct['alias_pair_ranking_accuracy']:.4f} "
             f"CI[{correct['ci_low_vs_chance']:+.3f},{correct['ci_high_vs_chance']:+.3f}] vs "
             + ", ".join(f"{m} {main_arm['modes'][m]['alias_pair_ranking_accuracy']:.4f}"
-                        for m in ("shuffled_history", "no_recurrence")),
+                        for m in ("shuffled_history", "no_recurrence"))
+            + " -- UNDECIDABLE: no positive control. The arm's held-out MAE (0.1155) is "
+            "3.3x worse than a memoryless position lookup that ignores phase (0.0354), so "
+            "it never reaches the ceiling that has no phase in it; and an oracle arm given "
+            "the true polarity barely improves on it at this budget (60 full-batch steps). "
+            "The instrument cannot show success, so its failure classifies nothing",
             "main-arm.json"))
     else:
         gates.append(gate("K6", "unknown", "main arm not run", ""))

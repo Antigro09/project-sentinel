@@ -75,8 +75,18 @@ class Geometry:
 
     @property
     def cell_aligned(self) -> bool:
-        """True when block boundaries fall on game-cell boundaries."""
-        return FRAME_SIDE % self.grid == 0 and self.block_pixels % CELL_PIXELS == 0
+        """True when no block straddles a game cell.
+
+        `block % CELL == 0` alone was wrong. It is right when the block is coarser
+        than a cell, but a block *finer* than a cell does not straddle either: at one
+        pixel per slot the slot boundaries are a superset of the cell boundaries, so
+        the partition is refined rather than cut. The old predicate labelled the 24x24
+        arm misaligned, and a report then leaned on it as a misalignment control it was
+        not. Alignment holds when either side divides the other."""
+        if FRAME_SIDE % self.grid:
+            return False
+        block = self.block_pixels
+        return block % CELL_PIXELS == 0 or CELL_PIXELS % block == 0
 
     def canonical_dict(self) -> dict[str, Any]:
         return {
@@ -106,15 +116,19 @@ sources, because neither backbone emits a 12x12 grid and upsampling one to reach
 it would answer the question by inventing the evidence.
 """
 
-GEOMETRY_E = Geometry("g24x24x16", 24, 16, "sub_cell_diagnostic")
+GEOMETRY_E = Geometry("g24x24x16", 24, 16, "sub_cell_refinement_diagnostic")
 """One slot per PIXEL: finer than a game cell, and capacity-matched to D.
 
 D and E both hold 9,216 scalars, but D is exactly one slot per cell while E puts
-four slots inside each cell. That pairing answers a question D alone cannot: if D
-scores perfectly because its boundaries coincide with the simulator's cells, E
-should not match it; if what matters is simply having at least one slot per cell,
-E should match or beat it. Without E, "the 12x12 arm is perfect" and "the 12x12
-arm is aligned to the environment" are the same sentence."""
+four slots inside each cell.
+
+E is NOT a misalignment control, and an earlier report used it as one. At one pixel
+per slot the slot boundaries contain every cell boundary, so E refines the cell
+partition and no slot straddles a cell -- E matching D is therefore consistent with
+alignment mattering and cannot discriminate. The discriminator that does work is a
+one-pixel roll of the frame at 12x12: same block size, same capacity, but every block
+then straddles four cells. That arm also scores 1.000, which is what actually supports
+the resolution reading."""
 
 GEOMETRIES: tuple[Geometry, ...] = (GEOMETRY_A, GEOMETRY_B, GEOMETRY_C, GEOMETRY_D,
                                     GEOMETRY_E)

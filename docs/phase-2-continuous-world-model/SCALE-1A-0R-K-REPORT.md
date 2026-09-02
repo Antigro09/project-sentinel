@@ -3,29 +3,42 @@
 ## Verdict
 
 **Stage 1A-1 is NOT unblocked. The 87-workload matrix is not launched.**
-**9 gates pass, 1 fails, 1 is undecidable.**
+**9 gates pass, 0 fail, 2 are undecidable.**
 
-The failure is K6, and it is the informative one. Every decoding gate now passes:
-the packet leaks are gone, the recurrence certificate survives and quadruples, the
-within-slot expressibility defect is fixed, both pretrained interfaces support event
-decoding, and geometry selects cleanly. What does not work is the part that was never
-tested before, because until now the instrument could not reach it:
+Every decoding gate passes. The packet leaks are removed from the schema, the recurrence
+certificate survives and quadruples to 39,556, the within-slot expressibility defect is
+fixed, both pretrained interfaces support event decoding, and geometry selects 8×8×64.
 
-> **A world model given no privileged event bit does not infer hidden phase from
-> history.** On packet-alias pairs — identical visible packet, different history,
-> different same-action outcome — the main arm ranks at **0.5006** against chance
-> 0.5000, with shuffled history at 0.5050 and no-recurrence at 0.5000.
+**K6 is undecidable, and an earlier draft of this report got it wrong.** That draft
+reported K6 as a FAIL and classified it as *temporal-state construction failure*, on the
+strength of a main arm scoring 0.5006 on packet-alias pairs against chance 0.5000. Two
+reviewers objected that the measurement had no positive control, and they were right —
+I reproduced it:
 
-By the specification's own rule this is **temporal-state construction failure**.
+| arm | held-out MAE |
+|---|---:|
+| constant predictor | 0.2423 |
+| **main arm as reported** | **0.1492** |
+| main arm given the TRUE hidden polarity | 0.1302 |
+| **memoryless position lookup, ignores phase entirely** | **0.0354** |
 
-The contrast is sharp and worth stating plainly. The *derived* pipeline — decode masks,
-apply a hand-written relation, accumulate parity — reaches 1.000 on crossing and phase.
-The *learned* arm, given the same observations and no relation, reaches chance. The
-difference between them is knowledge I supplied, not knowledge the model acquired.
+The arm is **4× worse than a predictor that has no phase in it at all**. There is no
+residual for phase to explain. And handing the model the true polarity barely moves it,
+so the instrument cannot exploit phase even when given it for free. A negative from an
+instrument that cannot demonstrate success classifies nothing.
 
-Recurrence is not useless: held-out forward-prediction error falls from **0.2032** without
-it to **0.1155** with it. The model learns to predict outcomes in general; it does not
-learn the one latent variable that distinguishes the states where prediction is hard.
+That is the same error this phase existed to correct, committed inside this phase. The
+classification is **withdrawn**; K6 is UNKNOWN pending a main arm that first reaches the
+memoryless ceiling.
+
+Two further claims from that draft are withdrawn with it. *"The model learns to predict
+outcomes in general"* is false in its first clause — 0.1492 against a 0.0354 ceiling is not
+learning to predict outcomes. And the recurrence improvement *0.2032 → 0.1155* is a
+convergence-rate artifact of a 60-step budget, not a property of recurrence.
+
+What remains true, and is the honest headline: **the derived pipeline reaches 1.000 on
+crossing and phase, and every part of it that is derived rather than learned is labelled
+as such.** Whether a learned model can construct the hidden state is **not yet tested**.
 
 ## §A Provenance and the J-gate table
 
@@ -168,10 +181,25 @@ and `[2,0,2]`, steps 1 and 3, polarity 0 and 1, successors `[86,99,110,97]` agai
 
 ## §D The 12×12 arm: a resolution result, not an alignment one
 
-The specification asks whether the perfect score comes from cell alignment. A
-capacity-matched discriminator answers it: **24×24×16** holds the same 9,216 scalars as
-12×12×64 but puts four slots inside each cell, so its boundaries deliberately do *not*
-coincide with the simulator's.
+The specification asks whether the perfect score comes from cell alignment.
+
+**My first discriminator was not one.** I used a capacity-matched 24×24×16 arm and called
+its boundaries misaligned. They are not: at one pixel per slot the slot boundaries are a
+*superset* of the cell boundaries, so that arm **refines** the cell partition and no slot
+straddles a cell. It matching 12×12 is therefore consistent with alignment mattering and
+discriminates nothing. The `cell_aligned` predicate that told me otherwise was wrong —
+`block % CELL == 0` is right only when the block is coarser than the cell — and is fixed.
+
+The discriminator that works is a **one-pixel roll of the frame at 12×12**: identical block
+size, identical capacity, but every block then straddles four game cells.
+
+| arm | exact-cell | switch F1 | derived event |
+|---|---:|---:|---:|
+| 12×12, boundaries on cell edges | 1.0000 | 1.0000 | 1.0000 |
+| **12×12, rolled 1px — every block straddles 4 cells** | **1.0000** | **1.0000** | **1.0000** |
+
+The straddling arm matches exactly, so the conclusion survives — on evidence that bears on
+it. For completeness the original capacity table:
 
 | geometry | cells/slot | boundaries aligned | token_grid_cnn | hierarchical |
 |---|---:|---|---:|---:|
@@ -180,11 +208,12 @@ coincide with the simulator's.
 | 12×12×64 | 1.00 | **yes** | 1.0000 | 1.0000 |
 | 24×24×16 | 0.50 | **no** | **1.0000** | **1.0000** |
 
-**The misaligned arm matches the aligned one exactly.** So the perfect score is a
-*resolution* result — having at least one slot per cell — and not dependence on knowing
-where the simulator's cell boundaries fall. On the specification's test, 12×12 should
-therefore **not** be labelled an environment-aligned diagnostic on the grounds of
-alignment.
+So the perfect score is a *resolution* result — having at least one slot per cell — and
+not dependence on knowing where the simulator's cell boundaries fall. On the
+specification's test, 12×12 should **not** be labelled an environment-aligned diagnostic on
+alignment grounds. Note also that every raw geometry is lossless here, so this comparison
+is about the decoder's grid-to-cell parameterisation and does not transfer to the lossy
+backbone geometries.
 
 It remains a diagnostic for a different reason, which the same table makes clear: neither
 backbone can supply it. Qwen's native token grid is 8×8 and Gemma's is 16×16, and 12
@@ -253,8 +282,13 @@ No derived event is fed to the main arm. That is gate K9, and it holds by constr
 
 ## §H Geometry decision
 
-By the frozen rule, at 8×8×64 both backbones clear the baseline with intervals excluding
-zero (Qwen [+0.034, +0.143], Gemma [+0.009, +0.120]); at 4×4×256 neither does, and Qwen is
+The frozen rule was **mis-implemented** in the first draft: the gate took the last
+geometry in a hard-coded tuple that had *any* single backbone win, so it required one
+backbone rather than all and the choice was decided by tuple order. It now requires every
+backbone and selects the eligible geometry with the best worst-case backbone. The outcome
+is unchanged, because the data satisfy the stricter rule.
+
+By that rule, at 8×8×64 both backbones clear the baseline with intervals excluding zero (Qwen [+0.034, +0.143], Gemma [+0.009, +0.120]); at 4×4×256 neither does, and Qwen is
 significantly *worse* than baseline. **8×8×64 is selected.** 8×8×256 is retained as a
 capacity diagnostic: it is marginally better on Gemma (0.8012) at four times the feature
 bytes, which is a representation requirement to report rather than a budget to change
@@ -274,13 +308,13 @@ correctly marked provisional.
 | K3 | pass | raw @ 8×8×64: exact-cell 0.9857, switch F1 0.8282, event 0.9045 |
 | K4 | pass | 6 arms exceed 0.90 exact-cell against the old head's 0.3650 ceiling |
 | K5 | pass | both pretrained interfaces clear baseline with intervals excluding zero |
-| **K6** | **FAIL** | main-arm alias ranking 0.5006 vs shuffled 0.5050, no-recurrence 0.5000 |
+| **K6** | **unknown** | no positive control: the arm is 4× worse than a memoryless no-phase ceiling (0.1492 vs 0.0354), and an oracle-polarity arm barely beats it at this budget |
 | K7 | pass | 8×8×64 selected, 2/2 backbones eligible; 4×4×256 0/2 |
 | K8 | **unknown** | the −0.02 margin was frozen against a disqualified probe and cannot be carried across instruments |
 | K9 | pass | no derived event reaches the main arm |
 | K10 | pass | J6 and J8 resolved; J9 carried forward as K8 for the same reason it was opened |
 
-**9 pass, 1 fail, 1 unknown.**
+**9 pass, 0 fail, 2 unknown.**
 
 ## Bugs and corrections
 
@@ -315,8 +349,9 @@ correctly marked provisional.
 
 ## Decision
 
-By the specification's branches: crossing passes and phase fails, which classifies as
-**temporal-state construction failure**.
+No branch of the specification's decision rule applies, because the branch that seemed to
+— *"crossing passes but phase fails"* — requires a phase measurement that means something,
+and this one does not. The correct status is **undecided**.
 
 The remaining work is now specific. The environment contains the chain; the packet is
 clean; the observables are decodable at 1.000 from raw pixels and above baseline from both
@@ -326,6 +361,36 @@ switch crossing is. Candidates worth pricing before building: an auxiliary
 next-observation prediction loss, a longer-horizon objective that makes phase pay for
 itself, or an explicit belief state over a small discrete latent. K8 also needs a
 non-inferiority margin re-frozen against the qualified readout before it can gate anything.
+
+## §J Independent review
+
+Three targeted reviews, as specified. **All three returned "overstated" at high
+confidence, and all three were substantially right.** Every objection acted on was
+reproduced by running code before being accepted.
+
+**Reviewer 1 — packet.** Refuted the structural-isolation claim. `model_tensor` concatenates
+four free-form fields, so a *builder* can fold a provenance value in; the guard I wrote held
+one packet fixed and varied envelopes, which `model_tensor` never reads, so no-oping the
+whole function left 15/15 tests passing. The planted-leak test raised its own exception
+inside its own `pytest.raises`. All reproduced by mutation and fixed: the guard now takes a
+builder, sensors are allow-listed, and both mutations bite. Also caught that the audit's
+packet and the class were unconnected, and that K1 passed the literal `True`.
+
+**Reviewer 2 — geometry.** Showed my §D discriminator refines rather than straddles the cell
+partition, so it could not discriminate; supplied the one-pixel-roll arm that can, and it
+supports the same conclusion. Also showed the frozen geometry rule was implemented as "any
+one backbone, last tuple entry" rather than "all backbones". Both fixed; the geometry outcome
+is unchanged.
+
+**Reviewer 3 — readout.** Showed K6 had no positive control and that the instrument is blind
+at the budget used. Reproduced and accepted; K6 withdrawn to UNKNOWN.
+
+**Survived refutation.** The event mechanism: both reviewers traced the loss independently
+and confirmed no event or crossing symbol appears anywhere in the decoder's training, so the
+DERIVED labelling and K9 hold by construction. The nearest-upsample ceiling and its fix. The
+pre-validation capability test that caught the linear cross-attention head. The alias
+enumeration and all three pinned certificates, re-derived from an independent
+reimplementation of the transition rule with exact agreement on every field.
 
 ## Narrow supported claim
 

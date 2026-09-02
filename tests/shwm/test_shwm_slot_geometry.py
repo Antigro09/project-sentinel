@@ -27,11 +27,12 @@ def test_high_capacity_arm_is_actually_higher_capacity() -> None:
 
 
 def test_alignment_is_reported_correctly_for_each_geometry() -> None:
-    """12 game cells do not divide into 8 blocks; that must show up as False."""
+    """Only a block that divides neither way straddles a cell."""
     assert sg.GEOMETRY_A.cell_aligned is True
     assert sg.GEOMETRY_B.cell_aligned is False
     assert sg.GEOMETRY_C.cell_aligned is False
     assert sg.GEOMETRY_D.cell_aligned is True
+    assert sg.GEOMETRY_E.cell_aligned is True
 
 
 def test_cells_per_block_matches_the_frame_and_grid() -> None:
@@ -94,11 +95,23 @@ def test_pixel_sources_can_reach_every_geometry() -> None:
 
 
 def test_sub_cell_diagnostic_is_capacity_matched_to_the_aligned_one() -> None:
-    """D and E must hold the same scalars, or the alignment question is confounded."""
     assert sg.GEOMETRY_D.scalars == sg.GEOMETRY_E.scalars == 9216
     assert sg.GEOMETRY_D.cells_per_block == 1.0
     assert sg.GEOMETRY_E.cells_per_block == 0.5
-    assert sg.GEOMETRY_D.cell_aligned and not sg.GEOMETRY_E.cell_aligned
+
+
+def test_a_block_finer_than_a_cell_refines_rather_than_straddles() -> None:
+    """E is not a misalignment control, and an earlier report treated it as one.
+
+    At one pixel per slot the slot boundaries contain every cell boundary, so the
+    partition is refined and nothing straddles. Only 8x8 -- 3px blocks against 2px
+    cells -- actually cuts cells.
+    """
+    assert sg.GEOMETRY_D.cell_aligned      # 2px block == 1 cell
+    assert sg.GEOMETRY_E.cell_aligned      # 1px block refines the cell
+    assert sg.GEOMETRY_A.cell_aligned      # 6px block == 3 cells
+    assert not sg.GEOMETRY_B.cell_aligned  # 3px block straddles a 2px cell
+    assert not sg.GEOMETRY_C.cell_aligned
 
 
 def test_neither_backbone_can_supply_the_fine_diagnostics() -> None:
