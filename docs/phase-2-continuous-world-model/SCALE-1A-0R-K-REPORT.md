@@ -97,11 +97,31 @@ previous action, public action result, `delta_t`, modality masks, declared-absen
 trajectory id, clone lineage, absolute timestamp, simulator step, generator metadata,
 evaluator-only fields.
 
-Isolation is structural. The visible packet holds no provenance field and no reference to
-an envelope, so `model_tensor()` cannot reach one however it is called. `delta_t` is the
-constant **1.0**: the v2 environment is synchronous, so an absolute timestamp would carry
-the step and nothing else, and removing timing entirely would make the schema unable to
-express an asynchronous environment later.
+The visible packet holds no provenance **attribute**, so the assembly function cannot
+dereference an envelope. That is weaker than my first claim — "so `model_tensor()` cannot
+reach one however it is called" — which a reviewer refuted and I reproduced. `visual`,
+`language_goal_tokens`, `scalar_sensors` and `delta_t` are free-form, so a *builder* can
+still fold a provenance value into the tensor, and that is precisely how both v1 leaks
+travelled. Three corrections followed:
+
+- **The invariance guard could not fail.** It held one packet fixed and varied envelopes,
+  but `model_tensor` is a pure function of the frozen packet, so the envelope was not an
+  input to anything compared. Replacing the whole function with `return None` left all
+  fifteen tests passing. It now takes a **builder** and rebuilds the packet per envelope,
+  which is the actual threat model.
+- **Scalar sensors are now allow-listed**, not deny-listed. A denylist cannot see a value
+  carried under an innocent name, which is the whole lesson of the v1 leaks.
+- **The planted-leak test raised its own exception** inside its own `pytest.raises`, so it
+  asserted nothing about production code. It now hands leaky builders — one leaking through
+  `delta_t`, one through `visual` — to the real guard and requires it to raise.
+
+Both mutations now bite: no-op the guard and 2 tests fail; restore denylist behaviour and 2
+tests fail. `delta_t` is the constant **1.0** because the v2 environment is synchronous.
+
+**Not yet wired.** The v2 adapter still emits the v1 packet with `timestamp_ns=self._step`.
+K1 covers the schema and its tests, not the running pipeline, and the gate says so. The
+audit's packet definition is now tied to the class by a consistency check with its own
+calibration arm, so the §C counts cannot drift from the schema they claim to describe.
 
 The six required tests all pass, each paired with a planted leak it must catch:
 
@@ -249,7 +269,7 @@ correctly marked provisional.
 | gate | status | basis |
 |---|---|---|
 | K0 | pass | provenance above |
-| K1 | pass | packet split, 15 value-based tests with planted-leak arms |
+| K1 | pass | computed, not asserted: guard exercises a builder, sensors allow-listed, no provenance attribute, audit packet matches the class. Explicitly **not** wired into the live adapter |
 | K2 | pass | 39,556 certificates under the new packet; 3 pinned as regression tests |
 | K3 | pass | raw @ 8×8×64: exact-cell 0.9857, switch F1 0.8282, event 0.9045 |
 | K4 | pass | 6 arms exceed 0.90 exact-cell against the old head's 0.3650 ceiling |
@@ -277,7 +297,18 @@ correctly marked provisional.
 3. **K2 initially reported as missing** because the regenerated alias run was written to a
    scratch path rather than the artifact directory, so the gate read a stale file.
 4. **The J-phase geometry claim is reversed**, as recorded in §H.
-5. **My own headline reading of the random-projection result was wrong**, caught by checking
+5. **The packet guard had no detection power, and its calibration arm was fake.** The
+   invariance check varied envelopes against a frozen packet, which `model_tensor` does not
+   read, so no-oping the entire function left 15/15 tests passing; and the planted-leak test
+   raised `ContractViolation` itself inside its own `pytest.raises`, with a dead
+   `class Rebuilt` statement, so it tested the test. Both found by a reviewer and reproduced
+   by mutation before being accepted. This is the third time in this project a check has
+   passed because it was blind, and the second time I have written one myself.
+6. **The K1 gate passed the literal `True`** and so could not fail for any evidence. It is
+   now computed from four checks plus an explicit not-wired flag.
+7. **`ContractViolation` was used but not imported** in `alias_audit.py`, a latent
+   `NameError` that would only have surfaced when the new consistency check actually fired.
+8. **My own headline reading of the random-projection result was wrong**, caught by checking
    the arm's rank before the reviewers reported on it. A 27→64 random projection is lossless
    and a 2560→64 one is not, so the arms differ in how much the slot width truncates them and
    not only in what produced the features. The number stands; the interpretation does not.

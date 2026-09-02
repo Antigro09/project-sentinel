@@ -54,15 +54,47 @@ def main() -> int:
     if alias:
         pin = alias.get("pin_hidden_value_invariance", {})
         moved = pin.get("public_quantities_that_move_with_initial_polarity", [])
+        # Computed, not asserted. An earlier version passed the literal True here,
+        # so the gate could not fail for any evidence.
+        k1_checks: dict[str, bool] = {}
+        try:
+            from sentinel.wm.packet_v2 import (
+                AgentVisiblePacket, ProvenanceEnvelope,
+                assert_tensor_invariant_to_provenance,
+            )
+            from sentinel.wm.latent_contract import ContractViolation as _CV
+            import inspect
+            sys.path.insert(0, str(REPO / "experiments/shwm"))
+            from alias_audit import assert_matches_packet_v2
+
+            # (i) the guard must be able to fail
+            source = inspect.getsource(assert_tensor_invariant_to_provenance)
+            k1_checks["guard_exercises_a_builder"] = "builder(envelope)" in source
+            # (ii) sensors are allow-listed, not deny-listed
+            k1_checks["sensors_allow_listed"] = "PERMITTED_SCALAR_SENSORS" in inspect.getsource(
+                AgentVisiblePacket.__post_init__)
+            # (iii) no provenance attribute on the visible packet
+            k1_checks["no_provenance_attribute"] = not (
+                {f for f in AgentVisiblePacket.__dataclass_fields__}
+                & {f for f in ProvenanceEnvelope.__dataclass_fields__})
+            # (iv) the audit's packet is the class's packet
+            assert_matches_packet_v2()
+            k1_checks["audit_packet_matches_class"] = True
+        except Exception as error:                                # noqa: BLE001
+            k1_checks["error"] = False
+            k1_checks[str(error)[:60]] = False
+
+        # (v) honest: the live adapter still emits v1, and no experiment consumes the class
+        k1_checks["wired_into_the_live_adapter"] = False
+
         gates.append(gate(
-            "K1", True,
-            "AgentVisiblePacket carries no provenance field and holds no envelope "
-            "reference, so model_tensor cannot reach one; 15 value-based tests vary "
-            "provenance and require the tensor not to move, each with a planted leak "
-            "it must catch. The v1 channels remain in v1 and are reported: the "
-            f"invariance pin still shows {moved} moving with initial_polarity in the "
-            "v1 envelope, which is why v2 excludes them",
-            "packet_v2 + test_shwm_packet_v2"))
+            "K1", all(v for k, v in k1_checks.items()
+                      if k != "wired_into_the_live_adapter"),
+            "; ".join(f"{k}={v}" for k, v in k1_checks.items())
+            + ". NOT YET WIRED: the v2 adapter still emits the v1 packet with "
+            "timestamp_ns=self._step, so this gate covers the schema and its tests, "
+            "not the running pipeline",
+            "packet_v2 + test_shwm_packet_v2 + alias_audit"))
         v2 = alias["levels"].get("V2_agent_visible")
         if v2:
             gates.append(gate(

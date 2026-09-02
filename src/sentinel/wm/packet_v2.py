@@ -28,7 +28,7 @@ timestamp carries the step and nothing else. `delta_t` is therefore the constant
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 
@@ -50,6 +50,13 @@ Keeping the field and fixing its value is deliberate: a schema that omits timing
 entirely cannot express an asynchronous environment later, while a schema that
 carries an absolute timestamp in a synchronous one is carrying the step number.
 """
+
+PERMITTED_SCALAR_SENSORS: frozenset[str] = frozenset({"action_result"})
+"""Sensors a model may read, named exhaustively.
+
+An allow-list rather than a denylist. Both v1 leaks travelled under names no denylist
+would have flagged -- `timestamp_ns` and `source_observation_digest` -- so the only
+check that can work is one that rejects anything not explicitly permitted."""
 
 PROVENANCE_FIELDS: tuple[str, ...] = (
     "source_observation_digest",
@@ -92,11 +99,13 @@ class AgentVisiblePacket:
         ):
             raise ContractViolation(f"unknown action_result {self.action_result!r}")
         reject_hidden_fields(self.scalar_sensors, "AgentVisiblePacket.scalar_sensors")
-        leaked = sorted(set(self.scalar_sensors) & set(PROVENANCE_FIELDS))
-        if leaked:
+        unknown = sorted(set(self.scalar_sensors) - set(PERMITTED_SCALAR_SENSORS))
+        if unknown:
             raise ContractViolation(
-                f"provenance fields {leaked} appear in scalar_sensors; provenance may "
-                f"key a cache but may never be a model input"
+                f"scalar sensors {unknown} are not on the permitted list "
+                f"{sorted(PERMITTED_SCALAR_SENSORS)}; an allow-list is used here because a "
+                f"denylist cannot see a provenance value carried under an innocent name, "
+                f"which is how both v1 leaks travelled"
             )
         if self.audio is not None:
             raise ContractViolation("the audio channel is declared absent in v2")
@@ -199,17 +208,27 @@ class VersionedObservation:
 
 
 def assert_tensor_invariant_to_provenance(
-    visible: AgentVisiblePacket, envelopes: tuple[ProvenanceEnvelope, ...]
+    builder: "Callable[[ProvenanceEnvelope], AgentVisiblePacket]",
+    envelopes: tuple[ProvenanceEnvelope, ...],
 ) -> None:
-    """Vary provenance, hold the visible packet fixed, require tensor identity.
+    """Rebuild the packet from each envelope and require the tensor not to move.
 
-    A value-based check. Field-name denial cannot catch a hidden value folded
-    into a digest, which is exactly how both v1 leaks travelled.
+    The first version of this function took a *fixed* packet and varied the
+    envelope. That could never fire: `VersionedObservation.model_tensor` returns
+    `self.visible.model_tensor()`, a pure function of the frozen packet, so the
+    envelope was not an input to anything being compared. Replacing the whole
+    function with `return None` left all fifteen tests passing, which is the
+    definition of a check with no detection power.
+
+    The real threat is a *builder* that folds a provenance value into the visible
+    packet -- exactly how both v1 leaks travelled: `timestamp_ns=self._step`, and a
+    level digest carrying `initial_polarity` into `source_observation_digest`. So
+    the builder is the thing that has to be varied.
     """
-    tensors = [VersionedObservation(visible, e).model_tensor() for e in envelopes]
+    tensors = [builder(envelope).model_tensor() for envelope in envelopes]
     for other in tensors[1:]:
         if not np.array_equal(tensors[0], other):
             raise ContractViolation(
-                "the model tensor moved when only provenance changed; a provenance "
-                "value is reaching model input"
+                "the model tensor moved when only provenance changed; the builder is "
+                "folding a provenance value into the agent-visible packet"
             )

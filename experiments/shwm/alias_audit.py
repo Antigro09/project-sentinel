@@ -49,6 +49,7 @@ from sentinel.env.adapters.procedural_visual_v2 import (  # noqa: E402
     build_level_v2,
 )
 from sentinel.wm.authority import AuthorityGate  # noqa: E402
+from sentinel.wm.latent_contract import ContractViolation  # noqa: E402
 from sentinel.wm.packet import build_vocabulary, tokenise_goal  # noqa: E402
 from sentinel.wm.versioning import digest_array, digest_of  # noqa: E402
 
@@ -89,10 +90,40 @@ EVALUATOR_ONLY_FIELDS: tuple[str, ...] = (
 AGENT_VISIBLE = tuple(f for f in PUBLIC_FIELDS
                       if f not in ("interface_name", "source_observation_digest"))
 
+from sentinel.wm.packet_v2 import (  # noqa: E402
+    PERMITTED_SCALAR_SENSORS, PROVENANCE_FIELDS as V2_PROVENANCE_FIELDS,
+)
+
 V2_AGENT_VISIBLE: tuple[str, ...] = (
     "visual", "language_goal_tokens", "scalar_sensors", "previous_action",
     "action_result", "delta_t", "modality_masks", "audio_slots",
 )
+"""Derived from `AgentVisiblePacket`, and checked against it.
+
+This list and the dataclass were written separately, which is how two definitions of
+"the packet" drift apart and how a certificate count ends up describing a schema no
+model uses. `assert_matches_packet_v2` ties them together so a change to one fails
+the other."""
+
+
+def assert_matches_packet_v2() -> None:
+    """The audit's packet must be the class's packet, minus the provenance half."""
+    import dataclasses
+    from sentinel.wm.packet_v2 import AgentVisiblePacket
+
+    declared = {f.name for f in dataclasses.fields(AgentVisiblePacket)}
+    declared = {"visual" if n == "visual" else n for n in declared}
+    audited = set(V2_AGENT_VISIBLE) - {"audio_slots"} | {"audio"}
+    missing = declared - audited
+    extra = audited - declared
+    if missing or extra:
+        raise ContractViolation(
+            f"the audit's packet and AgentVisiblePacket disagree; missing {sorted(missing)}, "
+            f"extra {sorted(extra)}"
+        )
+    overlap = set(V2_AGENT_VISIBLE) & set(V2_PROVENANCE_FIELDS)
+    if overlap:
+        raise ContractViolation(f"provenance fields {sorted(overlap)} are in the visible list")
 """The v2 AgentVisiblePacket: the step is gone and timing is the constant delta_t.
 
 This is the level the K-phase certificate is computed at. It is deliberately NOT
@@ -475,6 +506,7 @@ def main() -> int:
     arguments = parser.parse_args()
 
     layouts = list(range(90_000, 90_000 + arguments.layouts))
+    assert_matches_packet_v2()
     print(f"enumerating reachable states over {len(layouts)} layouts, depth {arguments.depth}",
           flush=True)
     states = enumerate_states(layouts, arguments.depth)

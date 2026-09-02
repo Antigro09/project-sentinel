@@ -56,14 +56,18 @@ def envelope(**overrides) -> ProvenanceEnvelope:
 # ---- 1. provenance varies, the tensor does not -------------------------------------------
 
 
+def clean_builder(_: ProvenanceEnvelope) -> AgentVisiblePacket:
+    """A builder that ignores provenance, as a correct one must."""
+    return visible()
+
+
 def test_tensor_invariant_to_whole_provenance_envelope() -> None:
-    packet = visible()
     envelopes = (
         envelope(),
         envelope(environment_seed=99, trajectory_id="t9", clone_lineage=("root", "c1"),
                  generator_metadata={"gen": "v2"}, evaluator_only={"polarity": 0}),
     )
-    assert_tensor_invariant_to_provenance(packet, envelopes)
+    assert_tensor_invariant_to_provenance(clean_builder, envelopes)
 
 
 # ---- 2. source digest ---------------------------------------------------------------------
@@ -71,10 +75,9 @@ def test_tensor_invariant_to_whole_provenance_envelope() -> None:
 
 def test_tensor_invariant_to_source_observation_digest() -> None:
     """v1 leaked initial_polarity through exactly this field."""
-    packet = visible()
     assert_tensor_invariant_to_provenance(
-        packet, (envelope(source_observation_digest="sha256:one"),
-                 envelope(source_observation_digest="sha256:two")))
+        clean_builder, (envelope(source_observation_digest="sha256:one"),
+                        envelope(source_observation_digest="sha256:two")))
 
 
 # ---- 3. absolute time and simulator step --------------------------------------------------
@@ -82,10 +85,9 @@ def test_tensor_invariant_to_source_observation_digest() -> None:
 
 def test_tensor_invariant_to_absolute_time_and_step() -> None:
     """v1 leaked the simulator step through `timestamp_ns`."""
-    packet = visible()
     assert_tensor_invariant_to_provenance(
-        packet, (envelope(absolute_timestamp_ns=0, simulator_step=0),
-                 envelope(absolute_timestamp_ns=10**9, simulator_step=7)))
+        clean_builder, (envelope(absolute_timestamp_ns=0, simulator_step=0),
+                        envelope(absolute_timestamp_ns=10**9, simulator_step=7)))
 
 
 def test_delta_t_is_the_synchronous_constant() -> None:
@@ -103,34 +105,59 @@ def test_two_packets_differing_only_in_step_are_identical() -> None:
 
 
 def test_provenance_field_name_in_sensors_is_rejected() -> None:
-    with pytest.raises(ContractViolation, match="provenance fields"):
+    with pytest.raises(ContractViolation, match="not on the permitted list"):
         visible(sensors={"simulator_step": 3.0})
 
 
-def test_planted_provenance_value_is_caught_by_the_invariance_check() -> None:
-    """Calibration: a leak carried by VALUE, under an innocent name.
+def test_planted_provenance_value_is_caught_by_the_guard() -> None:
+    """Calibration, and it must fail for the right reason.
 
-    `t` is not a forbidden name and passes every name check. It is caught only
-    because the tensor moves when provenance moves.
+    The first version of this test raised `ContractViolation` itself inside its own
+    `pytest.raises` block, so it asserted nothing about production code. It now hands
+    a leaky BUILDER to the real guard and requires the guard to raise.
+
+    Two leaks are planted, both under names no denylist would flag: one that reaches
+    the tensor through `delta_t`, and one through `visual`. If either survives, the
+    isolation claim is false.
     """
-    def leaky(env: ProvenanceEnvelope) -> AgentVisiblePacket:
-        return visible(sensors={"action_result": 1.0, "t": float(env.simulator_step)})
+    def leak_via_delta_t(env: ProvenanceEnvelope) -> AgentVisiblePacket:
+        return visible(delta_t=float(env.simulator_step))
+
+    def leak_via_visual(env: ProvenanceEnvelope) -> AgentVisiblePacket:
+        packet = visible()
+        pixels = np.array(packet.visual, copy=True)
+        pixels.flat[0] = float(env.simulator_step)
+        return AgentVisiblePacket(
+            visual=pixels, language_goal_tokens=packet.language_goal_tokens,
+            scalar_sensors=packet.scalar_sensors, previous_action=packet.previous_action,
+            action_result=packet.action_result, delta_t=packet.delta_t,
+            modality_masks=packet.modality_masks)
 
     envelopes = (envelope(simulator_step=1), envelope(simulator_step=6))
-    tensors = [leaky(e).model_tensor() for e in envelopes]
-    assert not np.array_equal(tensors[0], tensors[1]), "the planted leak did not move the tensor"
+    for builder in (leak_via_delta_t, leak_via_visual):
+        with pytest.raises(ContractViolation, match="folding a provenance value"):
+            assert_tensor_invariant_to_provenance(builder, envelopes)
 
-    with pytest.raises(ContractViolation, match="only provenance changed"):
-        # Held against a fixed visible packet the leak is invisible, so the check
-        # must be applied to packets rebuilt per envelope -- which is how a real
-        # pipeline would construct them.
-        class Rebuilt(AgentVisiblePacket):
-            pass
-        packets = [leaky(e) for e in envelopes]
-        if not np.array_equal(packets[0].model_tensor(), packets[1].model_tensor()):
-            raise ContractViolation(
-                "the model tensor moved when only provenance changed; a provenance "
-                "value is reaching model input")
+
+def test_the_guard_can_actually_fail() -> None:
+    """A guard that cannot fail is not a guard.
+
+    Replacing `assert_tensor_invariant_to_provenance` with a no-op previously left
+    every test in this file passing. This pins that it cannot happen again.
+    """
+    def leaky(env: ProvenanceEnvelope) -> AgentVisiblePacket:
+        return visible(delta_t=float(env.absolute_timestamp_ns))
+
+    with pytest.raises(ContractViolation):
+        assert_tensor_invariant_to_provenance(
+            leaky, (envelope(absolute_timestamp_ns=1), envelope(absolute_timestamp_ns=2)))
+
+
+def test_scalar_sensors_are_allow_listed_not_deny_listed() -> None:
+    """An innocent name must be rejected because it is not permitted, not because
+    it appears on a list of forbidden words."""
+    with pytest.raises(ContractViolation, match="not on the permitted list"):
+        visible(sensors={"action_result": 1.0, "t": 3.0})
 
 
 def test_audio_channel_is_declared_absent() -> None:
@@ -205,3 +232,36 @@ def test_v1_packet_module_is_untouched() -> None:
     from sentinel.wm import packet as v1
     assert hasattr(v1, "ObservationPacket")
     assert "timestamp_ns" in {f for f in v1.ObservationPacket.__dataclass_fields__}
+
+
+# ---- the audit's packet and the class must not drift apart ---------------------------------
+
+
+def test_audit_packet_matches_the_class() -> None:
+    """The §C certificate counts must describe the schema the class defines.
+
+    They were written separately, and a reviewer pointed out that nothing tied them
+    together -- so a count could describe a packet no model would ever see.
+    """
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "experiments/shwm"))
+    from alias_audit import assert_matches_packet_v2
+
+    assert_matches_packet_v2()
+
+
+def test_audit_packet_check_can_fail() -> None:
+    """Calibration: the consistency check must catch a real divergence."""
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "experiments/shwm"))
+    import alias_audit
+
+    original = alias_audit.V2_AGENT_VISIBLE
+    try:
+        alias_audit.V2_AGENT_VISIBLE = original + ("simulator_step",)
+        with pytest.raises(ContractViolation):
+            alias_audit.assert_matches_packet_v2()
+    finally:
+        alias_audit.V2_AGENT_VISIBLE = original
