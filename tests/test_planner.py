@@ -139,6 +139,7 @@ def test_predictions_accompany_every_action(levels) -> None:
     assert len(plan.predicted) == len(plan.actions)
 
 
+@pytest.mark.optional_dependency("arc_agi")
 def test_partial_ls20_model_plans_on_the_real_game() -> None:
     """The partial model is incomplete but must still be usable for search.
 
@@ -160,6 +161,7 @@ def test_partial_ls20_model_plans_on_the_real_game() -> None:
     assert BFSPlanner(max_nodes=2000).plan(model, start=model.init_state()) is None
 
 
+@pytest.mark.optional_dependency("arc_agi")
 def test_partial_model_beats_knowing_nothing() -> None:
     """Ranking must prefer understanding dynamics over predicting stasis."""
     import random

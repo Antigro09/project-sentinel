@@ -24,6 +24,13 @@ from sentinel.env import (
     record,
 )
 
+# The Phase-1 ARC-AGI environments need an optional package; without it
+# this module cannot even be collected, so it is skipped explicitly rather
+# than failing collection.
+pytest.importorskip("arc_agi", reason="optional dependency")
+
+pytestmark = pytest.mark.optional_dependency("arc_agi")
+
 GAMES = available_games()
 SAMPLE_GAMES = GAMES[:5]
 
