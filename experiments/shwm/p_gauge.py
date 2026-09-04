@@ -145,18 +145,29 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seeds", type=int, default=len(SEEDS))
     parser.add_argument("--out", type=Path, default=ARTIFACTS / "p-gauge.json")
+    # O2's Q10 asks whether the O12 result replicates on FRESH seeds and FRESH layouts.
+    # The defaults reproduce O1 byte for byte; the offsets make a replication possible
+    # without editing the constants a passed gate refers to.
+    parser.add_argument("--seed-base", type=int, default=0)
+    parser.add_argument("--layout-offset", type=int, default=0)
     arguments = parser.parse_args()
+    seeds = tuple(s + arguments.seed_base for s in SEEDS)
     started = time.perf_counter()
     import mlx.core as mx
     import mlx.nn as nn
     import mlx.optimizers as optim
 
-    train = collect_gauge_data(range(110_000, 110_040), 2, 9, 11)
-    test = collect_gauge_data(range(111_000, 111_020), 2, 9, 313)
+    offset = arguments.layout_offset
+    train = collect_gauge_data(range(110_000 + offset, 110_040 + offset), 2, 9, 11)
+    test = collect_gauge_data(range(111_000 + offset, 111_020 + offset), 2, 9, 313)
     print(f"{len(train[0])} train rows / {len(test[0])} test rows; "
           f"initial-polarity rate {test[4].mean():.3f}\n", flush=True)
 
-    report: dict[str, Any] = {"variants": {}, "seeds": list(SEEDS[:arguments.seeds])}
+    report: dict[str, Any] = {
+        "variants": {}, "seeds": list(seeds[:arguments.seeds]),
+        "layout_offset": offset, "seed_base": arguments.seed_base,
+        "train_layouts": list(range(110_000 + offset, 110_040 + offset)),
+        "test_layouts": list(range(111_000 + offset, 111_020 + offset))}
     print(f"{'variant':30s} {'belief acc (up to perm)':>24s} {'displacement':>13s}")
     print("-" * 72)
     for variant in VARIANTS:
@@ -171,7 +182,7 @@ def main() -> int:
                   f" {'-':>13s}")
             continue
         accuracies, displacements = [], []
-        for seed in SEEDS[:arguments.seeds]:
+        for seed in seeds[:arguments.seeds]:
             resets = transform(variant, train[0], seed)
             model = build_outcome_gauge(seed, train[1].shape[1])
             optimizer = optim.AdamW(learning_rate=2e-3)
